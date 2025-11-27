@@ -5,7 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-## [1.6.6] - 2025-09-24
+## [1.6.6] - 2025-11-24
 
 ### Changed
 - updated PHlib to version 3.2.25324
@@ -931,3 +931,4 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [0.0.1] - 2019-05-30
 ### Added
 - ProcessHacker Library integration
+
