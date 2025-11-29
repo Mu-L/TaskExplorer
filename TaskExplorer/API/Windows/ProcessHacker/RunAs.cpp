@@ -477,6 +477,7 @@ NTSTATUS RunAsLimitedUser(PWSTR CommandLine)
 	return status;
 }
 
+#ifndef USE_TASK_HELPER
 NTSTATUS RunAsTrustedInstaller(PWSTR CommandLine)
 {
     NTSTATUS status = STATUS_UNSUCCESSFUL;
@@ -593,6 +594,7 @@ CleanupExit:
 
     return status;
 }
+#endif // !USE_TASK_HELPER
 
 
 ULONG SelectedRunAsMode = ULONG_MAX;
@@ -648,13 +650,27 @@ BOOLEAN PhMwpOnNotify(
         }
 		else if (SelectedRunAsMode == RUNAS_MODE_SYS)
 		{
-			//NTSTATUS status = RunAsTrustedInstaller(runFileDlg->lpszFile);
+#ifdef USE_TASK_HELPER
+			// Use TaskHelper worker for RunAsTrustedInstaller
+			QString WorkerPipeName = CTaskService::RunWorker(true, false);
+			NTSTATUS status = STATUS_UNSUCCESSFUL;
 
-			NTSTATUS status = STATUS_SUCCESS;
-            QStringList Arguments;
-			Arguments.append("-runasti");
-			Arguments.append(QString::fromWCharArray(runFileDlg->lpszFile));
-			QProcess::startDetached(QCoreApplication::applicationFilePath(), Arguments);
+			if (!WorkerPipeName.isEmpty())
+			{
+				QVariantMap Parameters;
+				Parameters["CommandLine"] = QString::fromWCharArray(runFileDlg->lpszFile);
+
+				QVariantMap Request;
+				Request["Command"] = "RunAsTrustedInstaller";
+				Request["Parameters"] = Parameters;
+
+				QVariant Response = CTaskService::SendCommand(WorkerPipeName, Request);
+				status = Response.isValid() ? Response.toInt() : STATUS_UNSUCCESSFUL;
+			}
+#else
+			// Use legacy RunAsTrustedInstaller implementation
+			NTSTATUS status = RunAsTrustedInstaller(runFileDlg->lpszFile);
+#endif
 
             if (NT_SUCCESS(status))
             {

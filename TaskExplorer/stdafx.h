@@ -128,6 +128,8 @@
 
 #include "../MiscHelpers/Common/DebugHelpers.h"
 
+#define USING_QT
+
 #define USE_QEXTWIDGETS
 
 extern class CSettings*		theConf;

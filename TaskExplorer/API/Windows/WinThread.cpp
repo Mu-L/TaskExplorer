@@ -921,7 +921,7 @@ QString GetClrThreadAppDomain(quint64 ProcessId, quint64 ThreadId)
 	if (!NT_SUCCESS(PhGetProcessIsDotNet((HANDLE)ProcessId, &isDotNet)) || !isDotNet)
 		return "";*/
 
-#ifdef WIN64
+#ifdef _WIN64
 	BOOLEAN IsWow64 = FALSE;
 
     HANDLE processHandle;

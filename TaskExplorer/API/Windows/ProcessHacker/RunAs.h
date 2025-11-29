@@ -57,7 +57,9 @@ VOID PhSetDesktopWinStaAccess(VOID);
 qint32 SvcApiInvokeRunAsService(const QVariantMap& Parameters);
 
 NTSTATUS RunAsLimitedUser(PWSTR CommandLine);
+#ifndef USE_TASK_HELPER
 NTSTATUS RunAsTrustedInstaller(PWSTR CommandLine);
+#endif
 
 BOOLEAN PhMwpOnNotify(_In_ NMHDR *Header, _Out_ LRESULT *Result);
 

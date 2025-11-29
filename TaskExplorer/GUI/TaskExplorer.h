@@ -9,10 +9,6 @@
 #include "../MiscHelpers/Common/FlexError.h"
 #include "../MiscHelpers/Common/CustomTheme.h"
 
-#define VERSION_MJR		1
-#define VERSION_MIN 	6
-#define VERSION_REV 	6
-#define VERSION_UPD 	0
 
 class CGraphBar;
 class CHistoryGraph;

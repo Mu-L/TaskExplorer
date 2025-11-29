@@ -377,7 +377,7 @@ NTSTATUS PhEnumHandlesGeneric(
 			convertedHandles->Handles[i].HandleAttributes = handles->Handles[i].HandleAttributes;
 		}
 
-		PhFree(handles);
+		PhFreePage(handles);
 
 		*Handles = convertedHandles;
 		*FilterNeeded = FALSE;

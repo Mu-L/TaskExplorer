@@ -222,13 +222,13 @@ void CWinDumper::run()
 		SocketName = CTaskService::RunWorker(false, true);
 		if (SocketName.isEmpty())
 		{
-			emit StatusMessage(tr("Failed to start a 32-bit version of TaskExplorer. A 64-bit dump will be created instead."));
+			emit StatusMessage(tr("Failed to start a 32-bit TaskHelper. A 64-bit dump will be created instead."));
 		}
 		else
 		{
-			emit StatusMessage(tr("Started a 32-bit version of TaskExplorer, to create a 32-bit dump file."));
+			emit StatusMessage(tr("Started a 32-bit TaskHelper, to create a 32-bit dump file."));
 
-			NTSTATUS status;
+			NTSTATUS status = STATUS_UNSUCCESSFUL;
 
 			HANDLE ServiceProcessId = (HANDLE)CTaskService::SendCommand(SocketName, "GetProcessId").toULongLong();
 			if (ServiceProcessId)
@@ -266,7 +266,7 @@ void CWinDumper::run()
 				}
 			}
 
-			emit StatusMessage(tr("The 32-bit version of TaskExplorer failed to create the memory dump, Error: %1\r\nA 64-bit dump will be created instead.").arg(status), status);
+			emit StatusMessage(tr("The 32-bit TaskHelper failed to create the memory dump, Error: %1\r\nA 64-bit dump will be created instead.").arg(status), status);
 		}		
     }
 #endif

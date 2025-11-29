@@ -13,7 +13,8 @@
 #include "stdafx.h"
 #include "PhSvc.h"
 
-//#define SIP(String, Integer) { (PWSTR)(String), (PVOID)(Integer) }
+#undef SIP
+#define SIP(String, Integer) { (PWSTR)(String), (PVOID)(Integer) }
 
 PH_KEY_VALUE_PAIR PhpServiceTypePairs[] =
 {

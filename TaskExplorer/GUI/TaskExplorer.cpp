@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "TaskExplorer.h"
+#include "Version.h"
 #ifdef WIN32
 #include "../API/Windows/WindowsAPI.h"
 #include "../API/Windows/ProcessHacker/RunAs.h"

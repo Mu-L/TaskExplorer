@@ -32,6 +32,16 @@ CSettingsWindow::CSettingsWindow(QWidget *parent)
 	this->setCentralWidget(centralWidget);
 	this->setWindowTitle(tr("Task Explorer - Settings"));
 
+	FixTriStateBoxPallete(this);
+
+	ui.tabWidget->setTabPosition(QTabWidget::West);
+	ui.tabWidget->setTabIcon(0, QIcon(":/Actions/Design"));
+	ui.tabWidget->setTabIcon(1, QIcon(":/Actions/MiscOptions"));
+	ui.tabWidget->setTabIcon(2, QIcon(":/Actions/GUI"));
+	ui.tabWidget->setTabIcon(3, QIcon(":/Actions/Settings"));
+
+	ui.tabWidget->setCurrentIndex(0);
+
 	{
 		ui.uiLang->addItem(tr("Auto Detection"), "");
 		ui.uiLang->addItem(tr("No Translation"), "native");
@@ -69,6 +79,11 @@ CSettingsWindow::CSettingsWindow(QWidget *parent)
 	ui.chkShow32->setChecked(theConf->GetBool("Options/Show32", true));
 
 	ui.chkDarkTheme->setCheckState(CSettingsWindow__Int2Chk(theConf->GetInt("MainWindow/DarkTheme", 2)));
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+	ui.chkFusionTheme->setCheckState(CSettingsWindow__Int2Chk(theConf->GetInt("MainWindow/UseFusionTheme", 1)));
+#else
+	ui.chkFusionTheme->setCheckState(CSettingsWindow__Int2Chk(theConf->GetInt("MainWindow/UseFusionTheme", 2)));
+#endif
 
 	ui.highlightCount->setValue(theConf->GetInt("Options/HighLoadHighlightCount", 5));
 
@@ -196,6 +211,7 @@ void CSettingsWindow::apply()
 	theConf->SetValue("Options/Show32", ui.chkShow32->isChecked());
 
 	theConf->SetValue("MainWindow/DarkTheme", CSettingsWindow__Chk2Int(ui.chkDarkTheme->checkState()));
+	theConf->SetValue("MainWindow/UseFusionTheme", CSettingsWindow__Chk2Int(ui.chkFusionTheme->checkState()));
 
 	theConf->SetValue("Options/HighLoadHighlightCount", ui.highlightCount->value());
 

@@ -624,9 +624,9 @@ STATUS InitKSI(const QString& AppDir)
 	if (!FileName.contains("\\")) 
 	{
 		if (IsOnARM64())
-			FileName = Split2(AppDir, "\\", true).first + "\\ARM64\\" + FileName;
+			FileName = AppDir + "\\ARM64\\" + FileName;
 		else
-			FileName = AppDir + "\\" + FileName;
+			FileName = AppDir + "\\AMD64\\" + FileName;
 	}
 
 	FileName = FileName.replace("/", "\\");
@@ -638,8 +638,6 @@ STATUS InitKSI(const QString& AppDir)
 
 	if(PhIsExecutingInWow64())
 		return ERR("Driver only supports 64 bit.", STATUS_IMAGE_MACHINE_TYPE_MISMATCH);
-
-	// TODO download dynamic data from server
 
 	NTSTATUS status;
 
@@ -1151,7 +1149,7 @@ void PhShowAbout(QWidget* parent)
                 "    <a href=\"https://github.com/wj32\">wj32</a> - Wen Jia Liu<br>"
                 "    <a href=\"https://github.com/dmex\">dmex</a> - Steven G<br>"
                 "    <a href=\"https://github.com/jxy-s\">jxy-s</a> - Johnny Shaw<br>"
-                "    <a href=\"https://github.com/ionescu007\">ionescu007</a> - Alex Ionescu\n"
+                "    <a href=\"https://github.com/ionescu007\">ionescu007</a> - Alex Ionescu<br>"
                 "    <a href=\"https://github.com/yardenshafir\">yardenshafir</a> - Yarden Shafir<br>"
                 "    <a href=\"https://github.com/winsiderss/systeminformer/graphs/contributors\">Contributors</a> - thank you for your additions!<br>"
                 "    Donors - thank you for your support!</p>"

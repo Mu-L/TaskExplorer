@@ -129,8 +129,8 @@
     <Import Project="$(QtMsBuild)\qt_defaults.props" />
   </ImportGroup>
   <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <QtInstall>5.15.16_msvc2022_64</QtInstall>
-    <QtModules>core;network;gui;widgets;winextras;concurrent;core-private</QtModules>
+    <QtInstall>6.8.3_msvc2022_64</QtInstall>
+    <QtModules>core;network;gui;widgets;concurrent;core-private</QtModules>
     <QtExcludedOptions>-Zc:strictStrings</QtExcludedOptions>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="QtSettings">
@@ -144,8 +144,8 @@
     <QtExcludedOptions>-Zc:strictStrings</QtExcludedOptions>
   </PropertyGroup>
   <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <QtInstall>5.15.16_msvc2022_64</QtInstall>
-    <QtModules>core;network;gui;widgets;winextras;concurrent;core-private</QtModules>
+    <QtInstall>6.8.3_msvc2022_64</QtInstall>
+    <QtModules>core;network;gui;widgets;concurrent;core-private</QtModules>
     <QtExcludedOptions>-Zc:strictStrings</QtExcludedOptions>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="QtSettings">
@@ -634,8 +634,12 @@
     <ClCompile Include="API\Windows\WinToken.cpp" />
     <ClCompile Include="API\Windows\WinWnd.cpp" />
     <ClCompile Include="API\WndInfo.cpp" />
+    <ClCompile Include="Common\Buffer.cpp" />
     <ClCompile Include="Common\IncrementalPlot.cpp" />
+    <ClCompile Include="Common\Strings.cpp" />
     <ClCompile Include="Common\TabPanel.cpp" />
+    <ClCompile Include="Common\Variant.cpp" />
+    <ClCompile Include="Common\XVariant.cpp" />
     <ClCompile Include="GUI\AffinityDialog.cpp" />
     <ClCompile Include="GUI\DriverWindow.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
@@ -784,6 +788,7 @@
     <ClCompile Include="SVC\TaskService.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="version.h" />
     <QtMoc Include="SVC\TaskService.h">
       <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../SVC/%(Filename)%(Extension)</ForceInclude>
       <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../SVC/%(Filename)%(Extension)</ForceInclude>
@@ -1124,14 +1129,6 @@
       <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../GUI/Models/%(Filename)%(Extension)</ForceInclude>
       <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../GUI/Models/%(Filename)%(Extension)</ForceInclude>
     </QtMoc>
-    <QtMoc Include="Common\IncrementalPlot.h">
-      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../Common/%(Filename)%(Extension)</ForceInclude>
-      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../Common/%(Filename)%(Extension)</ForceInclude>
-      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../Common/%(Filename)%(Extension)</ForceInclude>
-      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../Common/%(Filename)%(Extension)</ForceInclude>
-      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../Common/%(Filename)%(Extension)</ForceInclude>
-      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../Common/%(Filename)%(Extension)</ForceInclude>
-    </QtMoc>
     <QtMoc Include="GUI\Models\ThreadModel.h">
       <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../GUI/Models/%(Filename)%(Extension)</ForceInclude>
       <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../GUI/Models/%(Filename)%(Extension)</ForceInclude>
@@ -1321,7 +1318,15 @@
     <QtMoc Include="GUI\SettingsWindow.h" />
     <QtMoc Include="API\Windows\WinHeap.h" />
     <ClInclude Include="API\Windows\WinHelpers\InjectDll\injdll.h" />
+    <QtMoc Include="Common\IncrementalPlot.h" />
     <QtMoc Include="Common\TabPanel.h" />
+    <ClInclude Include="Common\Buffer.h" />
+    <ClInclude Include="Common\Exception.h" />
+    <ClInclude Include="Common\Strings.h" />
+    <ClInclude Include="Common\Types.h" />
+    <ClInclude Include="Common\Variant.h" />
+    <ClInclude Include="Common\VariantDefs.h" />
+    <ClInclude Include="Common\XVariant.h" />
     <ClInclude Include="GUI\CustomItemDelegate.h" />
     <QtMoc Include="GUI\Models\StringModel.h" />
     <QtMoc Include="GUI\Models\GDIModel.h" />
@@ -1483,6 +1488,7 @@
     <Manifest Include="Resources\TaskExplorer.manifest" />
   </ItemGroup>
   <ItemGroup>
+    <QtTranslation Include="taskexplorer_pt.ts" />
     <QtTranslation Include="taskexplorer_tr.ts" />
     <QtTranslation Include="taskexplorer_zh_CN.ts" />
   </ItemGroup>

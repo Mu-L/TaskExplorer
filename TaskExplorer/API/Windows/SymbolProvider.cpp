@@ -458,7 +458,7 @@ void CStackProviderJob::Run(struct SSymbolProvider* m)
 	if (!m->ThreadHandle)
 	{
 	// case PluginThreadStackInitializing:
-#ifdef WIN64
+#ifdef _WIN64
 		HANDLE processHandle;
 
 		if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, clientId.UniqueProcess)))
@@ -488,7 +488,7 @@ void CStackProviderJob::Run(struct SSymbolProvider* m)
 		{
 			m->Support = (PCLR_PROCESS_SUPPORT)CreateClrProcessSupport(clientId.UniqueProcess);
 
-#ifdef WIN64
+#ifdef _WIN64
 			if (m->IsWow64)
 				m->SocketName = CTaskService::RunWorker(false, true);
 #endif
@@ -509,7 +509,7 @@ void CStackProviderJob::Run(struct SSymbolProvider* m)
         m->Support = NULL;
     }
 
-#ifdef WIN64
+#ifdef _WIN64
     //if (!m->SocketName.isEmpty())
     //	CTaskService::TerminateService(m->SocketName);
 #endif
@@ -693,7 +693,7 @@ void CStackProviderJob::OnCallBack(struct _PH_THREAD_STACK_FRAME* StackFrame)
 
     if (m->Support)
     {
-#ifndef WIN64
+#ifndef _WIN64
         PVOID predictedEip = m->PredictedEip;
         PVOID predictedEbp = m->PredictedEbp;
         PVOID predictedEsp = m->PredictedEsp;

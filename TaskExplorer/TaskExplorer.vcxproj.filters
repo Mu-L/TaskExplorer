@@ -212,9 +212,6 @@
     <ClCompile Include="API\Windows\WinWnd.cpp">
       <Filter>API\Windows</Filter>
     </ClCompile>
-    <ClCompile Include="Common\IncrementalPlot.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
     <ClCompile Include="GUI\Models\WindowModel.cpp">
       <Filter>TaskExplorer\Models</Filter>
     </ClCompile>
@@ -590,9 +587,6 @@
     <ClCompile Include="API\Windows\WinHeap.cpp">
       <Filter>API\Windows</Filter>
     </ClCompile>
-    <ClCompile Include="Common\TabPanel.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
     <ClCompile Include="API\Windows\SystemHacker\xph.c">
       <Filter>API\Windows\SystemHacker</Filter>
     </ClCompile>
@@ -601,6 +595,24 @@
     </ClCompile>
     <ClCompile Include="API\Windows\SystemHacker\SystemHacker.cpp">
       <Filter>API\Windows\SystemHacker</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\IncrementalPlot.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\TabPanel.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Variant.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\XVariant.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Buffer.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Strings.cpp">
+      <Filter>Common</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -781,6 +793,30 @@
     <ClInclude Include="API\Windows\SystemHacker\SystemHacker.h">
       <Filter>API\Windows\SystemHacker</Filter>
     </ClInclude>
+    <ClInclude Include="Common\Types.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Variant.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\VariantDefs.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\XVariant.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Buffer.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Exception.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Strings.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="version.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="API\SystemAPI.h">
@@ -887,9 +923,6 @@
     </QtMoc>
     <QtMoc Include="API\Windows\WinWnd.h">
       <Filter>API\Windows</Filter>
-    </QtMoc>
-    <QtMoc Include="Common\IncrementalPlot.h">
-      <Filter>Common</Filter>
     </QtMoc>
     <QtMoc Include="GUI\Models\WindowModel.h">
       <Filter>TaskExplorer\Models</Filter>
@@ -1182,6 +1215,9 @@
     <QtMoc Include="API\Windows\WinHeap.h">
       <Filter>API\Windows</Filter>
     </QtMoc>
+    <QtMoc Include="Common\IncrementalPlot.h">
+      <Filter>Common</Filter>
+    </QtMoc>
     <QtMoc Include="Common\TabPanel.h">
       <Filter>Common</Filter>
     </QtMoc>
@@ -1267,6 +1303,9 @@
       <Filter>Translation Files</Filter>
     </QtTranslation>
     <QtTranslation Include="taskexplorer_tr.ts">
+      <Filter>Translation Files</Filter>
+    </QtTranslation>
+    <QtTranslation Include="taskexplorer_pt.ts">
       <Filter>Translation Files</Filter>
     </QtTranslation>
   </ItemGroup>

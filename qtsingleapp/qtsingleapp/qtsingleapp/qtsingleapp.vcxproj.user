@@ -19,31 +19,31 @@
     <LocalDebuggerEnvironment>PATH=$(QTDIR)\bin%3b"$(QTDIR)\bin%3b$(PATH)</LocalDebuggerEnvironment>
   </PropertyGroup>
   <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <QtLastBackgroundBuild>2025-07-03T12:25:04.6014965Z</QtLastBackgroundBuild>
+    <QtLastBackgroundBuild>2025-11-24T19:55:27.8273540Z</QtLastBackgroundBuild>
     <QtTouchProperty>
     </QtTouchProperty>
   </PropertyGroup>
   <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <QtLastBackgroundBuild>2025-07-03T12:40:53.5908629Z</QtLastBackgroundBuild>
+    <QtLastBackgroundBuild>2025-11-29T08:10:17.0006003Z</QtLastBackgroundBuild>
     <QtTouchProperty>
     </QtTouchProperty>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="QtSettings">
-    <QtLastBackgroundBuild>2025-01-27T07:54:16.5058494Z</QtLastBackgroundBuild>
+    <QtLastBackgroundBuild>2025-11-22T22:16:56.9822788Z</QtLastBackgroundBuild>
     <QtTouchProperty />
   </PropertyGroup>
   <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <QtLastBackgroundBuild>2025-07-03T12:25:04.3438517Z</QtLastBackgroundBuild>
+    <QtLastBackgroundBuild>2025-11-22T22:16:56.6697280Z</QtLastBackgroundBuild>
     <QtTouchProperty>
     </QtTouchProperty>
   </PropertyGroup>
   <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <QtLastBackgroundBuild>2025-07-03T12:40:53.5142274Z</QtLastBackgroundBuild>
+    <QtLastBackgroundBuild>2025-11-29T08:10:16.8181514Z</QtLastBackgroundBuild>
     <QtTouchProperty>
     </QtTouchProperty>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="QtSettings">
-    <QtLastBackgroundBuild>2025-01-27T07:54:16.4235716Z</QtLastBackgroundBuild>
+    <QtLastBackgroundBuild>2025-11-22T22:16:56.5225717Z</QtLastBackgroundBuild>
     <QtTouchProperty />
   </PropertyGroup>
 </Project>

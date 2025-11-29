@@ -5,6 +5,24 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
+## [1.7.0] - 2025-12-??
+
+### Added
+- added TaskHelper.exe used as worker and service instead of using TaskExplorer.exe itself
+
+### Changed
+- Changed settings tabs from timple tabs to side tabs with icons
+- switched to Qt 6.8.3 with [Windows 7 compatibility patches](https://github.com/crystalidea/qt6windows7)
+ 
+### Fixed
+- fixed crash on handle view
+
+### Removed
+- removed support for 32-bit Windows
+
+
+
+
 ## [1.6.6] - 2025-11-24
 
 ### Changed

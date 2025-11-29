@@ -6,7 +6,7 @@
 #define CurrentYear     GetDateTimeString('yyyy','','')
 ; #define MyAppVersion    "1.6.0"
 #define MyAppAuthor     "DavidXanatos (xanasoft.com)"
-#define MyAppCopyright  "(c) 2019-" + CurrentYear + " " + MyAppAuthor
+#define MyAppCopyright  "(c) 2019-" + CurrentYear + " " + MYAppAuthor
 #define MyAppURL        "https://github.com/DavidXanatos/TaskExplorer"
 
 #include "Languages.iss"
@@ -31,7 +31,7 @@ AppUpdatesURL={#MyAppURL}
 AppCopyright={#MyAppCopyright}
 
 UninstallDisplayName={#MyAppName} {#MyAppVersion}
-UninstallDisplayIcon={app}\x86\TaskExplorer.exe
+UninstallDisplayIcon={app}\TaskExplorer.exe
 AppPublisher={#MyAppAuthor}
 
 AppMutex=TASKEXPLORER_MUTEX
@@ -44,7 +44,7 @@ ArchitecturesAllowed=x86 x64 arm64
 ArchitecturesInstallIn64BitMode=x64 arm64
 AllowNoIcons=yes
 AlwaysRestart=no
-LicenseFile=.\license.txt
+LicenseFile=.\Resources\license.txt
 UsedUserAreasWarning=no
 SetupIconFile=TaskExplorerInstall.ico
 
@@ -64,17 +64,17 @@ Name: "DesktopIcon"; Description: "{cm:CreateDesktopIcon}"; MinVersion: 0.0,5.0;
 Source: ".\Build\*"; DestDir: "{app}"; MinVersion: 0.0,5.0; Flags: recursesubdirs ignoreversion;
 
 ; other files
-Source: "license.txt"; DestDir: "{app}"; MinVersion: 0.0,5.0; 
+;Source: "license.txt"; DestDir: "{app}"; MinVersion: 0.0,5.0; 
 ;Source: "changelog.txt"; DestDir: "{app}"; MinVersion: 0.0,5.0; 
 
 ; Only if portable.
 Source: ".\TaskExplorer.ini"; DestDir: "{app}\x64"; Flags: ignoreversion onlyifdoesntexist; Check: IsPortable
 
 [Icons]
-Name: "{group}\TaskExplorer"; Filename: "{app}\x86\TaskExplorer.exe"; MinVersion: 0.0,5.0; 
+Name: "{group}\TaskExplorer"; Filename: "{app}\TaskExplorer.exe"; MinVersion: 0.0,5.0; 
 ;Name: "{group}\{cm:License}"; Filename: "{app}\license.txt"; MinVersion: 0.0,5.0; 
 Name: "{group}\{cm:UninstallProgram}"; Filename: "{uninstallexe}"; MinVersion: 0.0,5.0; 
-Name: "{userdesktop}\TaskExplorer"; Filename: "{app}\x86\TaskExplorer.exe"; Tasks: desktopicon; MinVersion: 0.0,5.0; 
+Name: "{userdesktop}\TaskExplorer"; Filename: "{app}\TaskExplorer.exe"; Tasks: desktopicon; MinVersion: 0.0,5.0; 
 
 
 [INI]
@@ -90,13 +90,13 @@ Type: filesandordirs; Name: "{app}\translations"
 
 [Registry]
 ; Autostart App.
-;Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueName: "TaskExplorer_AutoRun"; ValueType: string; ValueData: """{app}\x86\TaskExplorer.exe"" -autorun"; Flags: uninsdeletevalue; Tasks: AutoStartEntry
+;Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueName: "TaskExplorer_AutoRun"; ValueType: string; ValueData: """{app}\TaskExplorer.exe"" -autorun"; Flags: uninsdeletevalue; Tasks: AutoStartEntry
 
 
 [Run]
 ; Start TaskExplorer.
-Filename: "{app}\x86\TaskExplorer.exe"; Parameters: ""; Description: "Start TaskExplorer"; StatusMsg: "Launch TaskExplorer..."; Flags: postinstall nowait; Check: IsOpenApp
-;Filename: "{app}\x86\TaskExplorer.exe"; Parameters: "-autorun"; StatusMsg: "Launch TaskExplorer..."; Flags: runasoriginaluser nowait; Check: not IsPortable
+Filename: "{app}\TaskExplorer.exe"; Parameters: ""; Description: "Start TaskExplorer"; StatusMsg: "Launch TaskExplorer..."; Flags: postinstall nowait; Check: IsOpenApp
+;Filename: "{app}\TaskExplorer.exe"; Parameters: "-autorun"; StatusMsg: "Launch TaskExplorer..."; Flags: runasoriginaluser nowait; Check: not IsPortable
 
 
 [UninstallDelete]
@@ -389,4 +389,76 @@ begin
     exit;
   end;
 
+end;
+
+
+
+
+//////////////////////////////////////////////////////
+// ksi.dll handling
+//
+
+procedure PrepareOneDllForUpdate(const FileName: String);
+var
+  AppDir, DllPath, OldPath: String;
+  DeletedOld, DeletedDll, Renamed: Boolean;
+begin
+  AppDir := ExpandConstant('{app}');
+  DllPath := AddBackslash(AppDir) + FileName;
+  OldPath := AddBackslash(AppDir) + ChangeFileExt(FileName, '.old');
+
+  try
+    { Step 1: try to delete existing *.old }
+    if FileExists(OldPath) then
+    begin
+      DeletedOld := DeleteFile(OldPath);
+      if DeletedOld then
+        Log('Deleted old backup: ' + OldPath)
+      else
+        Log('Could not delete old backup (will apply fallback): ' + OldPath);
+    end
+    else
+      DeletedOld := True; { nothing to delete = OK }
+
+    { Step 2: if *.old could NOT be deleted, delete live *.dll outright }
+    if not DeletedOld then
+    begin
+      if FileExists(DllPath) then
+      begin
+        DeletedDll := DeleteFile(DllPath);
+        if DeletedDll then
+          Log('Fallback: deleted live DLL because .old was locked: ' + DllPath)
+        else
+          Log('Fallback failed: could not delete live DLL: ' + DllPath);
+      end
+      else
+        DeletedDll := True; { already absent = OK }
+    end;
+
+    { Step 3: if *.dll still exists and *.old is gone, try rename dll -> old }
+    if FileExists(DllPath) then
+    begin
+      if not FileExists(OldPath) then
+      begin
+        Renamed := RenameFile(DllPath, OldPath);
+        if Renamed then
+          Log('Renamed "' + DllPath + '" to "' + OldPath + '"')
+        else
+          Log('Rename failed (DLL may be held without delete-share): "' + DllPath + '" -> "' + OldPath + '"');
+      end
+      else
+        Log('Cannot rename: backup still present: ' + OldPath);
+    end;
+
+  except
+    Log('Exception in PrepareOneDllForUpdate for "' + FileName + '" (continuing).');
+  end;
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  Result := '';
+  { Handle both DLLs before file copy }
+  PrepareOneDllForUpdate('ksi.dll');
+  PrepareOneDllForUpdate('ARM64\ksi.dll');
 end;
