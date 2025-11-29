@@ -912,9 +912,9 @@ STATUS TryUpdateDynData(const QString& AppDir)
 		if (DrvFileName.contains("\\")) 
 			DrvPath = Split2(DrvFileName, "\\", true).first;
 		else if (IsOnARM64())
-			DrvPath = Split2(AppDir, "\\", true).first + "\\ARM64";
+			DrvPath = AppDir + "\\ARM64";
 		else
-			DrvPath = AppDir;
+			DrvPath = AppDir + "\\AMD64";
 
 		QFile::remove(DrvPath + "\\new_ksidyn.bin");
 		QFile::remove(DrvPath + "\\new_ksidyn.sig");
