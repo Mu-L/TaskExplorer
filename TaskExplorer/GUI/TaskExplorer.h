@@ -117,6 +117,8 @@ public slots:
 
 	void				UpdateUserMenu();
 
+	void				OpenTaskInfoWnd(quint64 PID);
+
 protected:
 	void				timerEvent(QTimerEvent* pEvent);
 	void				closeEvent(QCloseEvent *e);
@@ -125,6 +127,7 @@ protected:
 	quint64				m_LastTimer;
 
 	CCustomTheme		m_CustomTheme;
+	double				m_DefaultFontSize;
 
 	QMap<EColor, SColor> m_Colors;
 
@@ -140,6 +143,7 @@ private slots:
 	void				OnRunSys();
 	void				OnComputerAction();
 	void				OnUserAction();
+	void				OnWndFinder();
 	void				OnElevate();
 	void				OnExit();
 
@@ -213,6 +217,7 @@ private:
 	QAction*			m_pMenuRunAsAdmin;
 	QAction*			m_pMenuRunAs;
 	QAction*			m_pMenuRunSys;
+	QAction*			m_pMenuFindWnd;
 	QAction*			m_pMenuElevate;
 	QAction*			m_pMenuExit;
 

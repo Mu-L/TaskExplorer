@@ -24,6 +24,7 @@ private slots:
 
 	void					OnModulesUpdated(QSet<quint64> Added, QSet<quint64> Changed, QSet<quint64> Removed);
 	void					OnDoubleClicked();
+	void					OnOpenModule();
 
 	void					OnMenu(const QPoint &point);
 

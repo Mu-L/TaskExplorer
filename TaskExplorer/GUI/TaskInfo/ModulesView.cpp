@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "../TaskExplorer.h"
+#include "../TaskInfo/TaskInfoWindow.h"
 #include "ModulesView.h"
 #include "../../../MiscHelpers/Common/Common.h"
 #include "../../../MiscHelpers/Common/Finder.h"
@@ -84,7 +85,7 @@ CModulesView::CModulesView(bool bGlobal, QWidget *parent)
 
 
 	//m_pMenu = new QMenu();
-	m_pOpen = m_pMenu->addAction(tr("Open"), this, SLOT(OnDoubleClicked()));
+	m_pOpen = m_pMenu->addAction(tr("Open Module"), this, SLOT(OnOpenModule()));
 	
 	m_pMenu->addSeparator();
 	
@@ -289,6 +290,27 @@ void CModulesView::OnLoad()
 }
 
 void CModulesView::OnDoubleClicked()
+{
+	if (m_bGlobal)
+	{
+		QModelIndex Index = m_pModuleList->currentIndex();
+		QModelIndex ModelIndex = m_pSortProxy->mapToSource(Index);
+		CModulePtr pModule = m_pModuleModel->GetModule(ModelIndex);
+		if (pModule)
+		{
+			CProcessPtr pProcess = pModule->GetProcess().objectCast<CProcessInfo>();
+			if (pProcess)
+			{
+				CTaskInfoWindow* pTaskInfoWindow = new CTaskInfoWindow(QList<CProcessPtr>() << pProcess);
+				pTaskInfoWindow->show();
+			}
+		}
+	}
+	else
+		OnOpenModule();
+}
+
+void CModulesView::OnOpenModule()
 {
 	QModelIndex Index = m_pModuleList->currentIndex();
 	QModelIndex ModelIndex = m_pSortProxy->mapToSource(Index);

@@ -8,6 +8,7 @@ class CModuleInfo: public CAbstractInfo
 {
 	Q_OBJECT
 
+	TRACK_OBJECT(CModuleInfo)
 public:
 	CModuleInfo(QObject *parent = nullptr);
 	virtual ~CModuleInfo();

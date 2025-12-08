@@ -2424,6 +2424,15 @@ NTSTATUS KphInitializeKnownDll(
     VOID
     );
 
+#ifdef IS_KTE
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphGetProcessNtDllRtlSetBits(
+    _In_ PEPROCESS Process,
+    _Out_ PVOID* RtlSetBitsAddress
+    );
+#endif
+
 // back_trace
 
 #define KPH_STACK_BACK_TRACE_USER_MODE   0x00000001ul

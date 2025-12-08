@@ -6,6 +6,8 @@
 class CWinDumper : public CMemDumper
 {
 	Q_OBJECT
+
+	TRACK_OBJECT(CWinDumper)
 public:
 	CWinDumper(QObject* parent = NULL);
 	~CWinDumper();

@@ -3,6 +3,7 @@
 #include "TaskExplorer.h"
 #include "../../MiscHelpers/Common/Settings.h"
 #include "../../MiscHelpers/Archive/ArchiveFS.h"
+#include <QFontDialog>
 
 int CSettingsWindow__Chk2Int(Qt::CheckState state)
 {
@@ -42,6 +43,11 @@ CSettingsWindow::CSettingsWindow(QWidget *parent)
 
 	ui.tabWidget->setCurrentIndex(0);
 
+	int size = 16.0;
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+	size *= (QApplication::desktop()->logicalDpiX() / 96.0); // todo Qt6
+#endif
+
 	{
 		ui.uiLang->addItem(tr("Auto Detection"), "");
 		ui.uiLang->addItem(tr("No Translation"), "native");
@@ -79,11 +85,29 @@ CSettingsWindow::CSettingsWindow(QWidget *parent)
 	ui.chkShow32->setChecked(theConf->GetBool("Options/Show32", true));
 
 	ui.chkDarkTheme->setCheckState(CSettingsWindow__Int2Chk(theConf->GetInt("MainWindow/DarkTheme", 2)));
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-	ui.chkFusionTheme->setCheckState(CSettingsWindow__Int2Chk(theConf->GetInt("MainWindow/UseFusionTheme", 1)));
-#else
 	ui.chkFusionTheme->setCheckState(CSettingsWindow__Int2Chk(theConf->GetInt("MainWindow/UseFusionTheme", 2)));
-#endif
+
+	ui.cmbDPI->addItem(tr("None"), 0);
+	ui.cmbDPI->addItem(tr("Native"), 1);
+	ui.cmbDPI->addItem(tr("Qt"), 2);
+	ui.cmbDPI->setCurrentIndex(theConf->GetInt("Options/DPIScaling", 1));
+
+	int FontScales[] = { 75,100,125,150,175,200,225,250,275,300,350,400, 0 };
+	for (int* pFontScales = FontScales; *pFontScales != 0; pFontScales++)
+		ui.cmbFontScale->addItem(tr("%1").arg(*pFontScales), *pFontScales);
+	//ui.cmbFontScale->setCurrentIndex(ui.cmbFontScale->findData(theConf->GetInt("Options/FontScaling", 100)));
+	ui.cmbFontScale->setCurrentText(QString::number(theConf->GetInt("Options/FontScaling", 100)));
+
+	// UI Font
+	ui.btnSelectUiFont->setIcon(QPixmap(":/Actions/Font").scaled(size, size));
+	ui.btnSelectUiFont->setToolTip(tr("Select font"));
+	ui.btnResetUiFont->setIcon(QPixmap(":/Actions/ResetFont").scaled(size, size));
+	ui.btnResetUiFont->setToolTip(tr("Reset font"));
+
+	connect(ui.btnSelectUiFont, SIGNAL(clicked(bool)), this, SLOT(OnSelectUiFont()));
+	connect(ui.btnResetUiFont, SIGNAL(clicked(bool)), this, SLOT(OnResetUiFont()));
+	ui.lblUiFont->setText(QApplication::font().family());
+
 
 	ui.highlightCount->setValue(theConf->GetInt("Options/HighLoadHighlightCount", 5));
 
@@ -213,6 +237,17 @@ void CSettingsWindow::apply()
 	theConf->SetValue("MainWindow/DarkTheme", CSettingsWindow__Chk2Int(ui.chkDarkTheme->checkState()));
 	theConf->SetValue("MainWindow/UseFusionTheme", CSettingsWindow__Chk2Int(ui.chkFusionTheme->checkState()));
 
+
+	theConf->SetValue("Options/UIFont", ui.lblUiFont->text());
+	theConf->SetValue("Options/DPIScaling", ui.cmbDPI->currentData());
+	int Scaling = ui.cmbFontScale->currentText().toInt();
+	if (Scaling < 75)
+		Scaling = 75;
+	else if (Scaling > 500)
+		Scaling = 500;
+	theConf->SetValue("Options/FontScaling", Scaling);
+
+
 	theConf->SetValue("Options/HighLoadHighlightCount", ui.highlightCount->value());
 
 	theConf->SetValue("Options/RefreshInterval", ui.refreshInterval->value());
@@ -307,4 +342,18 @@ void CSettingsWindow::OnChange()
 
 	ui.cellSeparator->setEnabled(ui.chkSimpleCopy->isChecked());
 	ui.maxCellWidth->setEnabled(!ui.chkSimpleCopy->isChecked());
+}
+
+void CSettingsWindow::OnSelectUiFont()
+{
+	bool ok;
+	auto newFont = QFontDialog::getFont(&ok, QApplication::font(), this);
+	if (!ok) return;
+	ui.lblUiFont->setText(newFont.family());
+}
+
+void CSettingsWindow::OnResetUiFont()
+{
+	QFont defaultFont = QFontDatabase::systemFont(QFontDatabase::GeneralFont);
+	ui.lblUiFont->setText(defaultFont.family());
 }

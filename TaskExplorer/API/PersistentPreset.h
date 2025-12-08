@@ -3,6 +3,7 @@
 
 class CPersistentPresetData: public QSharedData
 {
+	TRACK_OBJECT(CPersistentPresetData)
 public:
 	CPersistentPresetData() : bTerminate(false),
 		bPriority(false), iPriority(0),
@@ -35,6 +36,8 @@ typedef QSharedDataPointer<CPersistentPresetData> CPersistentPresetDataPtr;
 class CPersistentPreset: public QObject
 {
 	Q_OBJECT
+
+	TRACK_OBJECT(CPersistentPreset)
 public:
 	CPersistentPreset(const QString Pattern = QString());
 	virtual ~CPersistentPreset();

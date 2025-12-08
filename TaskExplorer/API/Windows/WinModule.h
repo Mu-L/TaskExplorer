@@ -4,6 +4,8 @@
 class CWinModule : public CModuleInfo
 {
 	Q_OBJECT
+
+	TRACK_OBJECT(CWinModule)
 public:
 	CWinModule(quint64 ProcessId = -1, bool IsSubsystemProcess = false, QObject *parent = nullptr);
 	virtual ~CWinModule();
@@ -30,6 +32,7 @@ public:
 	virtual quint16 GetImageDllCharacteristicsEx() const	{ QReadLocker Locker(&m_Mutex); return m_ImageDllCharacteristicsEx; }
 
 	virtual quint16 GetImageMachine() const					{ QReadLocker Locker(&m_Mutex); return m_ImageMachine; }
+	virtual quint32 GetImageCHPEVersion() const				{ QReadLocker Locker(&m_Mutex); return m_ImageCHPEVersion; }
 	virtual QString GetImageMachineString() const;
 
 	virtual void ClearControlFlowGuardEnabled();
@@ -126,7 +129,7 @@ protected:
 	};
 
 	quint16						m_ImageMachine;
-	quint32						m_ImageCHPEVersion; // todo
+	quint32						m_ImageCHPEVersion;
 	quint64						m_ImageTimeDateStamp;
 	quint16						m_ImageCharacteristics;
 	quint16						m_ImageDllCharacteristics;
@@ -160,6 +163,8 @@ private:
 class CWinMainModule : public CWinModule
 {
 	Q_OBJECT
+
+	TRACK_OBJECT(CWinMainModule)
 public:
 	CWinMainModule(QObject *parent = nullptr);
 	virtual ~CWinMainModule() {}

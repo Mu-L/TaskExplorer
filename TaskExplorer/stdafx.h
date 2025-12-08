@@ -128,6 +128,8 @@
 
 #include "../MiscHelpers/Common/DebugHelpers.h"
 
+#include "../MiscHelpers/Common/ObjectTracker.h"
+
 #define USING_QT
 
 #define USE_QEXTWIDGETS

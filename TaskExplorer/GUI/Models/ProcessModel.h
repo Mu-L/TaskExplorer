@@ -26,7 +26,7 @@ public:
 	{
 		eProcess = 0,
 		ePID,
-		//ePID_LXSS,
+		ePID_LXSS,
 		eParentPID,
 		eConsolePID,
 		eSequenceNumber, 
@@ -95,6 +95,7 @@ public:
 		eGPU_Adapter,
 
 		// Priority
+		eAffinity,
 		ePriorityClass,
 		eBasePriority,
 #ifdef WIN32
@@ -163,7 +164,7 @@ public:
 		// Other
 		eSubsystem, // WSL or Wine
 		eVirtualized,
-		eArch,
+		eArchitecture,
 #ifdef WIN32
 		eOS_Context,
 

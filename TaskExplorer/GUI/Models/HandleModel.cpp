@@ -101,6 +101,10 @@ void CHandleModel::Sync(QMap<quint64, CHandlePtr> HandleList)
 				case eAttributes:		Value = (quint32)pWinHandle->GetAttributes(); break;	
 				case eObjectAddress:	Value = pWinHandle->GetObjectAddress(); break;	
 				case eOriginalName:		Value = pWinHandle->GetOriginalName(); break;	
+				//case eHandleCount:		Value = pWinHandle->GetHandleCount(); break; // PhGetHandleInformation
+				//case eRefCount:			Value = pWinHandle->GetRefCount(); break; // PhGetHandleInformation
+				//case ePagedSize:		Value = pWinHandle->GetPagedSize(); break; // PhGetHandleInformation
+				//case eNonPagedSize:		Value = pWinHandle->GetNonpagedSize(); break; // PhGetHandleInformation
 #endif
 			}
 
@@ -181,6 +185,10 @@ QVariant CHandleModel::headerData(int section, Qt::Orientation orientation, int 
 			case eAttributes:			return tr("Attributes");
 			case eObjectAddress:		return tr("Object address");
 			case eOriginalName:			return tr("Original name");
+			//case eHandleCount:			return tr("Handle count");
+			//case eRefCount:				return tr("Reference count");
+			//case ePagedSize:			return tr("Paged size");
+			//case eNonPagedSize:			return tr("Non-paged size");
 #endif
 		}
 	}

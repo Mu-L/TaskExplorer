@@ -41,7 +41,7 @@ CProcessView::CProcessView(QWidget *parent)
 	m_pStackedWidget->setLayout(m_pStackedLayout);
 	//m_pInfoLayout->addWidget(m_pStackedWidget);
 	m_pMainLayout->addWidget(m_pStackedWidget);
-	m_pStackedWidget->setMaximumHeight(160);
+	m_pStackedWidget->setMaximumHeight(200);
 
 	m_pOneProcWidget = new QWidget();
 	m_pOneProcLayout = new QVBoxLayout();

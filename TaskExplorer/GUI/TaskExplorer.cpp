@@ -3,6 +3,7 @@
 #include "Version.h"
 #ifdef WIN32
 #include "../API/Windows/WindowsAPI.h"
+#include "../API/Windows/ProcessHacker.h"
 #include "../API/Windows/ProcessHacker/RunAs.h"
 #include "SecurityExplorer.h"
 #include "DriverWindow.h"
@@ -30,6 +31,7 @@ extern "C" {
 #include "Filters/ProcessFilterModel.h"
 #include "../../MiscHelpers/Archive/Archive.h"
 #include "../../MiscHelpers/Archive/ArchiveFS.h"
+#include "TaskInfo/TaskInfoWindow.h"
 
 
 QIcon g_ExeIcon;
@@ -95,6 +97,8 @@ CTaskExplorer::CTaskExplorer(QWidget *parent)
 	: QMainWindow(parent)
 {
 	theGUI = this;
+
+	m_DefaultFontSize = QApplication::font().pointSizeF();
 
 	LoadLanguage();
 
@@ -218,6 +222,8 @@ CTaskExplorer::CTaskExplorer(QWidget *parent)
 		m_pMenuProcess->addSeparator();
 		m_pMenuComputer = m_pMenuProcess->addMenu(MakeActionIcon(":/Actions/Computer"), tr("Computer"));
 		m_pMenuUsers = m_pMenuProcess->addMenu(MakeActionIcon(":/Actions/Users"), tr("Users"));
+		m_pMenuProcess->addSeparator();
+		m_pMenuFindWnd = m_pMenuProcess->addAction(MakeActionIcon(":/Actions/Finder"), tr("Window Finder"), this, SLOT(OnWndFinder()));
 		m_pMenuProcess->addSeparator();
 		m_pMenuElevate = m_pMenuProcess->addAction(MakeActionIcon(":/Icons/Shield.png"), tr("Restart Elevated"), this, SLOT(OnElevate()));
 		m_pMenuElevate->setVisible(!theAPI->RootAvaiable());
@@ -638,12 +644,7 @@ CTaskExplorer::~CTaskExplorer()
 void CTaskExplorer::SetUITheme()
 {
 	int iDark = theConf->GetInt("MainWindow/DarkTheme", 2);
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-	// Qt6's new windows theme is to windows 11i lets use fustion instead
-	int iFusion = theConf->GetInt("MainWindow/UseFusionTheme", 1);
-#else
 	int iFusion = theConf->GetInt("MainWindow/UseFusionTheme", 2);
-#endif
 	bool bDark = iDark == 2 ? m_CustomTheme.IsSystemDark() : (iDark == 1);
 	m_CustomTheme.SetUITheme(bDark, iFusion);
 	//CPopUpWindow::SetDarkMode(bDark);
@@ -652,6 +653,18 @@ void CTaskExplorer::SetUITheme()
 		m_pGraphBar->SetDarkMode(bDark);
 	CTreeItemModel::SetDarkMode(bDark);
 	CListItemModel::SetDarkMode(bDark);
+
+	QFont font = QApplication::font();
+	QString customFontStr = theConf->GetString("Options/UIFont", "");
+	if (customFontStr != "") {
+		font.setFamily(customFontStr);
+		QApplication::setFont(font);
+	}
+	double newFontSize = m_DefaultFontSize * theConf->GetInt("Options/FontScaling", 100) / 100.0;
+	if (newFontSize != font.pointSizeF()) {
+		font.setPointSizeF(newFontSize);
+		QApplication::setFont(font);
+	}
 }
 
 void CTaskExplorer::OnGraphsResized(int Size)
@@ -720,10 +733,110 @@ void CTaskExplorer::closeEvent(QCloseEvent *e)
 	QApplication::quit();
 }
 
+#ifdef _DEBUG
+size_t getHeapUsage() 
+{
+	_HEAPINFO heapInfo;
+	heapInfo._pentry = nullptr;
+	size_t usedMemory = 0;
+
+	while (_heapwalk(&heapInfo) == _HEAPOK) {
+		if (heapInfo._useflag == _USEDENTRY) {
+			usedMemory += heapInfo._size;
+		}
+	}
+
+	return usedMemory;
+}
+
+FORCEINLINE ULONG PhpGetObjectTypeObjectCount(
+	_In_ PPH_OBJECT_TYPE ObjectType
+)
+{
+	PH_OBJECT_TYPE_INFORMATION info;
+
+	memset(&info, 0, sizeof(PH_OBJECT_TYPE_INFORMATION));
+	if (ObjectType) PhGetObjectTypeInformation(ObjectType, &info);
+
+	return info.NumberOfObjects;
+}
+
+#endif
+
 void CTaskExplorer::timerEvent(QTimerEvent* pEvent)
 {
 	if (pEvent->timerId() != m_uTimerID)
 		return;
+
+#ifdef _DEBUG
+	static quint64 LastObjectDump = GetTickCount64();
+	if (LastObjectDump + 6 * 1000 < GetTickCount64()) 
+	{
+		LastObjectDump = GetTickCount64();
+		ObjectTrackerBase::PrintCounts();
+
+
+		//size_t memoryUsed = getHeapUsage();
+		//DbgPrint("USED MEMORY: %llu bytes\n", memoryUsed);
+
+
+
+		PH_STRING_BUILDER stringBuilder;
+		PhInitializeStringBuilder(&stringBuilder, 50);
+		PhAppendStringBuilder2(&stringBuilder, L"OBJECT INFORMATION\r\n");
+
+#define OBJECT_TYPE_COUNT(Type) PhAppendFormatStringBuilder(&stringBuilder, \
+    TEXT(#Type) L": %lu objects\r\n", PhpGetObjectTypeObjectCount(Type))
+
+		// ref
+		OBJECT_TYPE_COUNT(PhObjectTypeObject);
+
+		// basesup
+		OBJECT_TYPE_COUNT(PhStringType);
+		OBJECT_TYPE_COUNT(PhBytesType);
+		OBJECT_TYPE_COUNT(PhListType);
+		OBJECT_TYPE_COUNT(PhPointerListType);
+		OBJECT_TYPE_COUNT(PhHashtableType);
+		OBJECT_TYPE_COUNT(PhFileStreamType);
+
+		// ph
+		OBJECT_TYPE_COUNT(PhSymbolProviderType);
+
+#ifdef DEBUG
+		PhAppendStringBuilder2(&stringBuilder, L"STATISTIC INFORMATION\r\n");
+
+#define PRINT_STATISTIC(Name) PhAppendFormatStringBuilder(&stringBuilder, \
+    TEXT(#Name) L": %u\r\n", PhLibStatisticsBlock.Name)
+
+		PRINT_STATISTIC(BaseThreadsCreated);
+		PRINT_STATISTIC(BaseThreadsCreateFailed);
+		PRINT_STATISTIC(BaseStringBuildersCreated);
+		PRINT_STATISTIC(BaseStringBuildersResized);
+		PRINT_STATISTIC(RefObjectsCreated);
+		PRINT_STATISTIC(RefObjectsDestroyed);
+		PRINT_STATISTIC(RefObjectsAllocated);
+		PRINT_STATISTIC(RefObjectsFreed);
+		PRINT_STATISTIC(RefObjectsAllocatedFromSmallFreeList);
+		PRINT_STATISTIC(RefObjectsFreedToSmallFreeList);
+		PRINT_STATISTIC(RefObjectsAllocatedFromTypeFreeList);
+		PRINT_STATISTIC(RefObjectsFreedToTypeFreeList);
+		PRINT_STATISTIC(RefObjectsDeleteDeferred);
+		PRINT_STATISTIC(RefAutoPoolsCreated);
+		PRINT_STATISTIC(RefAutoPoolsDestroyed);
+		PRINT_STATISTIC(RefAutoPoolsDynamicAllocated);
+		PRINT_STATISTIC(RefAutoPoolsDynamicResized);
+		PRINT_STATISTIC(QlBlockSpins);
+		PRINT_STATISTIC(QlBlockWaits);
+		PRINT_STATISTIC(QlAcquireExclusiveBlocks);
+		PRINT_STATISTIC(QlAcquireSharedBlocks);
+		PRINT_STATISTIC(WqWorkQueueThreadsCreated);
+		PRINT_STATISTIC(WqWorkQueueThreadsCreateFailed);
+		PRINT_STATISTIC(WqWorkItemsQueued);
+#endif
+
+		DbgPrint(L"%s\n", CastPhString(PhFinalStringBuilderString(&stringBuilder)).utf16());
+	}
+#endif
 
 	quint64 Interval = theConf->GetInt("Options/RefreshInterval", 1000);
 	if (GetCurTick() - m_LastTimer < Interval / 2)
@@ -1607,6 +1720,12 @@ void CTaskExplorer::OnMonitorDbg()
 
 	theConf->SetValue("Options/MonitorDbg", DbgMode);
 #endif
+}
+
+void CTaskExplorer::OpenTaskInfoWnd(quint64 PID)
+{
+	CTaskInfoWindow* pTaskInfoWindow = new CTaskInfoWindow(QList<CProcessPtr>() << theAPI->GetProcessByID(PID));
+	pTaskInfoWindow->show();
 }
 
 void CTaskExplorer::OnSplitterMoved()

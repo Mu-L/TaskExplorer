@@ -26,6 +26,33 @@ NTSTATUS PhExecuteRunAsCommand3(
 	_In_ BOOLEAN CreateSuspendedProcess
 );
 
+_Success_(return)
+BOOLEAN PhRunAsGetLogonSid(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PSID* UserSid,
+    _Out_ PSID* LogonSid
+);
+
+NTSTATUS PhRunAsExecutionAlias(
+    _In_ PPH_STRING Command
+);
+
+NTSTATUS PhRunAsUpdateDesktop(
+    _In_ PSID UserSid
+);
+
+NTSTATUS PhRunAsUpdateWindowStation(
+    _In_opt_ PSID UserSid,
+    _In_opt_ PSID LogonSid
+);
+
+NTSTATUS PhRunAsExecuteParentCommand(
+    _In_ HWND WindowHandle,
+    _In_ PCWSTR CommandLine,
+    _In_ HANDLE ProcessId,
+    _In_ BOOLEAN CreateSuspendedProcess
+);
+
 typedef struct _PH_RUNAS_SERVICE_PARAMETERS
 {
     ULONG ProcessId;
@@ -40,6 +67,7 @@ typedef struct _PH_RUNAS_SERVICE_PARAMETERS
     BOOLEAN UseLinkedToken;
     PWSTR ServiceName;
     BOOLEAN CreateSuspendedProcess;
+    BOOLEAN CreateUIAccessProcess;
 } PH_RUNAS_SERVICE_PARAMETERS, *PPH_RUNAS_SERVICE_PARAMETERS;
 
 VOID PhpSplitUserName(_In_ PWSTR UserName, _Out_opt_ PPH_STRING *DomainPart, _Out_opt_ PPH_STRING *UserPart);
@@ -52,7 +80,7 @@ BOOLEAN PhInitializeNamespacePolicy(
 	VOID
 );
 
-VOID PhSetDesktopWinStaAccess(VOID);
+//VOID PhSetDesktopWinStaAccess(VOID);
 
 qint32 SvcApiInvokeRunAsService(const QVariantMap& Parameters);
 

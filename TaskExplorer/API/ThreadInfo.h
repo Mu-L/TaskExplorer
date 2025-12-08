@@ -7,6 +7,7 @@ class CThreadInfo: public CAbstractTask
 {
 	Q_OBJECT
 
+	TRACK_OBJECT(CThreadInfo)
 public:
 	CThreadInfo(QObject *parent = nullptr);
 	virtual ~CThreadInfo();
@@ -51,9 +52,9 @@ protected:
 	int				m_State;
 	int				m_WaitReason;
 
-	float		m_StackUsageFloat;
-	quint64		m_StackUsage;
-	quint64		m_StackLimit;
+	float			m_StackUsageFloat;
+	quint64			m_StackUsage;
+	quint64			m_StackLimit;
 
 	QSharedPointer<QObject>	m_pProcess;
 

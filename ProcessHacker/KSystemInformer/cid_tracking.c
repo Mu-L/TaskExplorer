@@ -2129,9 +2129,30 @@ NTSTATUS KphCheckProcessApcNoopRoutine(
         goto Exit;
     }
 
+#ifdef IS_KTE
+#ifdef _M_ARM64
+    status = KphGetProcessNtDllRtlSetBits(Process->EProcess,
+        (PVOID*)&Process->ApcNoopRoutine);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+            TRACKING,
+            "KphGetProcessNtDllRtlSetBits failed: %!STATUS!",
+            status);
+        goto Exit;
+    }
+#else
+    Process->ApcNoopRoutine = (PKNORMAL_ROUTINE)KphNtDllRtlSetBits;
+#endif
+#endif
+
     if (policyInfo.ControlFlowGuardPolicy.EnableXfg)
     {
+#ifdef IS_KTE
+        status = KphDisableXfgOnTarget(processHandle, (PVOID)Process->ApcNoopRoutine);
+#else
         status = KphDisableXfgOnTarget(processHandle, KphNtDllRtlSetBits);
+#endif
         if (!NT_SUCCESS(status))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -2146,8 +2167,13 @@ NTSTATUS KphCheckProcessApcNoopRoutine(
 
     if (policyInfo.ControlFlowGuardPolicy.EnableExportSuppression)
     {
+#ifdef IS_KTE
+        status = KphGuardGrantSuppressedCallAccess(processHandle,
+                                                   (PVOID)Process->ApcNoopRoutine);
+#else
         status = KphGuardGrantSuppressedCallAccess(processHandle,
                                                    KphNtDllRtlSetBits);
+#endif
         if (!NT_SUCCESS(status))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -2161,7 +2187,9 @@ NTSTATUS KphCheckProcessApcNoopRoutine(
         }
     }
 
+#ifndef IS_KTE
     Process->ApcNoopRoutine = (PKNORMAL_ROUTINE)KphNtDllRtlSetBits;
+#endif
     status = STATUS_SUCCESS;
 
 Exit:

@@ -39,6 +39,9 @@ public:
 		eContextSwitchesDelta,
 		ePriority,
 		eBasePriority,
+#ifdef WIN32
+		eBasePriorityActual,
+#endif
 		ePagePriority,
 		eIOPriority,
 		eCycles,
@@ -56,6 +59,7 @@ public:
 		eLastSystemCall,
 		eLastStatusCode,
 		eCOM_Apartment,
+		eCOM_Flags,
 		eFiber,
 		ePriorityBoost,
 		eStackUsage,
@@ -79,9 +83,10 @@ public:
 		eIO_WriteRate,
 		eIO_OtherRate,
 		//eIO_TotalRate,
-		//eTID_LXSS,
+		eTID_LXSS,
 		ePowerThrottling,
 		//eContainerID,
+		eRPC_Usage,
 #endif
 		eCount
 	};

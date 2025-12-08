@@ -578,6 +578,7 @@
     <ClCompile Include="API\Windows\WindowsAPI.cpp" />
     <ClCompile Include="API\Windows\WindowsHelpers.cpp" />
     <ClCompile Include="API\Windows\WinHeap.cpp" />
+    <ClCompile Include="API\Windows\WinHelpers\FindTool.cpp" />
     <ClCompile Include="API\Windows\WinHelpers\FuncHook\Detours\creatwth.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">NotUsing</PrecompiledHeader>
@@ -717,6 +718,7 @@
     <ClCompile Include="API\Windows\WinDumper.cpp" />
     <ClCompile Include="API\Windows\WinGDI.cpp" />
     <ClCompile Include="API\Windows\WinHandle.cpp" />
+    <ClCompile Include="API\Windows\WinHelpers\WindowFromPointEx.cpp" />
     <ClCompile Include="API\Windows\WinJob.cpp" />
     <ClCompile Include="API\Windows\WinMemIO.cpp" />
     <ClCompile Include="API\Windows\WinMemory.cpp" />
@@ -844,6 +846,7 @@
     <ClCompile Include="GUI\TaskInfo\WindowsView.cpp" />
     <ClCompile Include="GUI\TaskView.cpp" />
     <ClCompile Include="GUI\WaitChainDialog.cpp" />
+    <ClCompile Include="GUI\WndFinder.cpp" />
     <ClCompile Include="GUI\WsWatchDialog.cpp" />
     <ClCompile Include="main.cpp">
       <OutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.\GeneratedFiles\$(ConfigurationName)\%(Filename).moc</OutputFile>
@@ -876,6 +879,7 @@
     <ClCompile Include="SVC\TaskService.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="API\Windows\WinHelpers\FindTool.h" />
     <ClInclude Include="API\Windows\WinHelpers\FuncHook\Detours\detours.h" />
     <ClInclude Include="API\Windows\WinHelpers\FuncHook\Detours\detver.h" />
     <ClInclude Include="API\Windows\WinHelpers\FuncHook\HookUtils.h" />
@@ -1538,6 +1542,8 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </Image>
+    <Image Include="Resources\finder-empty.bmp" />
+    <Image Include="Resources\finder-full.bmp" />
     <Image Include="Resources\TaskExplorer.ico" />
   </ItemGroup>
   <ItemGroup>
@@ -1546,6 +1552,7 @@
   <ItemGroup>
     <None Include="..\CHANGELOG.md" />
     <None Include="API\Windows\WinHelpers\FuncHook\Detours\Makefile" />
+    <None Include="Resources\finder.cur" />
     <QtTranslation Include="taskexplorer_de.ts">
       <FileType>Document</FileType>
     </QtTranslation>

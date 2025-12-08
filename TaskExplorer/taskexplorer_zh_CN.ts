@@ -4606,57 +4606,87 @@ PartiallyChecked state means apply only to thread std::list.</source>
 部分勾选状态意味着仅仅对线程std::list应用。</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="108"/>
+        <location filename="GUI/SettingsWindow.cpp" line="88"/>
+        <source>None</source>
+        <translation type="unfinished">无</translation>
+    </message>
+    <message>
+        <location filename="GUI/SettingsWindow.cpp" line="89"/>
+        <source>Native</source>
+        <translation type="unfinished">原生</translation>
+    </message>
+    <message>
+        <location filename="GUI/SettingsWindow.cpp" line="90"/>
+        <source>Qt</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="GUI/SettingsWindow.cpp" line="94"/>
+        <source>%1</source>
+        <translation type="unfinished">%1</translation>
+    </message>
+    <message>
+        <location filename="GUI/SettingsWindow.cpp" line="98"/>
+        <source>Select font</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="GUI/SettingsWindow.cpp" line="100"/>
+        <source>Reset font</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="GUI/SettingsWindow.cpp" line="126"/>
         <source>Close to Tray</source>
         <translation>关闭到托盘</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="109"/>
+        <location filename="GUI/SettingsWindow.cpp" line="127"/>
         <source>Prompt before Close</source>
         <translation>关闭前提示</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="110"/>
+        <location filename="GUI/SettingsWindow.cpp" line="128"/>
         <source>Close</source>
         <translation>关闭</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="116"/>
+        <location filename="GUI/SettingsWindow.cpp" line="134"/>
         <source>Show static Icon</source>
         <translation>显示静态图标</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="117"/>
+        <location filename="GUI/SettingsWindow.cpp" line="135"/>
         <source>CPU plot</source>
         <translation>CPU绘图</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="118"/>
+        <location filename="GUI/SettingsWindow.cpp" line="136"/>
         <source>CPU plot and Memory bar</source>
         <translation>CPU绘图和内存条</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="119"/>
+        <location filename="GUI/SettingsWindow.cpp" line="137"/>
         <source>CPU plot and RAM bar</source>
         <translation>CPU绘图和随机访问内存条</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="120"/>
+        <location filename="GUI/SettingsWindow.cpp" line="138"/>
         <source>CPU plot and RAM+Swap bars</source>
         <translation>CPU绘图和随机访问+交换内存条</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="130"/>
+        <location filename="GUI/SettingsWindow.cpp" line="148"/>
         <source>Description (Binary name)</source>
         <translation>解释（二进制名称）</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="131"/>
+        <location filename="GUI/SettingsWindow.cpp" line="149"/>
         <source>Binary name (Description)</source>
         <translation>二进制名称（解释）</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="132"/>
+        <location filename="GUI/SettingsWindow.cpp" line="150"/>
         <source>Binary name only</source>
         <translation>仅二进制名称</translation>
     </message>
@@ -10779,15 +10809,20 @@ If you save the recovery information using this program, the additional failure 
         <location filename="Forms/DriverWindow.ui" line="76"/>
         <location filename="Forms/DriverWindow.ui" line="83"/>
         <location filename="Forms/DriverWindow.ui" line="107"/>
-        <location filename="Forms/DriverWindow.ui" line="124"/>
-        <location filename="Forms/DriverWindow.ui" line="175"/>
+        <location filename="Forms/DriverWindow.ui" line="114"/>
+        <location filename="Forms/DriverWindow.ui" line="131"/>
         <source>TextLabel</source>
         <translation>文本标签</translation>
     </message>
     <message>
-        <location filename="Forms/DriverWindow.ui" line="141"/>
+        <location filename="Forms/DriverWindow.ui" line="175"/>
         <source>Use Kernel Driver</source>
         <translation>使用内核驱动</translation>
+    </message>
+    <message>
+        <location filename="Forms/DriverWindow.ui" line="182"/>
+        <source>(Requires Restart)</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="Forms/DriverWindow.ui" line="165"/>
@@ -10823,7 +10858,7 @@ If you save the recovery information using this program, the additional failure 
         <translation type="vanished">驱动文件:</translation>
     </message>
     <message>
-        <location filename="Forms/DriverWindow.ui" line="131"/>
+        <location filename="Forms/DriverWindow.ui" line="138"/>
         <source>Verification Status:</source>
         <translation></translation>
     </message>
@@ -10846,7 +10881,7 @@ If you save the recovery information using this program, the additional failure 
         <translation type="vanished">自动选择</translation>
     </message>
     <message>
-        <location filename="Forms/DriverWindow.ui" line="114"/>
+        <location filename="Forms/DriverWindow.ui" line="121"/>
         <source>OS Driver Signing Policy:</source>
         <translation>操作系统驱动签名策略:</translation>
     </message>
@@ -11106,55 +11141,55 @@ If you save the recovery information using this program, the additional failure 
         <translation>用户界面选项</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="102"/>
+        <location filename="Forms/SettingsWindow.ui" line="313"/>
         <source>Highlight high load cells</source>
         <translation>高亮加载栏目</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="112"/>
+        <location filename="Forms/SettingsWindow.ui" line="229"/>
         <source>Show empty cells instead of zero</source>
         <translation>显示空栏目而不是0</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="119"/>
-        <location filename="Forms/SettingsWindow.ui" line="538"/>
-        <location filename="Forms/SettingsWindow.ui" line="545"/>
+        <location filename="Forms/SettingsWindow.ui" line="236"/>
+        <location filename="Forms/SettingsWindow.ui" line="658"/>
+        <location filename="Forms/SettingsWindow.ui" line="665"/>
         <source>milliseconds</source>
         <translation>毫秒</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="132"/>
+        <location filename="Forms/SettingsWindow.ui" line="259"/>
         <source>General options</source>
         <translation>通用选项</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="139"/>
+        <location filename="Forms/SettingsWindow.ui" line="366"/>
         <source>Use cycle count to calculate CPU Usage</source>
         <translation>使用周期数计算CPU使用</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="146"/>
+        <location filename="Forms/SettingsWindow.ui" line="289"/>
         <source>Graph length:</source>
         <translation>图表长度:</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="156"/>
+        <location filename="Forms/SettingsWindow.ui" line="183"/>
         <source>seconds</source>
         <translation>秒</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="163"/>
-        <location filename="Forms/SettingsWindow.ui" line="723"/>
+        <location filename="Forms/SettingsWindow.ui" line="190"/>
+        <location filename="Forms/SettingsWindow.ui" line="843"/>
         <source>Restart required (!)</source>
         <translation>需要重启 (!)</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="173"/>
+        <location filename="Forms/SettingsWindow.ui" line="90"/>
         <source>Show CPU Usage like on Linux</source>
         <translation>像在Linux上一样显示CPU使用</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="206"/>
+        <location filename="Forms/SettingsWindow.ui" line="279"/>
         <source>Refresh interval:</source>
         <translation>刷新间隔:</translation>
     </message>
@@ -11163,187 +11198,232 @@ If you save the recovery information using this program, the additional failure 
         <translation type="vanished">保留父进程</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="229"/>
+        <location filename="Forms/SettingsWindow.ui" line="468"/>
         <source>Process options</source>
         <translation>进程选项</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="236"/>
+        <location filename="Forms/SettingsWindow.ui" line="73"/>
         <source>Use Dark Theme</source>
         <translation>使用暗色主题</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="246"/>
+        <location filename="Forms/SettingsWindow.ui" line="60"/>
         <source>Interface language:</source>
         <translation>界面语言:</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="259"/>
+        <location filename="Forms/SettingsWindow.ui" line="543"/>
         <source>Append &quot;*32&quot; to WoW64 processes</source>
         <translation>新增 &quot;*32&quot; 到Wow64子系统进程</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="266"/>
+        <location filename="Forms/SettingsWindow.ui" line="505"/>
         <source>Process name</source>
         <translation>进程名称</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="276"/>
+        <location filename="Forms/SettingsWindow.ui" line="299"/>
         <source>Show also highest thread CPU usage in CPU column</source>
         <translation>在CPU列也显示最高的线程的CPU使用</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="283"/>
+        <location filename="Forms/SettingsWindow.ui" line="163"/>
         <source>Use Fusion Theme</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="296"/>
+        <location filename="Forms/SettingsWindow.ui" line="376"/>
         <source>Misc Options</source>
         <translation>杂类选项</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="330"/>
+        <location filename="Forms/SettingsWindow.ui" line="522"/>
         <source>Use Reverse DNS for remote host name resolution</source>
         <translation>为远端主机名称解析使用反转DNS</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="343"/>
+        <location filename="Forms/SettingsWindow.ui" line="498"/>
         <source>Network Options</source>
         <translation>网络选项</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="350"/>
+        <location filename="Forms/SettingsWindow.ui" line="529"/>
         <source>Show LAN only TCP/IP Traffic (ETW)</source>
         <translation>仅显示基于TCP/IP通讯的LAN连接（ETW）</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="357"/>
+        <location filename="Forms/SettingsWindow.ui" line="455"/>
         <source>Use DNS cache for remote host name resolution</source>
         <translation>为远端主机名称解析使用DNS缓存</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="364"/>
+        <location filename="Forms/SettingsWindow.ui" line="536"/>
         <source>Show Pseudo UDP Connections (ETW)</source>
         <translation>显示伪UDP连接（ETW）</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="377"/>
+        <location filename="Forms/SettingsWindow.ui" line="393"/>
         <source>Tray options</source>
         <translation>托盘选项</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="384"/>
+        <location filename="Forms/SettingsWindow.ui" line="475"/>
         <source>Show Sys-Tray</source>
         <translation>显示系统托盘</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="407"/>
+        <location filename="Forms/SettingsWindow.ui" line="482"/>
         <source>Infos in tray:</source>
         <translation>在托盘中的信息:</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="417"/>
+        <location filename="Forms/SettingsWindow.ui" line="403"/>
         <source>On main window close:</source>
         <translation>在主窗口关闭时:</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="433"/>
+        <location filename="Forms/SettingsWindow.ui" line="83"/>
+        <source>#</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="Forms/SettingsWindow.ui" line="106"/>
+        <source>Graphic Options</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="Forms/SettingsWindow.ui" line="113"/>
+        <source>UI Font</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="Forms/SettingsWindow.ui" line="128"/>
+        <source>Select Font</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="Forms/SettingsWindow.ui" line="138"/>
+        <source>Reset Font</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="Forms/SettingsWindow.ui" line="216"/>
+        <source>High DPI Scaling</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="Forms/SettingsWindow.ui" line="306"/>
+        <source>(Restart required)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="Forms/SettingsWindow.ui" line="339"/>
+        <source>Font Scaling</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="Forms/SettingsWindow.ui" line="359"/>
+        <source>%</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="Forms/SettingsWindow.ui" line="553"/>
         <source>Lists / Colors</source>
         <translation>列表 / 颜色</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="451"/>
+        <location filename="Forms/SettingsWindow.ui" line="571"/>
         <source>New item highlight time:</source>
         <translation>新项目高亮时间:</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="458"/>
+        <location filename="Forms/SettingsWindow.ui" line="578"/>
         <source>List item colors</source>
         <translation>列表项颜色</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="465"/>
+        <location filename="Forms/SettingsWindow.ui" line="585"/>
         <source>Old item persistence time:</source>
         <translation>旧项目持续显示时间:</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="492"/>
+        <location filename="Forms/SettingsWindow.ui" line="612"/>
         <source>Max cell width:</source>
         <translation>最大栏目宽度:</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="531"/>
+        <location filename="Forms/SettingsWindow.ui" line="651"/>
         <source>Double-click on an item to change its color.</source>
         <translation>在一个项目上双击以改变其颜色。</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="552"/>
+        <location filename="Forms/SettingsWindow.ui" line="672"/>
         <source>Simple list copy format</source>
         <translation>简单的列表复制格式</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="559"/>
+        <location filename="Forms/SettingsWindow.ui" line="679"/>
         <source>Separator:</source>
         <translation>分隔符:</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="572"/>
+        <location filename="Forms/SettingsWindow.ui" line="692"/>
         <source>Advanced</source>
         <translation>高级</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="586"/>
+        <location filename="Forms/SettingsWindow.ui" line="706"/>
         <source>Symbol options</source>
         <translation>符号选项</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="593"/>
+        <location filename="Forms/SettingsWindow.ui" line="713"/>
         <source>Use soft force, hold CTRL to use hard force</source>
         <translation>使用软强制，按住Ctrl键以使用硬强制</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="600"/>
+        <location filename="Forms/SettingsWindow.ui" line="720"/>
         <source>Trace unloaded modules</source>
         <translation>追踪卸载的模块</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="607"/>
+        <location filename="Forms/SettingsWindow.ui" line="727"/>
         <source>Download Symbols:</source>
         <translation>下载符号:</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="623"/>
+        <location filename="Forms/SettingsWindow.ui" line="743"/>
         <source>Other Options</source>
         <translation>其他选项</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="669"/>
+        <location filename="Forms/SettingsWindow.ui" line="789"/>
         <source>Undecorate symbols</source>
         <translation>未修饰符号</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="676"/>
+        <location filename="Forms/SettingsWindow.ui" line="796"/>
         <source>Resolve refering services</source>
         <translation>解决引用的服务</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="689"/>
+        <location filename="Forms/SettingsWindow.ui" line="809"/>
         <source>Dll Options</source>
         <translation>动态链接库选项</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="696"/>
+        <location filename="Forms/SettingsWindow.ui" line="816"/>
         <source>Forced Shutdown/Reboot:</source>
         <translation>强制的关机/重启:</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="716"/>
+        <location filename="Forms/SettingsWindow.ui" line="836"/>
         <source>Support Sandboxie</source>
         <translation>支持Sandboxie</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="216"/>
+        <location filename="Forms/SettingsWindow.ui" line="515"/>
         <source>Retain parent processes</source>
         <translation type="unfinished"></translation>
     </message>

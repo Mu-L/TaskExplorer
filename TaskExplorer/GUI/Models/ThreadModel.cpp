@@ -99,6 +99,9 @@ void CThreadModel::Sync(QMap<quint64, CThreadPtr> ThreadList)
 			switch(section)
 			{
 				case eThread:				Value = pThread->GetThreadId(); break;
+#ifdef WIN32
+				case eTID_LXSS:				Value = pWinThread->GetLXSSThreadId(); break;
+#endif
 				case eCPU_History:
 				case eCPU:					Value = CpuStats.CpuUsage; break;
 #ifdef WIN32
@@ -114,7 +117,12 @@ void CThreadModel::Sync(QMap<quint64, CThreadPtr> ThreadList)
 				case eContextSwitches:		Value = CpuStats.ContextSwitchesDelta.Value; break;
 				case eContextSwitchesDelta:	Value = CpuStats.ContextSwitchesDelta.Delta; break;
                 case ePriority:				Value = (quint32)pThread->GetPriority(); break;
-                case eBasePriority:			Value = (quint32)pThread->GetBasePriority(); break;
+#ifdef WIN32
+				case eBasePriority:			Value = (quint32)pWinThread->GetBasePriorityIncrement(); break;
+				case eBasePriorityActual:	Value = (quint32)pThread->GetBasePriority(); break;
+#else
+				case eBasePriority:			Value = (quint32)pThread->GetBasePriority(); break;
+#endif
                 case ePagePriority:			Value = (quint32)pThread->GetPagePriority(); break;
                 case eIOPriority:			Value = (quint32)pThread->GetIOPriority(); break;
 				case eCycles:				Value = CpuStats.CycleDelta.Value; break;
@@ -131,7 +139,8 @@ void CThreadModel::Sync(QMap<quint64, CThreadPtr> ThreadList)
 				case ePendingIRP:			Value = pWinThread->HasPendingIrp(); break;
 				case eLastSystemCall:		Value = pWinThread->GetLastSysCallInfoString(); break;
 				case eLastStatusCode:		Value = pWinThread->GetLastSysCallStatusString(); break;
-				case eCOM_Apartment:		Value = pWinThread->GetApartmentState(); break;
+				case eCOM_Apartment:		Value = pWinThread->GetApartmentType(); break;
+				case eCOM_Flags: 			Value = pWinThread->GetApartmentFlags(); break;
 				case eFiber:				Value = pWinThread->IsFiber(); break;
 				case ePriorityBoost:		Value = pWinThread->HasPriorityBoost(); break;
 				case eStackUsage:			Value = pWinThread->GetStackUsagePercent(); break;
@@ -155,9 +164,9 @@ void CThreadModel::Sync(QMap<quint64, CThreadPtr> ThreadList)
 				case eIO_WriteRate:			Value = IoStats.WriteRate.Get(); break;
 				case eIO_OtherRate:			Value = IoStats.OtherRate.Get(); break;
 					//case eIO_TotalRate:		Value = ; break;
-				//case eTID_LXSS:		
 				case ePowerThrottling:		Value = pWinThread->IsPowerThrottled(); break;
 				//case eContainerID:			
+				case eRPC_Usage:			Value = pWinThread->HasRpcState(); break;
 #endif
 			}
 
@@ -180,7 +189,12 @@ void CThreadModel::Sync(QMap<quint64, CThreadPtr> ThreadList)
 					case eCPU:					ColValue.Formatted = (!bClearZeros || CpuStats.CpuUsage > 0.00004) ? QString::number(CpuStats.CpuUsage*100, 10, 2) + "%" : ""; break;
 
 					case ePriority:				ColValue.Formatted = pThread->GetPriorityString(); break;
+#ifdef WIN32
+					case eBasePriority:			ColValue.Formatted = pWinThread->GetBasePriorityIncrementString(); break;
+					case eBasePriorityActual:	ColValue.Formatted = pThread->GetBasePriorityString(); break;
+#else
 					case eBasePriority:			ColValue.Formatted = pThread->GetBasePriorityString(); break;
+#endif
 					case ePagePriority:			ColValue.Formatted = pThread->GetPagePriorityString(); break;
 					case eIOPriority:			ColValue.Formatted = pThread->GetIOPriorityString(); break;
 
@@ -203,8 +217,10 @@ void CThreadModel::Sync(QMap<quint64, CThreadPtr> ThreadList)
 					case ePriorityBoost:		ColValue.Formatted = pWinThread->HasPriorityBoost() ? tr("Yes") : ""; break;
 					case eStackUsage:			ColValue.Formatted = pWinThread->GetStackUsageString(); break;
 					case ePowerThrottling:		ColValue.Formatted = pWinThread->IsPowerThrottled() ? tr("Yes") : ""; break;
+					case eRPC_Usage:			ColValue.Formatted = pWinThread->HasRpcState() ? tr("Yes") : ""; break;
 
-					case eCOM_Apartment:		ColValue.Formatted = pWinThread->GetApartmentStateString(); break;
+					case eCOM_Apartment:		ColValue.Formatted = pWinThread->GetApartmentTypeString(); break;
+					case eCOM_Flags:			ColValue.Formatted = pWinThread->GetApartmentFlagsString(); break;
 
 					case eIO_Reads:
 					case eIO_Writes:
@@ -231,6 +247,7 @@ void CThreadModel::Sync(QMap<quint64, CThreadPtr> ThreadList)
 					case eIO_WriteRate:
 					case eIO_OtherRate:
 												if(Value.type() != QVariant::String) ColValue.Formatted = FormatRateEx(Value.toULongLong(), bClearZeros); break; 
+
 #endif
 				}
 			}
@@ -274,6 +291,9 @@ QVariant CThreadModel::headerData(int section, Qt::Orientation orientation, int 
 		switch(section)
 		{
 			case eThread:				return tr("Thread");
+#ifdef WIN32
+			case eTID_LXSS:				return tr("LXSS TID");
+#endif
 			case eCPU_History:			return tr("CPU graph");
 			case eCPU:					return tr("CPU");
 			case eCyclesDelta:			return tr("Cycles delta");
@@ -291,6 +311,9 @@ QVariant CThreadModel::headerData(int section, Qt::Orientation orientation, int 
 			case eContextSwitchesDelta:	return tr("Context switches delta");
 			case ePriority:				return tr("Priority");
 			case eBasePriority:			return tr("Base priority");
+#ifdef WIN32
+			case eBasePriorityActual: 	return tr("Base priority (actual)");
+#endif
 			case ePagePriority:			return tr("Page priority");
 			case eIOPriority:			return tr("I/O priority");
 			case eCycles:				return tr("Cycles");
@@ -307,6 +330,7 @@ QVariant CThreadModel::headerData(int section, Qt::Orientation orientation, int 
 			case eLastSystemCall:		return tr("Last system call");
 			case eLastStatusCode:		return tr("Last status code");
 			case eCOM_Apartment:		return tr("COM apartment");
+			case eCOM_Flags:			return tr("COM flags");
 			case eFiber:				return tr("Fiber");	
 			case ePriorityBoost:		return tr("Priority boost");
 			case eStackUsage:			return tr("Stack usage");
@@ -330,9 +354,9 @@ QVariant CThreadModel::headerData(int section, Qt::Orientation orientation, int 
 			case eIO_WriteRate:			return tr("I/O write rate");
 			case eIO_OtherRate:			return tr("I/O other rate");
 			//case eIO_TotalRate:		return tr("I/O total rate");
-			//case eTID_LXSS:				return tr("LXSS TID");
 			case ePowerThrottling:		return tr("Power throttling");
 			//case eContainerID:			return tr("Container ID");
+			case eRPC_Usage:				return tr("RPC usage");
 
 #endif
 		}

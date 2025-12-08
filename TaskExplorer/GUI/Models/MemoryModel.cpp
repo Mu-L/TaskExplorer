@@ -127,9 +127,9 @@ void CMemoryModel::UpdateMemory(const CMemoryPtr& pMemory, SMemoryNode* pNode, Q
 
 			case eSigningLevel:			Value = pWinMemory->GetSigningLevel(); break;
 			case eOriginalProtection:	Value = pMemory->GetAllocProtection(); break;
-			//case eOriginalPages:		Value = pMemory->GetOriginalPagesString(); break;
+			case eOriginalPages:		Value = pWinMemory->GetSharedOriginalPages(); break;
 			case eRegionType:			Value = pWinMemory->GetRegionTypeExStr();
-			case ePriprity:				Value = pWinMemory->GetPriority();
+			case ePriority:				Value = pWinMemory->GetPriority();
 		}
 
 		SMemoryNode::SValue& ColValue = pNode->Values[section];
@@ -159,6 +159,7 @@ void CMemoryModel::UpdateMemory(const CMemoryPtr& pMemory, SMemoryNode* pNode, Q
 				case eSigningLevel:			ColValue.Formatted = pWinMemory->GetSigningLevelString(); break;
 				case eProtection:			ColValue.Formatted = pMemory->GetProtectionString(); break;
 				case eOriginalProtection:	ColValue.Formatted = pMemory->GetAllocProtectionString(); break;
+				case eOriginalPages:		ColValue.Formatted = pWinMemory->GetOriginalPagesString(); break;
 			}
 		}
 
@@ -212,9 +213,9 @@ QVariant CMemoryModel::headerData(int section, Qt::Orientation orientation, int 
 			case ePrivate: return tr("Private");
 			case eSigningLevel: return tr("Signing level");
 			case eOriginalProtection: return tr("Original protection");
-			//case eOriginalPages: return tr("Original pages");
+			case eOriginalPages: return tr("Original pages");
 			case eRegionType: return tr("Region type");
-			case ePriprity: return tr("Priority");
+			case ePriority: return tr("Priority");
 		}
 	}
     return QVariant();

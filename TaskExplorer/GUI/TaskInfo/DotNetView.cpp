@@ -84,7 +84,7 @@ CDotNetView::CDotNetView(QWidget *parent)
 
 	//m_pMenu = new QMenu();
 	
-	m_pOpen = m_pMenu->addAction(tr("Open"), this, SLOT(OnDoubleClicked()));
+	m_pOpen = m_pMenu->addAction(tr("Open File"), this, SLOT(OnDoubleClicked()));
 
 	AddPanelItemsToMenu();
 

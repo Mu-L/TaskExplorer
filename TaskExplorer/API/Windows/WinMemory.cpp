@@ -159,6 +159,22 @@ QString CWinMemory::GetAllocProtectionString() const
 	return GetProtectionString(GetAllocProtection());
 }
 
+QString CWinMemory::GetOriginalPagesString() const
+{
+    if ((GetState() & MEM_COMMIT) && IsMapped())
+    {
+
+        SIZE_T count = m_SharedOriginalPages;
+        SIZE_T modified = (m_RegionSize / PAGE_SIZE) - count;
+
+		QString result = tr("%1%%").arg(count ? (count / (m_RegionSize / PAGE_SIZE) * 100) : 0.f, 0, 'f', 2);
+        if (modified)
+			result += tr(" (%1)").arg(modified);
+		return result;
+    }
+	return "";
+}
+
 bool CWinMemory::IsExecutable() const
 {
 	return (GetProtection() & (PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY)) != 0;

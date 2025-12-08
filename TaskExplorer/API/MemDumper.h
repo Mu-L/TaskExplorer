@@ -4,6 +4,8 @@
 class CMemDumper : public QThread
 {
 	Q_OBJECT
+
+	TRACK_OBJECT(CMemDumper)
 public:
 	CMemDumper(QObject* parent = NULL);
 	~CMemDumper();

@@ -23,6 +23,9 @@ private slots:
 	void OnChangeColor(QListWidgetItem* pItem);
 	void OnChange();
 
+	void OnSelectUiFont();
+	void OnResetUiFont();
+
 protected:
 	void closeEvent(QCloseEvent *e);
 

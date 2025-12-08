@@ -124,7 +124,7 @@ QVariant CGDIModel::headerData(int section, Qt::Orientation orientation, int rol
 			case eProcess:			return tr("Process");
 			case eType:				return tr("Type");
 			case eObject:			return tr("Object");
-			case eInformation:		return tr("Informations");
+			case eInformation:		return tr("Information");
 		}
 	}
     return QVariant();

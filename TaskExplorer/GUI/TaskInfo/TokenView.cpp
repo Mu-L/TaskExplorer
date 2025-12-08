@@ -602,7 +602,8 @@ void CTokenView::UpdateGeneral()
 	m_pGroups->setHidden(m_pGroups->childCount() == 0);
 	m_pRestrictingSIDs->setHidden(m_pRestrictingSIDs->childCount() == 0);
 
-	CPanelWidgetEx::ApplyFilter(m_pTokenList, m_pFinder->isVisible() ? &m_pFinder->GetSearchExp() : NULL);
+	if(m_pFinder->isVisible())
+		CPanelWidgetEx::ApplyFilter(m_pTokenList, m_pFinder->isVisible() ? &m_pFinder->GetSearchExp() : NULL);
 }
 
 void CTokenView::SetFilter(const QRegularExpression& Exp, int iOptions, int Col)

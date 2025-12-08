@@ -4,6 +4,8 @@
 class CWinService : public CServiceInfo
 {
 	Q_OBJECT
+
+	TRACK_OBJECT(CWinService)
 public:
 	CWinService(QObject *parent = nullptr);
 	CWinService(const QString& Name, QObject *parent = nullptr);

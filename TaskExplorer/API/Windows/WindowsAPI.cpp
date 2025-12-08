@@ -10,7 +10,7 @@
 #include "Monitors/WinDiskMonitor.h"
 #include "../../SVC/TaskService.h"
 #include "../../MiscHelpers/Common/Settings.h"
-#include "SystemHacker/SystemHacker.h"
+//#include "SystemHacker/SystemHacker.h"
 
 extern "C" {
 #include <winsta.h>
@@ -197,14 +197,14 @@ bool CWindowsAPI::Init()
 		NtClose(keyHandle);
 	}
 	
-#ifdef _DEBUG
-	if (!PhIsExecutingInWow64() && theConf->GetBool("Options/UseHackerDriver", false))
-	{
-	//	QPair<QString, QString> Driver = SelectDriver();
-	//	InitDriver(Driver.first, Driver.second);
-		InitHackerDriver();
-	}
-#endif
+//#ifdef _DEBUG
+//	if (!PhIsExecutingInWow64() && theConf->GetBool("Options/UseHackerDriver", false))
+//	{
+//	//	QPair<QString, QString> Driver = SelectDriver();
+//	//	InitDriver(Driver.first, Driver.second);
+//		InitHackerDriver();
+//	}
+//#endif
 
 	static PH_INITONCE initOnce = PH_INITONCE_INIT;
 	if (PhBeginInitOnce(&initOnce))
@@ -364,23 +364,23 @@ bool CWindowsAPI::Init()
 //	return Status;
 //}
 
-STATUS CWindowsAPI::InitHackerDriver()
-{
-	if (KshIsConnected())
-		return OK;
-
-	STATUS Status = InitKSH();
-
-	ULONG Features = 0;
-	if (Status.IsError())
-		qDebug() << Status.GetText();
-	else
-	{
-		KshGetFeatures(&Features);
-	}
-
-	return Status;
-}
+//STATUS CWindowsAPI::InitHackerDriver()
+//{
+//	if (KshIsConnected())
+//		return OK;
+//
+//	STATUS Status = InitKSH();
+//
+//	ULONG Features = 0;
+//	if (Status.IsError())
+//		qDebug() << Status.GetText();
+//	else
+//	{
+//		KshGetFeatures(&Features);
+//	}
+//
+//	return Status;
+//}
 
 CWindowsAPI::~CWindowsAPI()
 {
@@ -805,8 +805,8 @@ bool CWindowsAPI::UpdateAll()
 #ifdef _DEBUG
 	static quint64 start = 0;
 
-	if(start)
-		qDebug() << "time passed since last UpdateAll" << (GetCurCycle() - start) / 1000000.0 << "s";
+	//if(start)
+	//	qDebug() << "time passed since last UpdateAll" << (GetCurCycle() - start) / 1000000.0 << "s";
 
 	start = GetCurCycle();
 #endif
@@ -819,7 +819,7 @@ bool CWindowsAPI::UpdateAll()
 	UpdateServiceList();
 
 #ifdef _DEBUG
-	qDebug() << "UpdateAll took" << (GetCurCycle() - start) / 1000000.0 << "s";
+	//qDebug() << "UpdateAll took" << (GetCurCycle() - start) / 1000000.0 << "s";
 #endif
 	return true;
 }
@@ -1290,19 +1290,19 @@ quint64	CWindowsAPI::GetCpuIdleCycleTime(int index)
 
 static BOOLEAN NetworkImportDone = FALSE;
 
-QMultiMap<quint64, CSocketPtr>::iterator FindSocketEntry(QMultiMap<quint64, CSocketPtr> &Sockets, quint64 ProcessId, quint32 ProtocolType, 
+QMultiMap<quint64, CSocketPtr>::const_iterator FindSocketEntry(QMultiMap<quint64, CSocketPtr> &Sockets, quint64 ProcessId, quint32 ProtocolType, 
 							const QHostAddress& LocalAddress, quint16 LocalPort, const QHostAddress& RemoteAddress, quint16 RemotePort, CSocketInfo::EMatchMode Mode)
 {
 	quint64 HashID = CSocketInfo::MkHash(ProcessId, ProtocolType, LocalAddress, LocalPort, RemoteAddress, RemotePort);
 
-	for (QMultiMap<quint64, CSocketPtr>::iterator I = Sockets.find(HashID); I != Sockets.end() && I.key() == HashID; I++)
+	for (QMultiMap<quint64, CSocketPtr>::const_iterator I = Sockets.constFind(HashID); I != Sockets.constEnd() && I.key() == HashID; I++)
 	{
 		if (I.value().staticCast<CWinSocket>()->Match(ProcessId, ProtocolType, LocalAddress, LocalPort, RemoteAddress, RemotePort, Mode))
 			return I;
 	}
 
 	// no matching entry
-	return Sockets.end();
+	return Sockets.constEnd();
 }
 
 bool CWindowsAPI::UpdateSocketList()
@@ -1336,9 +1336,9 @@ bool CWindowsAPI::UpdateSocketList()
 		QSharedPointer<CWinSocket> pSocket;
 
 		bool bAdd = false;
-		QMultiMap<quint64, CSocketPtr>::iterator I = FindSocketEntry(OldSockets, (quint64)connections[i].ProcessId, (quint64)connections[i].ProtocolType, 
+		QMultiMap<quint64, CSocketPtr>::const_iterator I = FindSocketEntry(OldSockets, (quint64)connections[i].ProcessId, (quint64)connections[i].ProtocolType, 
 			connections[i].LocalEndpoint.Address, connections[i].LocalEndpoint.Port, connections[i].RemoteEndpoint.Address, connections[i].RemoteEndpoint.Port, CSocketInfo::eStrict);
-		if (I == OldSockets.end())
+		if (I == OldSockets.constEnd())
 		{
 			pSocket = QSharedPointer<CWinSocket>(new CWinSocket());
 			bAdd = pSocket->InitStaticData((quint64)connections[i].ProcessId, (quint64)connections[i].ProtocolType, 
@@ -1430,8 +1430,8 @@ CSocketPtr CWindowsAPI::FindSocket(quint64 ProcessId, quint32 ProtocolType,
 {
 	QReadLocker Locker(&m_SocketMutex);
 
-	QMultiMap<quint64, CSocketPtr>::iterator I = FindSocketEntry(m_SocketList, ProcessId, ProtocolType, LocalAddress, LocalPort, RemoteAddress, RemotePort, Mode);
-	if (I == m_SocketList.end())
+	QMultiMap<quint64, CSocketPtr>::const_iterator I = FindSocketEntry(m_SocketList, ProcessId, ProtocolType, LocalAddress, LocalPort, RemoteAddress, RemotePort, Mode);
+	if (I == m_SocketList.constEnd())
 		return CSocketPtr();
 	return I.value();
 }

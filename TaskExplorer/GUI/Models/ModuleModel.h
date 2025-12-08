@@ -54,9 +54,9 @@ public:
 #ifdef WIN32
 		eOriginalName,
 		eArchitecture,
-		//eEnclaveType,
-		//eEnclaveBaseAddress,
-		//eEnclaveSize,
+		eEnclaveType,
+		eEnclaveBaseAddress,
+		eEnclaveSize,
 #endif
 
 		eCount

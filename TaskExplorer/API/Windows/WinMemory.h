@@ -5,6 +5,8 @@
 class CWinMemory : public CMemoryInfo
 {
 	Q_OBJECT
+
+	TRACK_OBJECT(CWinMemory)
 public:
 	CWinMemory(QObject *parent = nullptr);
 	virtual ~CWinMemory();
@@ -17,6 +19,7 @@ public:
 	virtual QString GetMemoryStateString() const;
 	virtual QString GetProtectionString() const;
 	virtual QString GetAllocProtectionString() const;
+	virtual QString GetOriginalPagesString() const;
 	virtual bool IsExecutable() const;
 	virtual bool IsBitmapRegion() const;
 	virtual bool IsFree() const;

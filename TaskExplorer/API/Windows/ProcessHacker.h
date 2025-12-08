@@ -39,6 +39,8 @@
 extern "C" {
 #endif
 #include <kphuser.h>
+#include <phconsole.h>
+#include <phintrnl.h>
 #ifdef __cplusplus
 }
 #endif
@@ -55,9 +57,7 @@ extern "C" {
 #include <combaseapi.h>
 #include <lsasup.h>
 #include <phnative.h>
-#include <mapldr.h>
-//#include <ntgdi.h>
-#include "../ProcessHacker/phnt/include/ntgdi.h"
+#include <ntgdi.h>
 
 #ifdef __cplusplus
 #include "../../../MiscHelpers/Common/FlexError.h"

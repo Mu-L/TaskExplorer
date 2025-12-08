@@ -8,6 +8,7 @@ class CHeapInfo: public CAbstractInfoEx
 {
 	Q_OBJECT
 
+	TRACK_OBJECT(CHeapInfo)
 public:
 	CHeapInfo(QObject *parent = nullptr);
 	virtual ~CHeapInfo();

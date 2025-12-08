@@ -76,6 +76,7 @@ public:
 	virtual STATUS SetIOPriority(qint32 Value) = 0;
 
 	virtual quint64 GetAffinityMask() const				{ QReadLocker Locker(&m_Mutex); return m_AffinityMask; }
+	virtual QString GetAffinityMaskString() const;
 	virtual STATUS SetAffinityMask(quint64 Value) = 0;
 
 	virtual STATUS Terminate(bool bForce) = 0;

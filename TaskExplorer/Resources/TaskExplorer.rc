@@ -22,6 +22,24 @@ LANGUAGE LANG_GERMAN, SUBLANG_GERMAN_AUSTRIAN
 IDI_ICON1               ICON                    "TaskExplorer.ico"
 
 
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+FINDER_FULL             BITMAP                  "finder-full.bmp"
+
+FINDER_EMPTY            BITMAP                  "finder-empty.bmp"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Cursor
+//
+
+FINDER_CURSOR           CURSOR                  "finder.cur"
+
+
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
 //

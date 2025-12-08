@@ -9,6 +9,8 @@
 class CSandboxieAPI : public QObject
 {
 	Q_OBJECT
+
+	TRACK_OBJECT(CSandboxieAPI)
 public:
 	CSandboxieAPI(QObject* parent = NULL);
 	virtual ~CSandboxieAPI();

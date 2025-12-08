@@ -6,6 +6,7 @@ class CWinHeap: public CHeapInfo
 {
 	Q_OBJECT
 
+	TRACK_OBJECT(CWinHeap)
 public:
 	CWinHeap(QObject *parent = nullptr);
 	virtual ~CWinHeap();

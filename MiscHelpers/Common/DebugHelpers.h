@@ -7,6 +7,8 @@ MISCHELPERS_EXPORT bool IsDebuggerAttached();
 
 MISCHELPERS_EXPORT void WaitForDebugger();
 
+MISCHELPERS_EXPORT void DbgPrint(const wchar_t* format, ...);
+
 #if defined(_DEBUG) || defined(_TRACE)
 
 

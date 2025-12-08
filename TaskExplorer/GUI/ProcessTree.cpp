@@ -1113,8 +1113,10 @@ void CProcessTree::OnUpdateHistory()
 			pGraph->SetValue(1, CpuStats.CpuKernelUsage / Div);
 			pGraph->Update(CellHeight, CellWidth);
 		}
-		foreach(quint64 TID, Old.keys())
-			m_CPU_Graphs.take(TID)->deleteLater();
+		foreach(quint64 TID, Old.keys()) {
+			auto graph = m_CPU_Graphs.take(TID);
+			if(graph) graph->deleteLater();
+		}
 
 		UpdateIndexWidget(CProcessModel::eCPU_History, CellHeight, m_CPU_Graphs, m_CPU_History);
 	}
@@ -1141,8 +1143,10 @@ void CProcessTree::OnUpdateHistory()
 			pGraph->SetValue(0, GpuStats.GpuTimeUsage.Usage);
 			pGraph->Update(CellHeight, CellWidth);
 		}
-		foreach(quint64 TID, Old.keys())
-			m_GPU_Graphs.take(TID)->deleteLater();
+		foreach(quint64 TID, Old.keys()) {
+			auto graph = m_GPU_Graphs.take(TID);
+			if(graph) graph->deleteLater();
+		}
 
 		UpdateIndexWidget(CProcessModel::eGPU_History, CellHeight, m_GPU_Graphs, m_GPU_History);
 	}
@@ -1169,8 +1173,10 @@ void CProcessTree::OnUpdateHistory()
 			pGraph->SetValue(0, TotalMemoryUsed ? (float)pProcess->GetWorkingSetSize() / TotalMemoryUsed : 0);
 			pGraph->Update(CellHeight, CellWidth);
 		}
-		foreach(quint64 TID, Old.keys())
-			m_MEM_Graphs.take(TID)->deleteLater();
+		foreach(quint64 TID, Old.keys()) {
+			auto graph = m_MEM_Graphs.take(TID);
+			if(graph) graph->deleteLater();
+		}
 
 		UpdateIndexWidget(CProcessModel::eMEM_History, CellHeight, m_MEM_Graphs, m_MEM_History);
 	}
@@ -1212,8 +1218,10 @@ void CProcessTree::OnUpdateHistory()
 			pGraph->SetValue(0, qMax(DedicatedMemory, SharedMemory));
 			pGraph->Update(CellHeight, CellWidth);
 		}
-		foreach(quint64 TID, Old.keys())
-			m_VMEM_Graphs.take(TID)->deleteLater();
+		foreach(quint64 TID, Old.keys()) {
+			auto graph = m_VMEM_Graphs.take(TID);
+			if(graph) graph->deleteLater();
+		}
 
 		UpdateIndexWidget(CProcessModel::eVMEM_History, CellHeight, m_VMEM_Graphs, m_VMEM_History);
 	}
@@ -1251,8 +1259,10 @@ void CProcessTree::OnUpdateHistory()
 			pGraph->SetValue(2, TotalIO ? (float)IoStats.Io.OtherRate.Get() / TotalIO : 0);
 			pGraph->Update(CellHeight, CellWidth);
 		}
-		foreach(quint64 TID, Old.keys())
-			m_IO_Graphs.take(TID)->deleteLater();
+		foreach(quint64 TID, Old.keys()) {
+			auto graph = m_IO_Graphs.take(TID);
+			if(graph) graph->deleteLater();
+		}
 
 		UpdateIndexWidget(CProcessModel::eIO_History, CellHeight, m_IO_Graphs, m_IO_History);
 	}
@@ -1283,8 +1293,10 @@ void CProcessTree::OnUpdateHistory()
 			pGraph->SetValue(1, TotalNet ? (float)IoStats.Net.SendRate.Get() / TotalNet : 0);
 			pGraph->Update(CellHeight, CellWidth);
 		}
-		foreach(quint64 TID, Old.keys())
-			m_NET_Graphs.take(TID)->deleteLater();
+		foreach(quint64 TID, Old.keys()) {
+			auto graph = m_NET_Graphs.take(TID);
+			if(graph) graph->deleteLater();
+		}
 
 		UpdateIndexWidget(CProcessModel::eNET_History, CellHeight, m_NET_Graphs, m_NET_History);
 	}

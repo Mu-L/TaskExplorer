@@ -4,6 +4,8 @@
 class CWinThread : public CThreadInfo
 {
 	Q_OBJECT
+
+	TRACK_OBJECT(CWinThread)
 public:
 	CWinThread(QObject *parent = nullptr);
 	virtual ~CWinThread();
@@ -16,9 +18,10 @@ public:
 	virtual QString GetStartAddressString() const;
 	virtual QString GetStartAddressFileName() const		{ QReadLocker Locker(&m_Mutex); return m_StartAddressFileName; }
 
-	virtual quint64 GetBasePriorityIncrement() const	{ QReadLocker Locker(&m_Mutex); return m_BasePriorityIncrement; }
-
 	virtual QString GetStateString() const;
+
+	virtual quint64 GetBasePriorityIncrement() const	{ QReadLocker Locker(&m_Mutex); return m_BasePriorityIncrement; }
+	virtual QString GetBasePriorityIncrementString() const;
 	virtual QString GetPriorityString() const;
 	virtual QString GetBasePriorityString() const;
 	virtual QString GetPagePriorityString() const;
@@ -75,11 +78,17 @@ public:
 	virtual bool IsPowerThrottled() const	{ QReadLocker Locker(&m_Mutex); return m_IsPowerThrottled; }
 
 
-	virtual int GetApartmentState() const { QReadLocker Locker(&m_Mutex); return m_ApartmentState; }
-	virtual QString GetApartmentStateString() const;
+	virtual int GetApartmentType() const;
+	virtual QString GetApartmentTypeString() const;
+	virtual int GetApartmentFlags() const;
+	virtual QString GetApartmentFlagsString() const;
 
 	virtual QString GetLastSysCallInfoString() const;
 	virtual QString GetLastSysCallStatusString() const;
+
+	virtual bool HasRpcState() const { QReadLocker Locker(&m_Mutex); return m_bHasRpcState; }
+
+	virtual quint64 GetLXSSThreadId() const;
 
 private slots:
 	void		OnSymbolFromAddress(quint64 ProcessId, quint64 Address, int ResolveLevel, const QString& StartAddressString, const QString& FileName, const QString& SymbolName);
@@ -123,9 +132,9 @@ protected:
 	ETokenState	m_TokenState;
 	bool		m_HasToken2;
 
-	int			m_ApartmentState;
-
 	QString		m_AppDomain;
+
+	bool		m_bHasRpcState;
 
 	struct SWinThread*	m;
 };

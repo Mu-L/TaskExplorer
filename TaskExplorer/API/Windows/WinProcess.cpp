@@ -171,6 +171,8 @@ struct SWinProcess
 	QString AppID;
 	ULONG DpiAwareness;
 
+	quint16	Architecture;
+
 	// Signature, Packed
 	//quint32 ImportFunctions;
 	//quint32 ImportModules;
@@ -481,6 +483,13 @@ bool CWinProcess::InitStaticData(bool bLoadFileName)
 			m->IsSecureProcess = basicInfo.IsSecureProcess;
 			m->IsSubsystemProcess = basicInfo.IsSubsystemProcess;
 			m->IsWow64Process = basicInfo.IsWow64Process;
+		}
+
+		USHORT processArchitecture;
+
+		if (NT_SUCCESS(PhGetProcessArchitecture(m->QueryHandle, &processArchitecture)))
+		{
+			m->Architecture = processArchitecture;
 		}
 	}
 
@@ -1056,7 +1065,7 @@ bool CWinProcess::UpdateDynamicData(struct _SYSTEM_PROCESS_INFORMATION* Process,
 		BOOLEAN priorityBoostDisabled;
 		if (NT_SUCCESS(PhGetProcessPriorityBoost(m->QueryHandle, &priorityBoostDisabled))) 
 		{
-			m_PriorityBoost = !priorityBoostDisabled;
+			m_PriorityBoost = priorityBoostDisabled;
 		}
 
 		if (WindowsVersion >= WINDOWS_11_22H2 && !m->IsSubsystemProcess)
@@ -2007,9 +2016,18 @@ bool CWinProcess::IsWoW64() const
 QString CWinProcess::GetArchString() const
 {
 	QReadLocker Locker(&m_Mutex); 
-	if (!m->IsWow64Process)
-		return tr("x86_64");
-	return tr("x86");
+
+	QSharedPointer<CWinMainModule> pModule = m_pModuleInfo.staticCast<CWinMainModule>();
+
+	switch (m->Architecture != IMAGE_FILE_MACHINE_UNKNOWN ? m->Architecture : pModule->GetImageMachine())
+	{
+	case IMAGE_FILE_MACHINE_I386: return "x86";
+	case IMAGE_FILE_MACHINE_AMD64: return pModule && pModule->GetImageCHPEVersion() ? "x64 (ARM64X)" : "x64";
+	case IMAGE_FILE_MACHINE_ARMNT: return "ARM";
+	case IMAGE_FILE_MACHINE_ARM64: return pModule && pModule->GetImageCHPEVersion() ? "ARM64 (ARM64X)" : "ARM64";
+	}
+
+	return "";
 }
 
 quint64 CWinProcess::GetSessionID() const
@@ -3007,7 +3025,7 @@ STATUS CWinProcess::SetPriorityBoost(bool Value)
 
 	if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_SET_INFORMATION, m->UniqueProcessId)))
 	{
-		status = PhSetProcessPriorityBoost(processHandle, !Value);
+		status = PhSetProcessPriorityBoost(processHandle, Value);
 		NtClose(processHandle);
 	}
 
@@ -4287,4 +4305,10 @@ CleanupExit:
         CoUninitialize();
 
 	return Providers;
+}
+
+quint64 CWinProcess::GetLXSSProcessId() const
+{
+	QReadLocker Locker(&m_Mutex);
+	return m->LxssProcessId;
 }

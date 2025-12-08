@@ -7,6 +7,7 @@ class CMemoryInfo: public CAbstractInfoEx
 {
 	Q_OBJECT
 
+	TRACK_OBJECT(CMemoryInfo)
 public:
 	CMemoryInfo(QObject *parent = nullptr);
 	virtual ~CMemoryInfo();

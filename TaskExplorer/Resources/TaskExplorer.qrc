@@ -86,6 +86,9 @@
         <file alias="Config">Actions/Config2.png</file>
         <file alias="Options">Actions/Options.png</file>
         <file alias="MiscOptions">Actions/Settings.png</file>
+        <file alias="Font">Actions/Font.png</file>
+        <file alias="ResetFont">Actions/ResetFont.png</file>
+        <file alias="Finder">Actions/finder.png</file>
     </qresource>
     <qresource prefix="/NtObjects">
         <file alias="Device">NtObjects/device16.png</file>

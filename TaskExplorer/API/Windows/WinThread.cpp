@@ -33,6 +33,10 @@ struct SWinThread
 
 		LastStatusValue = 0;
 		LastStatusQueryStatus = STATUS_UNSUCCESSFUL;
+
+		memset(&ApartmentInfo, 0, sizeof(PH_APARTMENT_INFO));
+
+		LxssThreadId = 0;
 	}
 
 	HANDLE UniqueThreadId;
@@ -52,7 +56,11 @@ struct SWinThread
 	NTSTATUS LastStatusValue;
 	NTSTATUS LastStatusQueryStatus;
 
+	PH_APARTMENT_INFO ApartmentInfo;
+
 	//IO_COUNTERS IoCounters;
+
+	quint64 LxssThreadId;
 };
 
 CWinThread::CWinThread(QObject *parent) 
@@ -67,7 +75,7 @@ CWinThread::CWinThread(QObject *parent)
 	m_TokenState = PH_THREAD_TOKEN_STATE_UNKNOWN;
 	m_HasToken2 = false;
 
-	m_ApartmentState = 0;
+	m_bHasRpcState = false;
 
 	m = new SWinThread();
 }
@@ -362,7 +370,7 @@ bool CWinThread::UpdateDynamicData(struct _SYSTEM_THREAD_INFORMATION* thread, qu
 	BOOLEAN priorityBoostDisabled = FALSE;
 	if (NT_SUCCESS(PhGetThreadPriorityBoost(m->ThreadHandle, &priorityBoostDisabled)))
 	{
-		m_PriorityBoost = !priorityBoostDisabled;
+		m_PriorityBoost = priorityBoostDisabled;
 	}
 
 	if (m_ProcessId != (quint64)SYSTEM_IDLE_PROCESS_ID && m_ProcessId != (quint64)SYSTEM_PROCESS_ID)
@@ -375,11 +383,18 @@ bool CWinThread::UpdateDynamicData(struct _SYSTEM_THREAD_INFORMATION* thread, qu
 
 	m->LastStatusQueryStatus = PhGetThreadLastStatusValue(m->ThreadHandle, m->ProcessHandle, &m->LastStatusValue);
 
-	ULONG ApartmentFlags = 0;
-	ULONG ComInits = 0;
-	if (NT_SUCCESS(PhGetThreadApartmentFlags(m->ThreadHandle, m->ProcessHandle, &ApartmentFlags, &ComInits)))
+	PhGetThreadApartment(m->ThreadHandle, m->ProcessHandle, &m->ApartmentInfo);
+
+	BOOLEAN hasRpcState;
+	if (NT_SUCCESS(PhGetThreadRpcState(m->ThreadHandle, m->ProcessHandle, &hasRpcState)))
 	{
-		m_ApartmentState = ApartmentFlags;
+		m_bHasRpcState = !!hasRpcState;
+	}
+
+	ULONG lxssThreadId;
+	if (NT_SUCCESS(KphQueryInformationThread(m->ThreadHandle, KphThreadWSLThreadId, &lxssThreadId, sizeof(ULONG), NULL)))
+	{
+		m->LxssThreadId = lxssThreadId;
 	}
 
 	ULONG_PTR stackUsage = 0;
@@ -525,33 +540,40 @@ QString CWinThread::GetStartAddressString() const
 	return m_StartAddressString;
 }
 
+QString CWinThread::GetBasePriorityIncrementString() const
+{
+	return QString::number(GetBasePriorityIncrement());
+}
+
 QString CWinThread::GetPriorityString() const
 {
 	QReadLocker Locker(&m_Mutex);
 
-    switch (m_BasePriorityIncrement)
-    {
-    case THREAD_BASE_PRIORITY_LOWRT + 1:
-    case THREAD_BASE_PRIORITY_LOWRT:
-        return tr("Time critical");
-    case THREAD_PRIORITY_HIGHEST:
-        return tr("Highest");
-    case THREAD_PRIORITY_ABOVE_NORMAL:
-        return tr("Above normal");
-    case THREAD_PRIORITY_NORMAL:
-        return tr("Normal");
-    case THREAD_PRIORITY_BELOW_NORMAL:
-        return tr("Below normal");
-    case THREAD_PRIORITY_LOWEST:
-        return tr("Lowest");
-    case THREAD_BASE_PRIORITY_IDLE:
-    case THREAD_BASE_PRIORITY_IDLE - 1:
-        return tr("Idle");
-    case THREAD_PRIORITY_ERROR_RETURN:
-        return tr("");
-    default:
-		return QString::number(m_BasePriorityIncrement);
-    }
+	switch (m_BasePriorityIncrement)
+	{
+	case THREAD_BASE_PRIORITY_LOWRT + 1:
+	case THREAD_BASE_PRIORITY_LOWRT:
+		return tr("Time critical");
+	case THREAD_PRIORITY_HIGHEST:
+		return tr("Highest");
+	case THREAD_PRIORITY_ABOVE_NORMAL:
+		return tr("Above normal");
+	case THREAD_PRIORITY_NORMAL:
+		return tr("Normal");
+	case THREAD_PRIORITY_BELOW_NORMAL:
+		return tr("Below normal");
+	case THREAD_PRIORITY_LOWEST:
+		return tr("Lowest");
+	case THREAD_BASE_PRIORITY_IDLE:
+	case THREAD_BASE_PRIORITY_IDLE - 1:
+		return tr("Idle");
+	case THREAD_PRIORITY_ERROR_RETURN:
+		return tr("");
+	default:
+		return QString::number(m_Priority);
+	}
+
+	//return QString::number(GetPriority());
 }
 
 QString CWinThread::GetBasePriorityString() const	
@@ -578,7 +600,7 @@ STATUS CWinThread::SetPriorityBoost(bool Value)
 
 	if (NT_SUCCESS(status = PhOpenThread(&threadHandle, THREAD_SET_LIMITED_INFORMATION, (HANDLE)m_ThreadId)))
 	{
-		status = PhSetThreadPriorityBoost(threadHandle, !Value);
+		status = PhSetThreadPriorityBoost(threadHandle, Value);
 		NtClose(threadHandle);
 	}
 
@@ -1001,75 +1023,110 @@ void CWinThread::OpenPermissions()
     PhEditSecurity(NULL, (wchar_t*)GetStartAddressString().toStdWString().c_str(), L"Thread", CWinThread_OpenThreadPermissions, NULL, (HANDLE)GetThreadId());
 }
 
-QString CWinThread::GetApartmentStateString() const
+int CWinThread::GetApartmentType() const
+{
+	QReadLocker Locker(&m_Mutex);
+	return m->ApartmentInfo.Type;
+}
+
+QString CWinThread::GetApartmentTypeString() const
 {
 	QReadLocker Locker(&m_Mutex);
 	
+	QString Type;
+	if (m->ApartmentInfo.InNeutral)
+		Type += "NTA on ";
+
+	switch (m->ApartmentInfo.Type)
+	{
+	case PH_APARTMENT_TYPE_STA:			Type += "STA"; break;
+	case PH_APARTMENT_TYPE_MAIN_STA:	Type += "Main STA";	break;
+	case PH_APARTMENT_TYPE_APPLICATION_STA: Type += "ASTA"; break;
+	case PH_APARTMENT_TYPE_MTA:			Type += "MTA"; break;
+	case PH_APARTMENT_TYPE_IMPLICIT_MTA:Type += "Implicit MTA"; break;
+	}
+	
+	if (m->ApartmentInfo.ComInits > 1)
+		Type += QString(" (x%1)").arg(m->ApartmentInfo.ComInits);
+
+	return Type;
+}
+
+int CWinThread::GetApartmentFlags() const
+{
+	QReadLocker Locker(&m_Mutex);
+	return m->ApartmentInfo.Flags;
+}
+
+QString CWinThread::GetApartmentFlagsString() const
+{
+	QReadLocker Locker(&m_Mutex);
+
 	QStringList Info;
 
-	if (m_ApartmentState & OLETLS_LOCALTID)
+	if (m->ApartmentInfo.Flags & OLETLS_LOCALTID)
 		Info.append(tr("Local TID"));
-	if (m_ApartmentState & OLETLS_UUIDINITIALIZED)
+	if (m->ApartmentInfo.Flags & OLETLS_UUIDINITIALIZED)
 		Info.append(tr("UUID initialized"));
-	if (m_ApartmentState & OLETLS_INTHREADDETACH)
+	if (m->ApartmentInfo.Flags & OLETLS_INTHREADDETACH)
 		Info.append(tr("Inside thread detach"));
-	if (m_ApartmentState & OLETLS_CHANNELTHREADINITIALZED)
+	if (m->ApartmentInfo.Flags & OLETLS_CHANNELTHREADINITIALZED)
 		Info.append(tr("Channel thread initialized"));
-	if (m_ApartmentState & OLETLS_WOWTHREAD)
+	if (m->ApartmentInfo.Flags & OLETLS_WOWTHREAD)
 		Info.append(tr("WOW Thread"));
-	if (m_ApartmentState & OLETLS_THREADUNINITIALIZING)
+	if (m->ApartmentInfo.Flags & OLETLS_THREADUNINITIALIZING)
 		Info.append(tr("Thread Uninitializing"));
-	if (m_ApartmentState & OLETLS_DISABLE_OLE1DDE)
+	if (m->ApartmentInfo.Flags & OLETLS_DISABLE_OLE1DDE)
 		Info.append(tr("OLE1DDE disabled"));
-	if (m_ApartmentState & OLETLS_APARTMENTTHREADED)
+	if (m->ApartmentInfo.Flags & OLETLS_APARTMENTTHREADED)
 		Info.append(tr("Single threaded (STA)"));
-	if (m_ApartmentState & OLETLS_MULTITHREADED)
+	if (m->ApartmentInfo.Flags & OLETLS_MULTITHREADED)
 		Info.append(tr("Multi threaded (MTA)"));
-	if (m_ApartmentState & OLETLS_IMPERSONATING)
+	if (m->ApartmentInfo.Flags & OLETLS_IMPERSONATING)
 		Info.append(tr("Impersonating"));
-	if (m_ApartmentState & OLETLS_DISABLE_EVENTLOGGER)
+	if (m->ApartmentInfo.Flags & OLETLS_DISABLE_EVENTLOGGER)
 		Info.append(tr("Eventlogger disabled"));
-	if (m_ApartmentState & OLETLS_INNEUTRALAPT)
+	if (m->ApartmentInfo.Flags & OLETLS_INNEUTRALAPT)
 		Info.append(tr("Neutral threaded (NTA)"));
-	if (m_ApartmentState & OLETLS_DISPATCHTHREAD)
+	if (m->ApartmentInfo.Flags & OLETLS_DISPATCHTHREAD)
 		Info.append(tr("Dispatch thread"));
-	if (m_ApartmentState & OLETLS_HOSTTHREAD)
+	if (m->ApartmentInfo.Flags & OLETLS_HOSTTHREAD)
 		Info.append(tr("HOSTTHREAD"));
-	if (m_ApartmentState & OLETLS_ALLOWCOINIT)
+	if (m->ApartmentInfo.Flags & OLETLS_ALLOWCOINIT)
 		Info.append(tr("ALLOWCOINIT"));
-	if (m_ApartmentState & OLETLS_PENDINGUNINIT)
+	if (m->ApartmentInfo.Flags & OLETLS_PENDINGUNINIT)
 		Info.append(tr("PENDINGUNINIT"));
-	if (m_ApartmentState & OLETLS_FIRSTMTAINIT)
+	if (m->ApartmentInfo.Flags & OLETLS_FIRSTMTAINIT)
 		Info.append(tr("FIRSTMTAINIT"));
-	if (m_ApartmentState & OLETLS_FIRSTNTAINIT)
+	if (m->ApartmentInfo.Flags & OLETLS_FIRSTNTAINIT)
 		Info.append(tr("FIRSTNTAINIT"));
-	if (m_ApartmentState & OLETLS_APTINITIALIZING)
+	if (m->ApartmentInfo.Flags & OLETLS_APTINITIALIZING)
 		Info.append(tr("APTIN INITIALIZING"));
-	if (m_ApartmentState & OLETLS_UIMSGSINMODALLOOP)
+	if (m->ApartmentInfo.Flags & OLETLS_UIMSGSINMODALLOOP)
 		Info.append(tr("UIMSGS IN MODAL LOOP"));
-	if (m_ApartmentState & OLETLS_MARSHALING_ERROR_OBJECT)
+	if (m->ApartmentInfo.Flags & OLETLS_MARSHALING_ERROR_OBJECT)
 		Info.append(tr("Marshaling error object"));
-	if (m_ApartmentState & OLETLS_WINRT_INITIALIZE)
+	if (m->ApartmentInfo.Flags & OLETLS_WINRT_INITIALIZE)
 		Info.append(tr("WinRT initialized"));
-	if (m_ApartmentState & OLETLS_APPLICATION_STA)
+	if (m->ApartmentInfo.Flags & OLETLS_APPLICATION_STA)
 		Info.append(tr("ApplicationSTA"));
-	if (m_ApartmentState & OLETLS_IN_SHUTDOWN_CALLBACKS)
+	if (m->ApartmentInfo.Flags & OLETLS_IN_SHUTDOWN_CALLBACKS)
 		Info.append(tr("IN_SHUTDOWN_CALLBACKS"));
-	if (m_ApartmentState & OLETLS_POINTER_INPUT_BLOCKED)
+	if (m->ApartmentInfo.Flags & OLETLS_POINTER_INPUT_BLOCKED)
 		Info.append(tr("POINTER_INPUT_BLOCKED"));
-	if (m_ApartmentState & OLETLS_IN_ACTIVATION_FILTER)
+	if (m->ApartmentInfo.Flags & OLETLS_IN_ACTIVATION_FILTER)
 		Info.append(tr("IN_ACTIVATION_FILTER"));
-	if (m_ApartmentState & OLETLS_ASTATOASTAEXEMPT_QUIRK)
+	if (m->ApartmentInfo.Flags & OLETLS_ASTATOASTAEXEMPT_QUIRK)
 		Info.append(tr("ASTATOASTAEXEMPT_QUIRK"));
-	if (m_ApartmentState & OLETLS_ASTATOASTAEXEMPT_PROXY)
+	if (m->ApartmentInfo.Flags & OLETLS_ASTATOASTAEXEMPT_PROXY)
 		Info.append(tr("ASTATOASTAEXEMPT_PROXY"));
-	if (m_ApartmentState & OLETLS_ASTATOASTAEXEMPT_INDOUBT)
+	if (m->ApartmentInfo.Flags & OLETLS_ASTATOASTAEXEMPT_INDOUBT)
 		Info.append(tr("ASTATOASTAEXEMPT_INDOUBT"));
-	if (m_ApartmentState & OLETLS_DETECTED_USER_INITIALIZED)
+	if (m->ApartmentInfo.Flags & OLETLS_DETECTED_USER_INITIALIZED)
 		Info.append(tr("DETECTED_USER_INITIALIZED"));
-	if (m_ApartmentState & OLETLS_BRIDGE_STA)
+	if (m->ApartmentInfo.Flags & OLETLS_BRIDGE_STA)
 		Info.append(tr("BRIDGE_STA"));
-	if (m_ApartmentState & OLETLS_NAINITIALIZING)
+	if (m->ApartmentInfo.Flags & OLETLS_NAINITIALIZING)
 		Info.append(tr("NA_INITIALIZING"));
 
 	return Info.join(", ");
@@ -1122,4 +1179,10 @@ QString CWinThread::GetLastSysCallStatusString() const
 		}
 	}
 	return Info;
+}
+
+quint64 CWinThread::GetLXSSThreadId() const 
+{ 
+	QReadLocker Locker(&m_Mutex); 
+	return m->LxssThreadId; 
 }

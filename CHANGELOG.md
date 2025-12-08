@@ -11,14 +11,27 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - added TaskHelper.exe used as worker and service instead of using TaskExplorer.exe itself
 - improved KSI Driver's proces protection, it no longer required DynData
   - this change allows to use a lare portion of the driver functionality without up to date DynData
+- added DPI scaling options to settings
+- added original pages column to memory view
+- added thread colums: actual base priority, RPC usage, COM flags, LXSS TID
+- added process columns: CPU Afinity, LXSS PID
+- added module columns: enclave base address, enclave size, enclave type
+- added window finder, drag finder to a window to open its process
+- added open process to service view
 
 ### Changed
 - Changed settings tabs from timple tabs to side tabs with icons
 - switched to Qt 6.8.3 with [Windows 7 compatibility patches](https://github.com/crystalidea/qt6windows7)
 - updated QWT library to 6.3
+- updated run as mechanisms
+- added more security info to handle view and moved it to own section
+- double click in handle/module/memory search window now opens the process the handle/module/memory belongs to
 
 ### Fixed
 - fixed crash on handle view
+- fixed token privilege coloring
+- fixed driver process protection on arm64 systems caused crash
+- fixed m_SocketList corruption
 
 ### Removed
 - removed support for 32-bit Windows

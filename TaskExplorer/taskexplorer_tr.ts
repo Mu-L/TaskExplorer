@@ -4591,57 +4591,87 @@ Sınırı değiştirmek için &apos;Options/ResultLimit&apos; seçeneğini ayarl
         <translation>Task Explorer - Ayarlar</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="108"/>
+        <location filename="GUI/SettingsWindow.cpp" line="88"/>
+        <source>None</source>
+        <translation type="unfinished">Hiçbiri</translation>
+    </message>
+    <message>
+        <location filename="GUI/SettingsWindow.cpp" line="89"/>
+        <source>Native</source>
+        <translation type="unfinished">Doğal</translation>
+    </message>
+    <message>
+        <location filename="GUI/SettingsWindow.cpp" line="90"/>
+        <source>Qt</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="GUI/SettingsWindow.cpp" line="94"/>
+        <source>%1</source>
+        <translation type="unfinished">%1</translation>
+    </message>
+    <message>
+        <location filename="GUI/SettingsWindow.cpp" line="98"/>
+        <source>Select font</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="GUI/SettingsWindow.cpp" line="100"/>
+        <source>Reset font</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="GUI/SettingsWindow.cpp" line="126"/>
         <source>Close to Tray</source>
         <translation>Tepsiye kapat</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="109"/>
+        <location filename="GUI/SettingsWindow.cpp" line="127"/>
         <source>Prompt before Close</source>
         <translation>Kapatmadan önce sor</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="110"/>
+        <location filename="GUI/SettingsWindow.cpp" line="128"/>
         <source>Close</source>
         <translation>Kapat</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="116"/>
+        <location filename="GUI/SettingsWindow.cpp" line="134"/>
         <source>Show static Icon</source>
         <translation>Sabit simge göster</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="117"/>
+        <location filename="GUI/SettingsWindow.cpp" line="135"/>
         <source>CPU plot</source>
         <translation>CPU çizimi</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="118"/>
+        <location filename="GUI/SettingsWindow.cpp" line="136"/>
         <source>CPU plot and Memory bar</source>
         <translation>CPU çizimi ve Bellek çubuğu</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="119"/>
+        <location filename="GUI/SettingsWindow.cpp" line="137"/>
         <source>CPU plot and RAM bar</source>
         <translation>CPU çizimi ve RAM çubuğu</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="120"/>
+        <location filename="GUI/SettingsWindow.cpp" line="138"/>
         <source>CPU plot and RAM+Swap bars</source>
         <translation>CPU çizimi ve RAM+Takas çubuğu</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="130"/>
+        <location filename="GUI/SettingsWindow.cpp" line="148"/>
         <source>Description (Binary name)</source>
         <translation>Açıklama  (İkili adı)</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="131"/>
+        <location filename="GUI/SettingsWindow.cpp" line="149"/>
         <source>Binary name (Description)</source>
         <translation>İkili adı (Açıklama)</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="132"/>
+        <location filename="GUI/SettingsWindow.cpp" line="150"/>
         <source>Binary name only</source>
         <translation>Yalnızca ikili adı</translation>
     </message>
@@ -10761,15 +10791,20 @@ If you save the recovery information using this program, the additional failure 
         <location filename="Forms/DriverWindow.ui" line="76"/>
         <location filename="Forms/DriverWindow.ui" line="83"/>
         <location filename="Forms/DriverWindow.ui" line="107"/>
-        <location filename="Forms/DriverWindow.ui" line="124"/>
-        <location filename="Forms/DriverWindow.ui" line="175"/>
+        <location filename="Forms/DriverWindow.ui" line="114"/>
+        <location filename="Forms/DriverWindow.ui" line="131"/>
         <source>TextLabel</source>
         <translation>TextLabel</translation>
     </message>
     <message>
-        <location filename="Forms/DriverWindow.ui" line="141"/>
+        <location filename="Forms/DriverWindow.ui" line="175"/>
         <source>Use Kernel Driver</source>
         <translation>Çekirdek Sürücü Kullan</translation>
+    </message>
+    <message>
+        <location filename="Forms/DriverWindow.ui" line="182"/>
+        <source>(Requires Restart)</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="Forms/DriverWindow.ui" line="165"/>
@@ -10805,7 +10840,7 @@ If you save the recovery information using this program, the additional failure 
         <translation type="vanished">Sürücü Dosyası:</translation>
     </message>
     <message>
-        <location filename="Forms/DriverWindow.ui" line="131"/>
+        <location filename="Forms/DriverWindow.ui" line="138"/>
         <source>Verification Status:</source>
         <translation>Doğrulama Durumu:</translation>
     </message>
@@ -10828,7 +10863,7 @@ If you save the recovery information using this program, the additional failure 
         <translation type="vanished">Oto Seçim</translation>
     </message>
     <message>
-        <location filename="Forms/DriverWindow.ui" line="114"/>
+        <location filename="Forms/DriverWindow.ui" line="121"/>
         <source>OS Driver Signing Policy:</source>
         <translation>İşletim Sistemi Sürücü İmzalama İlkesi:</translation>
     </message>
@@ -11083,32 +11118,32 @@ If you save the recovery information using this program, the additional failure 
         <translation>Arayüz Seçenekleri</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="112"/>
+        <location filename="Forms/SettingsWindow.ui" line="229"/>
         <source>Show empty cells instead of zero</source>
         <translation>Sıfır yerine hücreleri boş göster</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="102"/>
+        <location filename="Forms/SettingsWindow.ui" line="313"/>
         <source>Highlight high load cells</source>
         <translation>Yüksek yüklü hücreleri vurgula</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="139"/>
+        <location filename="Forms/SettingsWindow.ui" line="366"/>
         <source>Use cycle count to calculate CPU Usage</source>
         <translation>CPU Kullanımını hesaplamak için döngü sayısını kullan</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="377"/>
+        <location filename="Forms/SettingsWindow.ui" line="393"/>
         <source>Tray options</source>
         <translation>Tepsi Seçenekleri</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="407"/>
+        <location filename="Forms/SettingsWindow.ui" line="482"/>
         <source>Infos in tray:</source>
         <translation>Tepsideki bilgiler:</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="146"/>
+        <location filename="Forms/SettingsWindow.ui" line="289"/>
         <source>Graph length:</source>
         <translation>Grafik uzunluğu:</translation>
     </message>
@@ -11118,210 +11153,255 @@ If you save the recovery information using this program, the additional failure 
         <translation>TaskExplorer Ayarları</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="132"/>
+        <location filename="Forms/SettingsWindow.ui" line="259"/>
         <source>General options</source>
         <translation>Genel Seçenekler</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="163"/>
-        <location filename="Forms/SettingsWindow.ui" line="723"/>
+        <location filename="Forms/SettingsWindow.ui" line="190"/>
+        <location filename="Forms/SettingsWindow.ui" line="843"/>
         <source>Restart required (!)</source>
         <translation>Yeniden başlatma gerektirir (!)</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="173"/>
+        <location filename="Forms/SettingsWindow.ui" line="90"/>
         <source>Show CPU Usage like on Linux</source>
         <translation>CPU Kullanımını Linux&apos;taki gibi göster</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="236"/>
+        <location filename="Forms/SettingsWindow.ui" line="73"/>
         <source>Use Dark Theme</source>
         <translation>Koyu Tema kullan</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="246"/>
+        <location filename="Forms/SettingsWindow.ui" line="60"/>
         <source>Interface language:</source>
         <translation>Arayüz dili:</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="276"/>
+        <location filename="Forms/SettingsWindow.ui" line="299"/>
         <source>Show also highest thread CPU usage in CPU column</source>
         <translation>CPU sütununda en yüksek iş parçacığı CPU kullanımını da göster</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="283"/>
+        <location filename="Forms/SettingsWindow.ui" line="163"/>
         <source>Use Fusion Theme</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="296"/>
+        <location filename="Forms/SettingsWindow.ui" line="83"/>
+        <source>#</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="Forms/SettingsWindow.ui" line="106"/>
+        <source>Graphic Options</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="Forms/SettingsWindow.ui" line="113"/>
+        <source>UI Font</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="Forms/SettingsWindow.ui" line="128"/>
+        <source>Select Font</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="Forms/SettingsWindow.ui" line="138"/>
+        <source>Reset Font</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="Forms/SettingsWindow.ui" line="216"/>
+        <source>High DPI Scaling</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="Forms/SettingsWindow.ui" line="306"/>
+        <source>(Restart required)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="Forms/SettingsWindow.ui" line="339"/>
+        <source>Font Scaling</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="Forms/SettingsWindow.ui" line="359"/>
+        <source>%</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="Forms/SettingsWindow.ui" line="376"/>
         <source>Misc Options</source>
         <translation>Çeşitli Seçenekler</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="417"/>
+        <location filename="Forms/SettingsWindow.ui" line="403"/>
         <source>On main window close:</source>
         <translation>Ana pencere kapatıldığında:</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="433"/>
+        <location filename="Forms/SettingsWindow.ui" line="553"/>
         <source>Lists / Colors</source>
         <translation>Listeler / Renkler</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="451"/>
+        <location filename="Forms/SettingsWindow.ui" line="571"/>
         <source>New item highlight time:</source>
         <translation>Yeni öğe vurgulama zamanı:</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="465"/>
+        <location filename="Forms/SettingsWindow.ui" line="585"/>
         <source>Old item persistence time:</source>
         <translation>Eski öğenin kalıcılık süresi:</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="492"/>
+        <location filename="Forms/SettingsWindow.ui" line="612"/>
         <source>Max cell width:</source>
         <translation>En yüksek hücre genişliği:</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="552"/>
+        <location filename="Forms/SettingsWindow.ui" line="672"/>
         <source>Simple list copy format</source>
         <translation>Basit liste kopyalama biçimi</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="559"/>
+        <location filename="Forms/SettingsWindow.ui" line="679"/>
         <source>Separator:</source>
         <translation>Ayırıcı:</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="572"/>
+        <location filename="Forms/SettingsWindow.ui" line="692"/>
         <source>Advanced</source>
         <translation>Gelişmiş</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="593"/>
+        <location filename="Forms/SettingsWindow.ui" line="713"/>
         <source>Use soft force, hold CTRL to use hard force</source>
         <translation>Yumuşak kuvvet kullan, sert kuvvet için CTRL tuşunu basılı tutun</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="676"/>
+        <location filename="Forms/SettingsWindow.ui" line="796"/>
         <source>Resolve refering services</source>
         <translation>Referans hizmetleri çözümle</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="689"/>
+        <location filename="Forms/SettingsWindow.ui" line="809"/>
         <source>Dll Options</source>
         <translation>DLL Seçenekleri</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="696"/>
+        <location filename="Forms/SettingsWindow.ui" line="816"/>
         <source>Forced Shutdown/Reboot:</source>
         <translation>Zorla Kapatma/Yeniden Başlatma:</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="716"/>
+        <location filename="Forms/SettingsWindow.ui" line="836"/>
         <source>Support Sandboxie</source>
         <translation>Sandboxie desteği</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="600"/>
+        <location filename="Forms/SettingsWindow.ui" line="720"/>
         <source>Trace unloaded modules</source>
         <translation>Kaldırılmış bileşenleri izle</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="607"/>
+        <location filename="Forms/SettingsWindow.ui" line="727"/>
         <source>Download Symbols:</source>
         <translation>Sembolleri indir:</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="623"/>
+        <location filename="Forms/SettingsWindow.ui" line="743"/>
         <source>Other Options</source>
         <translation>Diğer Seçenekler</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="364"/>
+        <location filename="Forms/SettingsWindow.ui" line="536"/>
         <source>Show Pseudo UDP Connections (ETW)</source>
         <translation>Sahte UDP Bağlantılarını (ETW) göster</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="357"/>
+        <location filename="Forms/SettingsWindow.ui" line="455"/>
         <source>Use DNS cache for remote host name resolution</source>
         <translation>Uzak ana bilgisayar adı çözümlemesi için DNS önbelleğini kullan</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="266"/>
+        <location filename="Forms/SettingsWindow.ui" line="505"/>
         <source>Process name</source>
         <translation>İşlem adı</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="216"/>
+        <location filename="Forms/SettingsWindow.ui" line="515"/>
         <source>Retain parent processes</source>
         <translation>Üst süreçleri tut</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="669"/>
+        <location filename="Forms/SettingsWindow.ui" line="789"/>
         <source>Undecorate symbols</source>
         <translation>Sembollerdeki dekorasyonu kaldır</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="330"/>
+        <location filename="Forms/SettingsWindow.ui" line="522"/>
         <source>Use Reverse DNS for remote host name resolution</source>
         <translation>Uzak ana bilgisayar adı çözümlemesi için Ters DNS kullan</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="229"/>
+        <location filename="Forms/SettingsWindow.ui" line="468"/>
         <source>Process options</source>
         <translation>İşlem Seçenekleri</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="343"/>
+        <location filename="Forms/SettingsWindow.ui" line="498"/>
         <source>Network Options</source>
         <translation>Ağ Seçenekleri</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="350"/>
+        <location filename="Forms/SettingsWindow.ui" line="529"/>
         <source>Show LAN only TCP/IP Traffic (ETW)</source>
         <translation>Yalnızca LAN TCP/IP Trafiğini (ETW) göster</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="206"/>
+        <location filename="Forms/SettingsWindow.ui" line="279"/>
         <source>Refresh interval:</source>
         <translation>Yenileme aralığı:</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="586"/>
+        <location filename="Forms/SettingsWindow.ui" line="706"/>
         <source>Symbol options</source>
         <translation>Sembol Seçenekleri</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="156"/>
+        <location filename="Forms/SettingsWindow.ui" line="183"/>
         <source>seconds</source>
         <translation>saniye</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="119"/>
-        <location filename="Forms/SettingsWindow.ui" line="538"/>
-        <location filename="Forms/SettingsWindow.ui" line="545"/>
+        <location filename="Forms/SettingsWindow.ui" line="236"/>
+        <location filename="Forms/SettingsWindow.ui" line="658"/>
+        <location filename="Forms/SettingsWindow.ui" line="665"/>
         <source>milliseconds</source>
         <translation>milisaniye</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="259"/>
+        <location filename="Forms/SettingsWindow.ui" line="543"/>
         <source>Append &quot;*32&quot; to WoW64 processes</source>
         <translation>WoW64 işlemlerine &quot;*32&quot; ekle</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="384"/>
+        <location filename="Forms/SettingsWindow.ui" line="475"/>
         <source>Show Sys-Tray</source>
         <translation>Sistem tepsisinde göster</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="458"/>
+        <location filename="Forms/SettingsWindow.ui" line="578"/>
         <source>List item colors</source>
         <translation>Öğe Renkleri Listesi:</translation>
     </message>
     <message>
-        <location filename="Forms/SettingsWindow.ui" line="531"/>
+        <location filename="Forms/SettingsWindow.ui" line="651"/>
         <source>Double-click on an item to change its color.</source>
         <translation>Bir öğenin rengini değiştirmek için üzerine çift tıklayın.</translation>
     </message>

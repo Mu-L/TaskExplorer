@@ -656,6 +656,15 @@
     <ClCompile Include="API\Windows\WinHelpers\FuncHook\Detours\uimports.cpp">
       <Filter>API\Windows\WinHelpers\FuncHook\Detours</Filter>
     </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\FindTool.cpp">
+      <Filter>API\Windows\WinHelpers</Filter>
+    </ClCompile>
+    <ClCompile Include="GUI\WndFinder.cpp">
+      <Filter>TaskExplorer</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\WindowFromPointEx.cpp">
+      <Filter>API\Windows\WinHelpers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -867,6 +876,9 @@
     </ClInclude>
     <ClInclude Include="API\Windows\WinHelpers\FuncHook\Detours\detver.h">
       <Filter>API\Windows\WinHelpers\FuncHook\Detours</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\WinHelpers\FindTool.h">
+      <Filter>API\Windows\WinHelpers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1292,6 +1304,12 @@
     <Image Include="Resources\TaskExplorer.ico">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="Resources\finder-empty.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Resources\finder-full.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="Resources\TaskExplorer.qrc">
@@ -1307,6 +1325,9 @@
     <None Include="..\CHANGELOG.md" />
     <None Include="API\Windows\WinHelpers\FuncHook\Detours\Makefile">
       <Filter>API\Windows\WinHelpers\FuncHook\Detours</Filter>
+    </None>
+    <None Include="Resources\finder.cur">
+      <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

@@ -148,7 +148,7 @@ NTSTATUS PhDosErrorToNtStatus(
     case NTE_BUFFER_TOO_SMALL: return STATUS_BUFFER_TOO_SMALL;
     default:
         {
-            assert(FALSE); // Update the table. (dmex)
+            //assert(FALSE); // Update the table. (dmex)
             return NTSTATUS_FROM_WIN32(DosError);
         }
     }

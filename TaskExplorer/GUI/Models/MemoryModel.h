@@ -36,9 +36,9 @@ public:
 		ePrivate,
 		eSigningLevel,
 		eOriginalProtection,
-		//eOriginalPages,
+		eOriginalPages,
 		eRegionType,
-		ePriprity,
+		ePriority,
 		eCount
 	};
 

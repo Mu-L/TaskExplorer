@@ -52,6 +52,7 @@ class CProcessInfo: public CAbstractTask
 {
 	Q_OBJECT
 
+	TRACK_OBJECT(CProcessInfo)
 public:
 	CProcessInfo(QObject *parent = nullptr);
 	virtual ~CProcessInfo();

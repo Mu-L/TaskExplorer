@@ -417,7 +417,7 @@ qint32 CTaskService::ExecTaskAction(quint64 ProcessId, const QString& Action, co
 		{
 			if (Action == "SetPriorityBoost")
 			{
-				status = PhSetProcessPriorityBoost(processHandle, !Data.toBool());
+				status = PhSetProcessPriorityBoost(processHandle, Data.toBool());
 			}
 			else if (Action == "SetPriority")
 			{
@@ -477,7 +477,7 @@ qint32 CTaskService::ExecTaskAction(quint64 ProcessId, quint64 ThreadId, const Q
 		{
 			if (Action == "SetPriorityBoost")
 			{
-				status = PhSetThreadPriorityBoost(threadHandle, !Data.toBool());
+				status = PhSetThreadPriorityBoost(threadHandle, Data.toBool());
 			}
 			else if (Action == "SetPriority")
 			{

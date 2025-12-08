@@ -244,6 +244,9 @@ QSet<quint64> CProcessModel::Sync(QMap<SProcessUID, CProcessPtr> ProcessList)
 											Value = Name; break;
 				}
 				case ePID:					Value = pProcess->GetProcessId(); break;
+#ifdef WIN32
+				case ePID_LXSS:				Value = pWinProc->GetLXSSProcessId(); break;
+#endif
 				case eParentPID:			Value = pProcess->GetParentId(); break;
 				case eConsolePID:			Value = pWinProc->GetConsoleHostId(); break;
 				case eSequenceNumber:		Value = pWinProc->GetProcessSequenceNumber(); break;
@@ -286,6 +289,7 @@ QSet<quint64> CProcessModel::Sync(QMap<SProcessUID, CProcessPtr> ProcessList)
 				case ePeakVirtualSize:		Value = CurIntValue = pProcess->GetPeakVirtualSize(); break;
 				case eSessionID:			Value = pProcess->GetSessionID(); break;
 				case eDebugTotal:			Value = pProcess->GetDebugMessageCount(); break;
+				case eAffinity:				Value = pProcess->GetAffinityMask(); break;
 				case ePriorityClass:		Value = (quint32)pProcess->GetPriority(); break;
 				case eBasePriority:			Value = (quint32)pProcess->GetBasePriority(); break;
 #ifdef WIN32
@@ -315,7 +319,7 @@ QSet<quint64> CProcessModel::Sync(QMap<SProcessUID, CProcessPtr> ProcessList)
 				case eImageCoherency:		Value = pWinModule ? pWinModule->GetImageCoherency() : -1.0F; break;
 #endif
 				case eUpTime:				Value = pProcess->GetCreateTimeStamp() != 0 ? (curTime - pProcess->GetCreateTimeStamp() / 1000) : 0; break; // we must update the value to refresh the display
-				case eArch:					Value = pProcess->GetArchString(); break;
+				case eArchitecture:			Value = pProcess->GetArchString(); break;
 #ifdef WIN32
 				case eElevation:			Value = pToken ? pToken->GetElevationString() : ""; break;
 #else
@@ -602,7 +606,8 @@ QSet<quint64> CProcessModel::Sync(QMap<SProcessUID, CProcessPtr> ProcessList)
 					case eKernelCPU_Time:
 					case eUserCPU_Time:
 											ColValue.Formatted = FormatTime(Value.toULongLong()); break;
-
+											
+					case eAffinity:			ColValue.Formatted = pProcess->GetAffinityMaskString(); break;
 					case ePriorityClass:	ColValue.Formatted = pProcess->GetPriorityString(); break;
 #ifdef WIN32
 					case ePriorityBoost:	ColValue.Formatted = pWinProc->HasPriorityBoost() ? tr("Yes") : ""; break;
@@ -776,7 +781,9 @@ QString CProcessModel::GetColumHeader(int section) const
 	{
 		case eProcess:				return tr("Process");
 		case ePID:					return tr("PID");
-		//case ePID_LXSS:				return tr("PID (LXSS)");
+#ifdef WIN32
+		case ePID_LXSS:				return tr("PID (LXSS)");
+#endif
 		case eParentPID:			return tr("Parent PID");
 		case eConsolePID:			return tr("Console PID");
 		case eSequenceNumber:		return tr("Seq. number");
@@ -810,6 +817,7 @@ QString CProcessModel::GetColumHeader(int section) const
 		case eDebugTotal:			return tr("Debug Messages");
 		//case eDebugDelte:			return tr("Debug Message Delta");
 		case eSessionID:			return tr("Session ID");
+		case eAffinity:				return tr("CPU Affinity");
 		case ePriorityClass:		return tr("Priority class");
 		case eBasePriority:			return tr("Base priority");
 #ifdef WIN32
@@ -842,7 +850,7 @@ QString CProcessModel::GetColumHeader(int section) const
 		case eVerifiedSigner:		return tr("Verified signer");
 #endif
 		case eUpTime:				return tr("Up Time");
-		case eArch:					return tr("CPU Arch.");
+		case eArchitecture:			return tr("Architecture");
 		case eElevation:			return tr("Elevation");
 #ifdef WIN32
 		case eWindowTitle:			return tr("Window title");

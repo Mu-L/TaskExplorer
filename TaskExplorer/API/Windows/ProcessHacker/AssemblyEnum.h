@@ -5,6 +5,7 @@ class CAssemblyEnum : public QThread
 {
 	Q_OBJECT
 
+	TRACK_OBJECT(CAssemblyEnum)
 public:
 	CAssemblyEnum(quint64 ProcessId, QObject *parent = nullptr);
 	virtual ~CAssemblyEnum();

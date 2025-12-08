@@ -9,6 +9,7 @@ class CWinProcess : public CProcessInfo
 {
 	Q_OBJECT
 
+	TRACK_OBJECT(CWinProcess)
 public:
 	CWinProcess(QObject *parent = nullptr);
 	virtual ~CWinProcess();
@@ -214,6 +215,8 @@ public:
 		QString UserName;
 	};
 	virtual QList<SWmiProvider>	QueryWmiProviders() const;
+
+	virtual quint64 GetLXSSProcessId() const;
 
 public slots:
 	virtual bool	UpdateThreads();

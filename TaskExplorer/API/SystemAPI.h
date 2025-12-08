@@ -67,6 +67,7 @@ class CSystemAPI : public QObject
 {
 	Q_OBJECT
 
+	TRACK_OBJECT(CSystemAPI)
 public:
 	CSystemAPI(QObject *parent = nullptr);
 	virtual ~CSystemAPI();

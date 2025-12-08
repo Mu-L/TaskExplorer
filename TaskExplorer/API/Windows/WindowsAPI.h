@@ -56,6 +56,7 @@ class CWindowsAPI : public CSystemAPI
 {
 	Q_OBJECT
 
+	TRACK_OBJECT(CWindowsAPI)
 public:
 	CWindowsAPI(QObject *parent = nullptr);
 	virtual ~CWindowsAPI();
@@ -64,7 +65,7 @@ public:
 
 	//virtual QPair<QString, QString> SelectDriver();
 	//virtual STATUS InitDriver(QString DeviceName, QString FileName);
-	virtual STATUS InitHackerDriver();
+	//virtual STATUS InitHackerDriver();
 
 	virtual bool RootAvaiable();
 

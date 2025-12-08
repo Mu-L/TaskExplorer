@@ -139,6 +139,39 @@ int main(int argc, char *argv[])
 	}
 #endif
 
+
+	// this must be done before we create QApplication
+	int DPI = theConf->GetInt("Options/DPIScaling", 1);
+	if (DPI == 1) {
+		//SetProcessDPIAware();
+		//SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_SYSTEM_AWARE);
+		//SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_SYSTEM_AWARE);
+		typedef DPI_AWARENESS_CONTEXT(WINAPI* P_SetThreadDpiAwarenessContext)(DPI_AWARENESS_CONTEXT dpiContext);
+		P_SetThreadDpiAwarenessContext pSetThreadDpiAwarenessContext = (P_SetThreadDpiAwarenessContext)GetProcAddress(GetModuleHandleW(L"user32.dll"), "SetThreadDpiAwarenessContext");
+		if(pSetThreadDpiAwarenessContext) // not present on windows 7
+			pSetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_SYSTEM_AWARE);
+		else
+			SetProcessDPIAware();
+	}
+	else if (DPI == 2) {
+		QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling); 
+	}
+	//else {
+	//	QCoreApplication::setAttribute(Qt::AA_DisableHighDpiScaling);
+	//}
+
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+	QApplication::setAttribute(Qt::AA_DisableWindowContextHelpButton);
+#endif
+
+	//
+	// Qt 6 uses the windows font cache which wants to access our process but our driver blocks it
+	// that causes a lot of log entries, hence we disable the use of windows fonr cache.
+	//
+	qputenv("QT_QPA_PLATFORM", QByteArrayLiteral("windows:nodirectwrite"));
+
+
+
 	STATUS DrvStatus = OK;
 
 #ifdef Q_OS_WIN
@@ -152,13 +185,6 @@ int main(int argc, char *argv[])
 	}
 #endif
 #endif // Q_OS_WIN
-
-
-	//
-	// Qt 6 uses the windows font cache which wants to access our process but our driver blocks it
-	// that causes a lot of log entries, hence we disable the use of windows fonr cache.
-	//
-	qputenv("QT_QPA_PLATFORM", QByteArrayLiteral("windows:nodirectwrite"));
 
 
 	QtSingleApplication* pApp = NULL;
@@ -255,7 +281,7 @@ int main(int argc, char *argv[])
 		bool State = false;
 		int Ret = CCheckableMessageBox::question(NULL, "TaskExplorer", Message
 			, CTaskExplorer::tr("Disable KTaskExplorer driver. Note: this will limit the aplications functionality!"), &State, 
-			buttons, QDialogButtonBox::Cancel, QMessageBox::Warning);
+			buttons, QDialogButtonBox::Ok, QMessageBox::Warning);
 
 		if (Ret == QDialogButtonBox::Yes)
 		{
@@ -354,12 +380,12 @@ int main(int argc, char *argv[])
 #endif
 		pApp->setQuitOnLastWindowClosed(false);
 
-		new CTaskExplorer();
-
 #if QT_VERSION > QT_VERSION_CHECK(6, 7, 0)
 		if (pApp->style()->name() == "windows11" && !theConf->GetBool("Options/UseW11Style", false))
 			pApp->setStyle("windowsvista");
 #endif
+
+		new CTaskExplorer();
 
 		QObject::connect(pApp, SIGNAL(messageReceived(const QString&)), theGUI, SLOT(OnMessage(const QString&)));
 		

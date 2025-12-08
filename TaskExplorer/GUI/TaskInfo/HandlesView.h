@@ -86,6 +86,7 @@ private slots:
 	void					ShowOpenFiles(QSet<quint64> Added, QSet<quint64> Changed, QSet<quint64> Removed);
 	void					OnItemSelected(const QModelIndex &current);
 	void					OnDoubleClicked();
+	void					OnOpenHandle();
 
 	//void					OnMenu(const QPoint &point);
 

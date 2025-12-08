@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "../TaskExplorer.h"
+#include "../TaskInfo/TaskInfoWindow.h"
 #include "StringView.h"
 #include "../../../MiscHelpers/Common/Common.h"
 #include "../../API/MemoryInfo.h"
@@ -56,7 +57,7 @@ CStringView::CStringView(bool bGlobal, QWidget *parent)
 
 	//m_pMenu = new QMenu();
 
-	m_pMenuEdit = m_pMenu->addAction(tr("Edit memory"), this, SLOT(OnDoubleClicked()));
+	m_pMenuEdit = m_pMenu->addAction(tr("Edit memory"), this, SLOT(OnEditString()));
 	m_pMenu->addSeparator();
 	m_pMenuSave = m_pMenu->addAction(tr("Save string(s)"), this, SLOT(OnSaveString()));
 
@@ -99,6 +100,22 @@ void CStringView::ShowStrings(const QMap<quint64, CStringInfoPtr>& String)
 }
 
 void CStringView::OnDoubleClicked()
+{
+	QModelIndex Index = m_pStringList->currentIndex();
+	QModelIndex ModelIndex = m_pSortProxy->mapToSource(Index);
+	CStringInfoPtr pString = m_pStringModel->GetString(ModelIndex);
+	if (pString)
+	{
+		CProcessPtr pProcess = pString->GetProcess().objectCast<CProcessInfo>();
+		if (pProcess)
+		{
+			CTaskInfoWindow* pTaskInfoWindow = new CTaskInfoWindow(QList<CProcessPtr>() << pProcess);
+			pTaskInfoWindow->show();
+		}
+	}
+}
+
+void CStringView::OnEditString()
 {
 	QModelIndex Index = m_pStringList->currentIndex();
 	QModelIndex ModelIndex = m_pSortProxy->mapToSource(Index);

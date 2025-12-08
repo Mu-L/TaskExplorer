@@ -507,6 +507,78 @@ QString CWinHandle::GetGrantedAccessString() const
 	return CastPhString(GrantedAccessSymbolicText);
 }
 
+QString CWinHandle::GetGenericAccessString() const
+{
+	QReadLocker Locker(&m_Mutex);
+
+	PPH_STRING GenericAccessSymbolicText = NULL;
+	GENERIC_MAPPING genericMapping;
+	PPH_STRING TypeName = CastQString(m_TypeName);
+
+	if (TypeName && NT_SUCCESS(PhGetObjectTypeMask(
+		&TypeName->sr,
+		&genericMapping
+	)))
+	{
+		PH_STRING_BUILDER stringBuilder;
+		PhInitializeStringBuilder(&stringBuilder, 64);
+		if (FlagOn(m_GrantedAccess, genericMapping.GenericRead))
+			PhAppendStringBuilder2(&stringBuilder, L"Read, ");
+		if (FlagOn(m_GrantedAccess, genericMapping.GenericWrite))
+			PhAppendStringBuilder2(&stringBuilder, L"Write, ");
+		if (FlagOn(m_GrantedAccess, genericMapping.GenericExecute))
+			PhAppendStringBuilder2(&stringBuilder, L"Execute, ");
+		if (FlagOn(m_GrantedAccess, genericMapping.GenericAll))
+			PhAppendStringBuilder2(&stringBuilder, L"All, ");
+		if (PhEndsWithStringRef2(&stringBuilder.String->sr, L", ", FALSE))
+			PhRemoveEndStringBuilder(&stringBuilder, 2);
+		GenericAccessSymbolicText = PhFinalStringBuilderString(&stringBuilder);
+	}
+
+	if(TypeName)
+		PhDereferenceObject(TypeName);
+
+	if (!PhIsNullOrEmptyString(GenericAccessSymbolicText))
+		return CastPhString(GenericAccessSymbolicText);
+	else
+		return tr("N/A");
+}
+
+QString CWinHandle::GetObjectSecurityDescriptorString() const
+{
+	QReadLocker Locker(&m_Mutex);
+
+	NTSTATUS status;
+	PSECURITY_DESCRIPTOR securityDescriptor;
+	PPH_STRING securityDescriptorString;
+
+	status = PhGetObjectSecurity(
+		(HANDLE)m_HandleId,
+		OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION |
+		DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION |
+		ATTRIBUTE_SECURITY_INFORMATION | SCOPE_SECURITY_INFORMATION,
+		&securityDescriptor
+	);
+
+	if (NT_SUCCESS(status))
+	{
+		status = PhGetSecurityDescriptorAsString(
+			securityDescriptor,
+			OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION |
+			DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION |
+			ATTRIBUTE_SECURITY_INFORMATION | SCOPE_SECURITY_INFORMATION,
+			&securityDescriptorString
+		);
+
+		PhFree(securityDescriptor);
+	}
+
+	if (NT_SUCCESS(status))
+		return CastPhString(securityDescriptorString);
+	else
+		return tr("0x%1").arg((quint32)status, 0, 16);
+}
+
 #define PH_FILEMODE_ASYNC 0x01000000
 #define PhFileModeUpdAsyncFlag(mode) (mode & (FILE_SYNCHRONOUS_IO_ALERT | FILE_SYNCHRONOUS_IO_NONALERT) ? mode &~ PH_FILEMODE_ASYNC: mode | PH_FILEMODE_ASYNC)
 

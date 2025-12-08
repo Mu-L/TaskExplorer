@@ -148,7 +148,7 @@ QSet<quint64> CModuleModel::Sync(const QMap<quint64, CModulePtr>& ModuleList)
 				case eFileModifiedTime:		Value = pModule->GetModificationTime(); break;
 				case eFileSize:				Value = pModule->GetFileSize(); break;
 #ifdef WIN32
-				case eEntryPoint:			Value = pWinModule->GetEntryPoint();
+				case eEntryPoint:			Value = pWinModule->GetEntryPoint(); break;
 				case eService:				Value = pWinModule->GetRefServices().join(", "); break;
 #endif
 				case eParentBaseAddress:	Value = pModule->GetParentBaseAddress(); break;
@@ -156,9 +156,9 @@ QSet<quint64> CModuleModel::Sync(const QMap<quint64, CModulePtr>& ModuleList)
 #ifdef WIN32
 				case eOriginalName:			Value = pWinModule->GetFileNameNt(); break;
 				case eArchitecture:			Value = pWinModule->GetImageMachine(); break;
-				//case eEnclaveType:			Value = pWinModule->GetEnclaveType(); break;
-				//case eEnclaveBaseAddress:	Value = pWinModule->GetEnclaveBaseAddress(); break;
-				//case eEnclaveSize:			Value = pWinModule->GetEnclaveSize(); break;
+				case eEnclaveType:			Value = pWinModule->GetEnclaveType(); break;
+				case eEnclaveBaseAddress:	Value = pWinModule->GetEnclaveBaseAddress(); break;
+				case eEnclaveSize:			Value = pWinModule->GetEnclaveSize(); break;
 #endif
 			}
 
@@ -191,9 +191,9 @@ QSet<quint64> CModuleModel::Sync(const QMap<quint64, CModulePtr>& ModuleList)
 #ifdef WIN32
 					case eImageCoherency:	ColValue.Formatted = pWinModule->GetImageCoherencyString(); break;
 					case eArchitecture:		ColValue.Formatted = pWinModule->GetImageMachineString(); break;
-					//case eEnclaveType:		ColValue.Formatted = pWinModule->GetEnclaveType() == 0 ? "" : pWinModule->GetEnclaveTypeString(); break;
-					//case eEnclaveBaseAddress:ColValue.Formatted = pWinModule->GetEnclaveType() == 0 ? "" : FormatAddress(ColValue.Raw.toULongLong()); break;
-					//case eEnclaveSize:		ColValue.Formatted = pWinModule->GetEnclaveType() == 0 ? "" : FormatSize(ColValue.Raw.toULongLong()); break;
+					case eEnclaveType:		ColValue.Formatted = pWinModule->GetEnclaveType() == 0 ? "" : pWinModule->GetEnclaveTypeString(); break;
+					case eEnclaveBaseAddress:ColValue.Formatted = pWinModule->GetEnclaveType() == 0 ? "" : FormatAddress(ColValue.Raw.toULongLong()); break;
+					case eEnclaveSize:		ColValue.Formatted = pWinModule->GetEnclaveType() == 0 ? "" : FormatSize(ColValue.Raw.toULongLong()); break;
 #endif
 				}
 			}
@@ -353,9 +353,9 @@ QVariant CModuleModel::headerData(int section, Qt::Orientation orientation, int 
 #ifdef WIN32
 			case eOriginalName:			return tr("Original name");
 			case eArchitecture:			return tr("Architecture");
-			//case eEnclaveType:			return tr("Enclave type");
-			//case eEnclaveBaseAddress:	return tr("Enclave base address");
-			//case eEnclaveSize:			return tr("Enclave size");
+			case eEnclaveType:			return tr("Enclave type");
+			case eEnclaveBaseAddress:	return tr("Enclave base address");
+			case eEnclaveSize:			return tr("Enclave size");
 #endif
 		}
 	}
