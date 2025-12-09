@@ -183,6 +183,13 @@
        </property>
       </widget>
      </item>
+     <item row="5" column="2">
+      <widget class="QPushButton" name="btnGetDynData">
+       <property name="text">
+        <string>Get latest DynData</string>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
   </layout>

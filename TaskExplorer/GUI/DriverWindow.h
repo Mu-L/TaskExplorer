@@ -19,6 +19,8 @@ public slots:
 
 	void Refresh();
 
+	void GetDynData();
+
 protected:
 	void closeEvent(QCloseEvent *e);
 	void timerEvent(QTimerEvent *e);

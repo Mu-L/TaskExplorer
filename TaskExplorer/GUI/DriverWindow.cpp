@@ -3,6 +3,7 @@
 #include "../../MiscHelpers/Common/Settings.h"
 #include "../API/Windows/ProcessHacker.h"
 #include "../API/Windows/WindowsAPI.h"
+#include "TaskExplorer.h"
 
 CDriverWindow::CDriverWindow(QWidget *parent)
 	: QMainWindow(parent)
@@ -11,6 +12,8 @@ CDriverWindow::CDriverWindow(QWidget *parent)
 	ui.setupUi(centralWidget);
 	this->setCentralWidget(centralWidget);
 	this->setWindowTitle("Task Explorer - Driver Options");
+
+	connect(ui.btnGetDynData, SIGNAL(clicked(bool)), this, SLOT(GetDynData()));
 
 	connect(ui.buttonBox, SIGNAL(accepted()), this, SLOT(accept()));
 	connect(ui.buttonBox, SIGNAL(rejected()), this, SLOT(reject()));
@@ -112,4 +115,12 @@ void CDriverWindow::Refresh()
 
 		ui.verification->setText(tr("N/A"));
 	}
+}
+
+void CDriverWindow::GetDynData()
+{
+	QString AppDir = QApplication::applicationDirPath().replace("/", "\\");
+	STATUS Status = TryUpdateDynData(AppDir);
+	if(!Status)
+		CTaskExplorer::CheckErrors(QList<STATUS>() << Status);
 }
