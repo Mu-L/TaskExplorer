@@ -142,18 +142,14 @@ VOID KtepProcessVerificationItem(
         return;
     }
 
-    if(workItem->Canceled)
-    {
-        //
-        // Canceled due to timeout, only mark the process 
-        //
-        workItem->Process->VerifyTimeout = TRUE;
-        return;
-    }
-
     if (!workItem->Process->DecidedOnProtection)
     {
         KphVerifyProcessAndProtectIfAppropriate(workItem->Process);
+    }
+
+    if(workItem->Canceled)
+    {
+        workItem->Process->VerifyTimeout = TRUE;
     }
 
     KeSetEvent(&workItem->CompletionEvent, IO_NO_INCREMENT, FALSE);
