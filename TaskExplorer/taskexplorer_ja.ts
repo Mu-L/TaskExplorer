@@ -2,6 +2,14 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="ja_JP">
 <context>
+    <name>CAbstractTask</name>
+    <message>
+        <location filename="API/AbstractTask.cpp" line="64"/>
+        <source>0x%1</source>
+        <translation>0x%1</translation>
+    </message>
+</context>
+<context>
     <name>CAffinityDialog</name>
     <message>
         <location filename="GUI/AffinityDialog.cpp" line="15"/>
@@ -318,8 +326,9 @@
     </message>
     <message>
         <location filename="GUI/TaskInfo/DotNetView.cpp" line="87"/>
-        <source>Open</source>
-        <translation>開く</translation>
+        <source>Open File</source>
+        <oldsource>Open</oldsource>
+        <translation>ファイルを開く</translation>
     </message>
 </context>
 <context>
@@ -363,78 +372,78 @@
 <context>
     <name>CDriverWindow</name>
     <message>
-        <location filename="GUI/DriverWindow.cpp" line="24"/>
+        <location filename="GUI/DriverWindow.cpp" line="27"/>
         <source>Test Signing Enabled</source>
         <translation>テスト署名有効</translation>
     </message>
     <message>
-        <location filename="GUI/DriverWindow.cpp" line="26"/>
+        <location filename="GUI/DriverWindow.cpp" line="29"/>
         <source>Signature Required (CKS Enabled)</source>
         <translation>署名必須 (CKS 有効)</translation>
     </message>
     <message>
-        <location filename="GUI/DriverWindow.cpp" line="28"/>
+        <location filename="GUI/DriverWindow.cpp" line="31"/>
         <source>Signature Required</source>
         <translation>署名必須</translation>
     </message>
     <message>
-        <location filename="GUI/DriverWindow.cpp" line="90"/>
+        <location filename="GUI/DriverWindow.cpp" line="93"/>
         <source>DynData loaded</source>
         <translation>DynData 読み込み済み</translation>
     </message>
     <message>
-        <location filename="GUI/DriverWindow.cpp" line="92"/>
+        <location filename="GUI/DriverWindow.cpp" line="95"/>
         <source>DynData NOT loaded</source>
         <translation>DynData 未読み込み</translation>
     </message>
     <message>
-        <location filename="GUI/DriverWindow.cpp" line="98"/>
+        <location filename="GUI/DriverWindow.cpp" line="101"/>
         <source>None</source>
         <translation>なし</translation>
     </message>
     <message>
-        <location filename="GUI/DriverWindow.cpp" line="99"/>
+        <location filename="GUI/DriverWindow.cpp" line="102"/>
         <source>Minimal</source>
         <translation>最小</translation>
     </message>
     <message>
-        <location filename="GUI/DriverWindow.cpp" line="100"/>
+        <location filename="GUI/DriverWindow.cpp" line="103"/>
         <source>Low</source>
         <translation>低</translation>
     </message>
     <message>
-        <location filename="GUI/DriverWindow.cpp" line="101"/>
+        <location filename="GUI/DriverWindow.cpp" line="104"/>
         <source>Medium</source>
         <translation>中</translation>
     </message>
     <message>
-        <location filename="GUI/DriverWindow.cpp" line="102"/>
+        <location filename="GUI/DriverWindow.cpp" line="105"/>
         <source>High</source>
         <translation>高</translation>
     </message>
     <message>
-        <location filename="GUI/DriverWindow.cpp" line="103"/>
+        <location filename="GUI/DriverWindow.cpp" line="106"/>
         <source>Maximum</source>
         <translation>最大</translation>
     </message>
     <message>
-        <location filename="GUI/DriverWindow.cpp" line="81"/>
+        <location filename="GUI/DriverWindow.cpp" line="84"/>
         <source>Not installed</source>
         <translation>インストールなし</translation>
     </message>
     <message>
-        <location filename="GUI/DriverWindow.cpp" line="87"/>
+        <location filename="GUI/DriverWindow.cpp" line="90"/>
         <source>Connected</source>
         <translation>接続済み</translation>
     </message>
     <message>
-        <location filename="GUI/DriverWindow.cpp" line="109"/>
+        <location filename="GUI/DriverWindow.cpp" line="112"/>
         <source>Disconnected</source>
         <translation>切断済み</translation>
     </message>
     <message>
-        <location filename="GUI/DriverWindow.cpp" line="111"/>
-        <location filename="GUI/DriverWindow.cpp" line="113"/>
+        <location filename="GUI/DriverWindow.cpp" line="114"/>
+        <location filename="GUI/DriverWindow.cpp" line="116"/>
         <source>N/A</source>
         <translation>N/A</translation>
     </message>
@@ -511,7 +520,8 @@
     </message>
     <message>
         <location filename="GUI/Models/GDIModel.cpp" line="127"/>
-        <source>Informations</source>
+        <source>Information</source>
+        <oldsource>Informations</oldsource>
         <translation>情報</translation>
     </message>
 </context>
@@ -914,7 +924,7 @@
     <message>
         <location filename="GUI/GraphBar.cpp" line="716"/>
         <source>    Handles: %1</source>
-        <translation>    ハンドル: %1</translation>
+        <translation>    ハンドル : %1</translation>
     </message>
     <message>
         <location filename="GUI/GraphBar.cpp" line="724"/>
@@ -925,7 +935,7 @@
         <location filename="GUI/GraphBar.cpp" line="726"/>
         <location filename="GUI/GraphBar.cpp" line="803"/>
         <source>    %1 usage: %2%</source>
-        <translation>    %1 使用率: %2%</translation>
+        <translation>    %1 使用率 : %2%</translation>
     </message>
     <message>
         <location filename="GUI/GraphBar.cpp" line="743"/>
@@ -951,72 +961,72 @@
 <context>
     <name>CHandleModel</name>
     <message>
-        <location filename="GUI/Models/HandleModel.cpp" line="110"/>
+        <location filename="GUI/Models/HandleModel.cpp" line="114"/>
         <source>N/A</source>
         <translation>N/A</translation>
     </message>
     <message>
-        <location filename="GUI/Models/HandleModel.cpp" line="120"/>
+        <location filename="GUI/Models/HandleModel.cpp" line="124"/>
         <source>%1 (%2)</source>
         <translation>%1 (%2)</translation>
     </message>
     <message>
-        <location filename="GUI/Models/HandleModel.cpp" line="120"/>
+        <location filename="GUI/Models/HandleModel.cpp" line="124"/>
         <source>Unknown process</source>
         <translation>不明なプロセス</translation>
     </message>
     <message>
-        <location filename="GUI/Models/HandleModel.cpp" line="172"/>
+        <location filename="GUI/Models/HandleModel.cpp" line="176"/>
         <source>Process</source>
         <translation>プロセス</translation>
     </message>
     <message>
-        <location filename="GUI/Models/HandleModel.cpp" line="173"/>
+        <location filename="GUI/Models/HandleModel.cpp" line="177"/>
         <source>Handle</source>
         <translation>ハンドル</translation>
     </message>
     <message>
-        <location filename="GUI/Models/HandleModel.cpp" line="174"/>
+        <location filename="GUI/Models/HandleModel.cpp" line="178"/>
         <source>Type</source>
         <translation>種類</translation>
     </message>
     <message>
-        <location filename="GUI/Models/HandleModel.cpp" line="175"/>
+        <location filename="GUI/Models/HandleModel.cpp" line="179"/>
         <source>File Name</source>
         <translation>ファイル名</translation>
     </message>
     <message>
-        <location filename="GUI/Models/HandleModel.cpp" line="176"/>
+        <location filename="GUI/Models/HandleModel.cpp" line="180"/>
         <source>Position</source>
         <translation>位置</translation>
     </message>
     <message>
-        <location filename="GUI/Models/HandleModel.cpp" line="177"/>
+        <location filename="GUI/Models/HandleModel.cpp" line="181"/>
         <source>Size</source>
         <translation>サイズ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/HandleModel.cpp" line="178"/>
+        <location filename="GUI/Models/HandleModel.cpp" line="182"/>
         <source>Granted access</source>
         <translation>許可されたアクセス</translation>
     </message>
     <message>
-        <location filename="GUI/Models/HandleModel.cpp" line="180"/>
+        <location filename="GUI/Models/HandleModel.cpp" line="184"/>
         <source>File share access</source>
         <translation>ファイル共有アクセス</translation>
     </message>
     <message>
-        <location filename="GUI/Models/HandleModel.cpp" line="181"/>
+        <location filename="GUI/Models/HandleModel.cpp" line="185"/>
         <source>Attributes</source>
         <translation>属性</translation>
     </message>
     <message>
-        <location filename="GUI/Models/HandleModel.cpp" line="182"/>
+        <location filename="GUI/Models/HandleModel.cpp" line="186"/>
         <source>Object address</source>
         <translation>オブジェクト アドレス</translation>
     </message>
     <message>
-        <location filename="GUI/Models/HandleModel.cpp" line="183"/>
+        <location filename="GUI/Models/HandleModel.cpp" line="187"/>
         <source>Original name</source>
         <translation>オリジナル名</translation>
     </message>
@@ -1063,8 +1073,9 @@
     </message>
     <message>
         <location filename="GUI/TaskInfo/HandlesView.cpp" line="230"/>
-        <source>Open</source>
-        <translation>開く</translation>
+        <source>Open Handle</source>
+        <oldsource>Open</oldsource>
+        <translation>ハンドルを開く</translation>
     </message>
     <message>
         <location filename="GUI/TaskInfo/HandlesView.cpp" line="234"/>
@@ -1168,12 +1179,13 @@
     </message>
     <message>
         <location filename="GUI/TaskInfo/HandlesView.cpp" line="510"/>
-        <source>Basic informations</source>
+        <source>Basic information</source>
+        <oldsource>Basic informations</oldsource>
         <translation>基本情報</translation>
     </message>
     <message>
         <location filename="GUI/TaskInfo/HandlesView.cpp" line="513"/>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="655"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="660"/>
         <source>Name</source>
         <translation>名前</translation>
     </message>
@@ -1188,271 +1200,296 @@
         <translation>オブジェクト アドレス</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="518"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="519"/>
+        <source>Security information</source>
+        <translation>セキュリティ情報</translation>
+    </message>
+    <message>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="521"/>
         <source>Granted access</source>
         <translation>許可されたアクセス</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="521"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="522"/>
+        <source>Granted access (generic)</source>
+        <translation>許可されたアクセス (汎用)</translation>
+    </message>
+    <message>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="523"/>
+        <source>Granted access (mask)</source>
+        <translation>許可されたアクセス (マスク)</translation>
+    </message>
+    <message>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="523"/>
+        <source>0x%1</source>
+        <translation>0x%1</translation>
+    </message>
+    <message>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="524"/>
+        <source>SDDL</source>
+        <translation>SDDL</translation>
+    </message>
+    <message>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="526"/>
         <source>References</source>
         <translation>参照</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="524"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="529"/>
         <source>Ref. count</source>
         <translation>参照数</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="525"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="530"/>
         <source>Handles</source>
         <translation>ハンドル</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="528"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="533"/>
         <source>Quota charges</source>
         <translation>クォータ使用量</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="531"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="536"/>
         <source>Paged</source>
         <translation>ページ済み</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="532"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="537"/>
         <source>Virtual Size</source>
         <translation>仮想サイズ</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="535"/>
-        <source>Extended informations</source>
-        <translation>拡張情報</translation>
-    </message>
-    <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="544"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="549"/>
         <source>LPC mode</source>
         <translation>LPC モード</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="549"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="554"/>
         <source>Allow impersonation</source>
         <translation>偽装を許可</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="554"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="559"/>
         <source>Allow LPC requests</source>
         <translation>LPC リクエストを許可</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="559"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="564"/>
         <source>Waitable</source>
         <translation>待機可能</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="564"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="569"/>
         <source>Allow object duplication</source>
         <translation>オブジェクトの複製を許可</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="569"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="574"/>
         <source>System process only</source>
         <translation>システム プロセスのみ</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="574"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="579"/>
         <source>Wake policy (1)</source>
         <translation>ウェイクポリシー (1)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="579"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="584"/>
         <source>Wake policy (2)</source>
         <translation>ウェイクポリシー (2)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="584"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="589"/>
         <source>Wake policy (3)</source>
         <translation>ウェイクポリシー (3)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="589"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="594"/>
         <source>No shared section (direct)</source>
         <translation>共有セクションなし (直接)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="594"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="599"/>
         <source>Allow multi-handle attributes</source>
         <translation>マルチハンドル属性を許可</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="599"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="604"/>
         <source>UNKNOWN: %1</source>
         <translation>不明: %1</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="602"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="607"/>
         <source>Flags</source>
         <translation>フラグ</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="603"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="608"/>
         <source>Sequence number</source>
         <translation>シーケンス番号</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="604"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="609"/>
         <source>Port context</source>
         <translation>ポートコンテキスト</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="615"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="620"/>
         <source>Connection</source>
         <translation>接続</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="616"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="621"/>
         <source>Server</source>
         <translation>サーバー</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="617"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="622"/>
         <source>Client</source>
         <translation>クライアント</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="621"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="626"/>
         <source>Is directory</source>
         <translation>ディレクトリ</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="621"/>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="637"/>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="663"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="626"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="642"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="668"/>
         <source>True</source>
         <translation>真</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="621"/>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="637"/>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="663"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="626"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="642"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="668"/>
         <source>False</source>
         <translation>偽</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="622"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="627"/>
         <source>File mode</source>
         <translation>ファイルモード</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="623"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="628"/>
         <source>File size</source>
         <translation>ファイルサイズ</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="625"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="630"/>
         <source>Driver Device</source>
         <translation>ドライバ デバイス</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="626"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="631"/>
         <source>Driver Image</source>
         <translation>ドライバ イメージ</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="630"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="635"/>
         <source>Section type</source>
         <translation>セクションの種類</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="631"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="636"/>
         <source>Size</source>
         <translation>サイズ</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="632"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="637"/>
         <source>File</source>
         <translation>ファイル</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="636"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="641"/>
         <source>Count</source>
         <translation>カウント</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="637"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="642"/>
         <source>Abandoned</source>
         <translation>放棄済み</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="639"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="644"/>
         <source>Owner</source>
         <translation>所有者</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="639"/>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="652"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="644"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="657"/>
         <source>%1 (%2): %3</source>
-        <translation>%1 (%2): %3</translation>
+        <translation>%1 (%2) : %3</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="608"/>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="639"/>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="647"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="613"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="644"/>
         <location filename="GUI/TaskInfo/HandlesView.cpp" line="652"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="657"/>
         <source>unknown</source>
         <translation>不明</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="608"/>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="647"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="540"/>
+        <source>Extended information</source>
+        <translation>拡張情報</translation>
+    </message>
+    <message>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="613"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="652"/>
         <source>%1 (%2)</source>
         <translation>%1 (%2)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="656"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="661"/>
         <source>Created</source>
         <translation>作成日時</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="657"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="662"/>
         <source>Exited</source>
         <translation>終了済み</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="658"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="663"/>
         <source>ExitStatus</source>
         <translation>終了ステータス</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="662"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="667"/>
         <source>Remaining</source>
         <translation>残り</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="663"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="668"/>
         <source>Signaled</source>
         <translation>シグナル済み</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="712"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="717"/>
         <source>Do you want to close the selected handle(s)</source>
         <translation>選択したハンドルを閉じますか</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="852"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="878"/>
         <source>Token</source>
         <translation>トークン</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="863"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="889"/>
         <source>Job</source>
         <translation>ジョブ</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="873"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="899"/>
         <source>This memory region can not be edited</source>
         <translation>このメモリ領域は編集できません</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/HandlesView.cpp" line="879"/>
+        <location filename="GUI/TaskInfo/HandlesView.cpp" line="905"/>
         <source>Memory Editor: %1 (%2)</source>
         <translation>メモリ エディタ : %1 (%2)</translation>
     </message>
@@ -1538,7 +1575,7 @@
     <message>
         <location filename="GUI/TaskInfo/JobView.cpp" line="38"/>
         <source>Processes in job:</source>
-        <translation>ジョブ内のプロセス: :</translation>
+        <translation>ジョブ内のプロセス :</translation>
     </message>
     <message>
         <location filename="GUI/TaskInfo/JobView.cpp" line="45"/>
@@ -1622,82 +1659,87 @@
 <context>
     <name>CMemoryModel</name>
     <message>
-        <location filename="GUI/Models/MemoryModel.cpp" line="201"/>
+        <location filename="GUI/Models/MemoryModel.cpp" line="202"/>
         <source>Base address</source>
         <translation>ベース アドレス</translation>
     </message>
     <message>
-        <location filename="GUI/Models/MemoryModel.cpp" line="202"/>
+        <location filename="GUI/Models/MemoryModel.cpp" line="203"/>
         <source>Type</source>
         <translation>種類</translation>
     </message>
     <message>
-        <location filename="GUI/Models/MemoryModel.cpp" line="203"/>
+        <location filename="GUI/Models/MemoryModel.cpp" line="204"/>
         <source>Size</source>
         <translation>サイズ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/MemoryModel.cpp" line="204"/>
+        <location filename="GUI/Models/MemoryModel.cpp" line="205"/>
         <source>Protection</source>
         <translation>プロテクト</translation>
     </message>
     <message>
-        <location filename="GUI/Models/MemoryModel.cpp" line="205"/>
+        <location filename="GUI/Models/MemoryModel.cpp" line="206"/>
         <source>Use</source>
         <translation>使用</translation>
     </message>
     <message>
-        <location filename="GUI/Models/MemoryModel.cpp" line="206"/>
+        <location filename="GUI/Models/MemoryModel.cpp" line="207"/>
         <source>Total WS</source>
         <translation>合計 WS</translation>
     </message>
     <message>
-        <location filename="GUI/Models/MemoryModel.cpp" line="207"/>
+        <location filename="GUI/Models/MemoryModel.cpp" line="208"/>
         <source>Private WS</source>
         <translation>プライベート WS</translation>
     </message>
     <message>
-        <location filename="GUI/Models/MemoryModel.cpp" line="208"/>
+        <location filename="GUI/Models/MemoryModel.cpp" line="209"/>
         <source>Shareable WS</source>
         <translation>共有可能 WS</translation>
     </message>
     <message>
-        <location filename="GUI/Models/MemoryModel.cpp" line="209"/>
+        <location filename="GUI/Models/MemoryModel.cpp" line="210"/>
         <source>Shared WS</source>
         <translation>共有済み WS</translation>
     </message>
     <message>
-        <location filename="GUI/Models/MemoryModel.cpp" line="210"/>
+        <location filename="GUI/Models/MemoryModel.cpp" line="211"/>
         <source>Locked WS</source>
         <translation>ロック済み WS</translation>
     </message>
     <message>
-        <location filename="GUI/Models/MemoryModel.cpp" line="211"/>
+        <location filename="GUI/Models/MemoryModel.cpp" line="212"/>
         <source>Committed</source>
         <translation>コミット済み</translation>
     </message>
     <message>
-        <location filename="GUI/Models/MemoryModel.cpp" line="212"/>
+        <location filename="GUI/Models/MemoryModel.cpp" line="213"/>
         <source>Private</source>
         <translation>プライベート</translation>
     </message>
     <message>
-        <location filename="GUI/Models/MemoryModel.cpp" line="213"/>
+        <location filename="GUI/Models/MemoryModel.cpp" line="214"/>
         <source>Signing level</source>
         <translation>署名レベル</translation>
     </message>
     <message>
-        <location filename="GUI/Models/MemoryModel.cpp" line="214"/>
+        <location filename="GUI/Models/MemoryModel.cpp" line="215"/>
         <source>Original protection</source>
         <translation>元のプロテクト</translation>
     </message>
     <message>
         <location filename="GUI/Models/MemoryModel.cpp" line="216"/>
+        <source>Original pages</source>
+        <translation>元のページ</translation>
+    </message>
+    <message>
+        <location filename="GUI/Models/MemoryModel.cpp" line="217"/>
         <source>Region type</source>
         <translation>領域タイプ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/MemoryModel.cpp" line="217"/>
+        <location filename="GUI/Models/MemoryModel.cpp" line="218"/>
         <source>Priority</source>
         <translation>優先度</translation>
     </message>
@@ -2009,6 +2051,21 @@ Modifiers:<byte value="xd"/>
         <source>Architecture</source>
         <translation>アーキテクチャ</translation>
     </message>
+    <message>
+        <location filename="GUI/Models/ModuleModel.cpp" line="356"/>
+        <source>Enclave type</source>
+        <translation>エンクレーブ種別</translation>
+    </message>
+    <message>
+        <location filename="GUI/Models/ModuleModel.cpp" line="357"/>
+        <source>Enclave base address</source>
+        <translation>エンクレーブ ベースアドレス</translation>
+    </message>
+    <message>
+        <location filename="GUI/Models/ModuleModel.cpp" line="358"/>
+        <source>Enclave size</source>
+        <translation>エンクレーブ サイズ</translation>
+    </message>
 </context>
 <context>
     <name>CModuleSearch</name>
@@ -2031,37 +2088,37 @@ Modifiers:<byte value="xd"/>
 <context>
     <name>CModulesView</name>
     <message>
-        <location filename="GUI/TaskInfo/ModulesView.cpp" line="29"/>
+        <location filename="GUI/TaskInfo/ModulesView.cpp" line="30"/>
         <source>Inject DLL</source>
         <translation>DLL の挿入</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/ModulesView.cpp" line="33"/>
+        <location filename="GUI/TaskInfo/ModulesView.cpp" line="34"/>
         <source>Show Modified Pages</source>
         <translation>変更されたページを表示</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/ModulesView.cpp" line="87"/>
-        <source>Open</source>
-        <translation>開く</translation>
+        <location filename="GUI/TaskInfo/ModulesView.cpp" line="88"/>
+        <source>Open Module</source>
+        <translation>モジュールを開く</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/ModulesView.cpp" line="91"/>
+        <location filename="GUI/TaskInfo/ModulesView.cpp" line="92"/>
         <source>Unload</source>
         <translation>アンロード</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/ModulesView.cpp" line="231"/>
+        <location filename="GUI/TaskInfo/ModulesView.cpp" line="232"/>
         <source>Do you want to unload the selected Module(s)</source>
         <translation>選択したモジュールをアンロードしますか</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/ModulesView.cpp" line="277"/>
+        <location filename="GUI/TaskInfo/ModulesView.cpp" line="278"/>
         <source>Select DLL&apos;s</source>
         <translation>DLL の選択</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/ModulesView.cpp" line="277"/>
+        <location filename="GUI/TaskInfo/ModulesView.cpp" line="278"/>
         <source>DLL files (*.dll)</source>
         <translation>DLL ファイル (*.dll)</translation>
     </message>
@@ -2318,17 +2375,17 @@ Modifiers:<byte value="xd"/>
 <context>
     <name>CProcessInfo</name>
     <message>
-        <location filename="API/ProcessInfo.h" line="178"/>
+        <location filename="API/ProcessInfo.h" line="179"/>
         <source>System</source>
         <translation>システム</translation>
     </message>
     <message>
-        <location filename="API/ProcessInfo.h" line="179"/>
+        <location filename="API/ProcessInfo.h" line="180"/>
         <source>User</source>
         <translation>ユーザー</translation>
     </message>
     <message>
-        <location filename="API/ProcessInfo.h" line="180"/>
+        <location filename="API/ProcessInfo.h" line="181"/>
         <source>Process</source>
         <translation>プロセス</translation>
     </message>
@@ -2352,728 +2409,738 @@ Modifiers:<byte value="xd"/>
     <name>CProcessModel</name>
     <message>
         <location filename="GUI/Models/ProcessModel.cpp" line="228"/>
-        <location filename="GUI/Models/ProcessModel.cpp" line="259"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="262"/>
         <source>, </source>
         <translation>, </translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="616"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="621"/>
         <source>Critical</source>
         <translation>重大</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="777"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="782"/>
         <source>Process</source>
         <translation>プロセス</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="778"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="783"/>
         <source>PID</source>
         <translation>PID</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="784"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="791"/>
         <source>CPU</source>
         <translation>CPU</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="785"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="792"/>
         <source>I/O total rate</source>
         <translation>I/O 合計速度</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="786"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="793"/>
         <source>Status</source>
         <translation>状態</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="787"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="794"/>
         <source>Private bytes</source>
         <translation>プライベート バイト</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="788"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="795"/>
         <source>User name</source>
         <translation>ユーザー名</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="790"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="797"/>
         <source>Services</source>
         <translation>サービス</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="791"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="798"/>
         <source>Description</source>
         <translation>説明</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="792"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="799"/>
         <source>Company name</source>
         <translation>会社名</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="793"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="800"/>
         <source>Version</source>
         <translation>バージョン</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="797"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="804"/>
         <source>File name</source>
         <translation>ファイル名</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="798"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="805"/>
         <source>Command line</source>
         <translation>コマンドライン</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="799"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="806"/>
         <source>Peak private bytes</source>
         <translation>プライベートバイト最大値</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="800"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="807"/>
         <source>Working set</source>
         <translation>ワーキングセット</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="801"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="808"/>
         <source>Peak working set</source>
         <translation>ワーキングセット最大値</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="802"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="809"/>
         <source>Private WS</source>
         <translation>プライベート WS</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="808"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="815"/>
         <source>Virtual size</source>
         <translation>仮想サイズ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="809"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="816"/>
         <source>Peak virtual size</source>
         <translation>仮想サイズ最大値</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="845"/>
-        <source>CPU Arch.</source>
-        <translation>CPU Arch.</translation>
-    </message>
-    <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="861"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="869"/>
         <source>Mitigations</source>
         <translation>緩和策</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="867"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="875"/>
         <source>Page faults</source>
         <translation>ページフォルト</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="812"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="819"/>
         <source>Session ID</source>
         <translation>セッション ID</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="440"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="444"/>
         <source>N/A</source>
         <translation>N/A</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="485"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="489"/>
         <source>0x%1</source>
         <translation>0x%1</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="608"/>
-        <location filename="GUI/Models/ProcessModel.cpp" line="618"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="613"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="623"/>
         <source>Yes</source>
         <translation>はい</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="780"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="785"/>
+        <source>PID (LXSS)</source>
+        <translation>PID (LXSS)</translation>
+    </message>
+    <message>
+        <location filename="GUI/Models/ProcessModel.cpp" line="787"/>
         <source>Parent PID</source>
         <translation>親 PID</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="781"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="788"/>
         <source>Console PID</source>
         <translation>コンソール PID</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="782"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="789"/>
         <source>Seq. number</source>
         <translation>シーケンス番号</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="783"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="790"/>
         <source>Start key</source>
         <translation>開始キー</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="795"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="802"/>
         <source>Network</source>
         <translation>ネットワーク</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="803"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="810"/>
         <source>Shared WS (slow)</source>
         <translation>共有済み WS (遅い)</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="804"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="811"/>
         <source>Shareable WS (slow)</source>
         <translation>共有可能 WS (遅い)</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="806"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="813"/>
         <source>Shared commit</source>
         <translation>共有コミット</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="810"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="817"/>
         <source>Debug Messages</source>
         <translation>デバッグ メッセージ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="813"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="820"/>
+        <source>CPU Affinity</source>
+        <translation>CPU アフィニティ</translation>
+    </message>
+    <message>
+        <location filename="GUI/Models/ProcessModel.cpp" line="821"/>
         <source>Priority class</source>
         <translation>優先度クラス</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="814"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="822"/>
         <source>Base priority</source>
         <translation>ベース優先度</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="816"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="824"/>
         <source>Priority boost</source>
         <translation>優先度ブースト</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="819"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="827"/>
         <source>GPU</source>
         <translation>GPU</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="820"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="828"/>
         <source>Shared</source>
         <translation>共有</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="821"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="829"/>
         <source>Dedicated</source>
         <translation>専用</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="822"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="830"/>
         <source>GPU Adapter</source>
         <translation>GPU アダプター</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="824"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="832"/>
         <source>Threads</source>
         <translation>スレッド</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="825"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="833"/>
         <source>Peak threads</source>
         <translation>最大スレッド数</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="826"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="834"/>
         <source>Handles</source>
         <translation>ハンドル</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="827"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="835"/>
         <source>Peak handles</source>
         <translation>最大ハンドル数</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="829"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="837"/>
         <source>Windows</source>
         <translation>Windows</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="830"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="838"/>
         <source>GDI handles</source>
         <translation>GDI ハンドル</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="831"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="839"/>
         <source>USER handles</source>
         <translation>ユーザー ハンドル</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="832"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="840"/>
         <source>Integrity</source>
         <translation>整合性</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="834"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="842"/>
         <source>I/O priority</source>
         <translation>I/O 優先度</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="835"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="843"/>
         <source>Page priority</source>
         <translation>ページ優先度</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="836"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="844"/>
         <source>Start time</source>
         <translation>開始時間</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="837"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="845"/>
         <source>Total CPU time</source>
         <translation>合計l CPU 時間</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="838"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="846"/>
         <source>Kernel CPU time</source>
         <translation>カーネル CPU 時間</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="839"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="847"/>
         <source>User CPU time</source>
         <translation>ユーザー CPU 時間</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="841"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="849"/>
         <source>Verification status</source>
         <translation>検証ステータス</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="842"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="850"/>
         <source>Verified signer</source>
         <translation>検証済み署名者</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="844"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="852"/>
         <source>Up Time</source>
         <translation>稼働時間</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="846"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="853"/>
+        <source>Architecture</source>
+        <translation>アーキテクチャ</translation>
+    </message>
+    <message>
+        <location filename="GUI/Models/ProcessModel.cpp" line="854"/>
         <source>Elevation</source>
         <translation>昇格</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="848"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="856"/>
         <source>Window title</source>
         <translation>ウィンドウ タイトル</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="849"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="857"/>
         <source>Window status</source>
         <translation>ウィンドウ状態</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="851"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="859"/>
         <source>Cycles</source>
         <translation>サイクル</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="852"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="860"/>
         <source>Cycles delta</source>
         <translation>サイクル デルタ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="853"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="861"/>
         <source>CPU graph</source>
         <translation>CPU グラフ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="854"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="862"/>
         <source>Mem. graph</source>
         <translation>メモリ グラフ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="855"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="863"/>
         <source>I/O graph</source>
         <translation>I/O グラフ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="856"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="864"/>
         <source>Net. graph</source>
         <translation>ネット グラフ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="857"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="865"/>
         <source>GPU graph</source>
         <translation>GPU グラフ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="858"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="866"/>
         <source>V. Mem. graph</source>
         <translation>V. Mem. グラフ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="862"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="870"/>
         <source>Image coherency</source>
         <translation>イメージ整合性</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="863"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="871"/>
         <source>Virtualized</source>
         <translation>仮想化</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="865"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="873"/>
         <source>Context switches</source>
         <translation>コンテキストスイッチ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="866"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="874"/>
         <source>Context switches delta</source>
         <translation>コンテキストスイッチ デルタ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="868"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="876"/>
         <source>Page faults delta</source>
         <translation>ページフォルト デルタ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="869"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="877"/>
         <source>Hard faults</source>
         <translation>ハードフォルト</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="870"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="878"/>
         <source>Hard faults delta</source>
         <translation>ハードフォルト デルタ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="873"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="881"/>
         <source>I/O reads</source>
         <translation>I/O 読み取り</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="874"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="882"/>
         <source>I/O writes</source>
         <translation>I/O 書き込み</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="875"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="883"/>
         <source>I/O other</source>
         <translation>I/O その他</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="876"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="884"/>
         <source>I/O read bytes</source>
         <translation>I/O 読み取りバイト</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="877"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="885"/>
         <source>I/O write bytes</source>
         <translation>I/O 書き込みバイト</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="878"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="886"/>
         <source>I/O other bytes</source>
         <translation>I/O その他バイト</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="880"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="888"/>
         <source>I/O reads delta</source>
         <translation>I/O 読み取りデルタ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="881"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="889"/>
         <source>I/O writes delta</source>
         <translation>I/O 書き込みデルタ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="882"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="890"/>
         <source>I/O other delta</source>
         <translation>I/O その他デルタ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="884"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="892"/>
         <source>I/O read bytes delta</source>
         <translation>I/O 読み取りバイト デルタ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="885"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="893"/>
         <source>I/O write bytes delta</source>
         <translation>I/O 書き込みバイト デルタ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="886"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="894"/>
         <source>I/O other bytes delta</source>
         <translation>I/O その他バイト デルタ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="888"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="896"/>
         <source>I/O read rate</source>
         <translation>I/O 読み取り速度</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="889"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="897"/>
         <source>I/O write rate</source>
         <translation>I/O 書き込み速度</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="890"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="898"/>
         <source>I/O other rate</source>
         <translation>I/O その他速度</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="894"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="902"/>
         <source>OS context</source>
         <translation>OS コンテキスト</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="895"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="903"/>
         <source>Thread local storage</source>
         <translation>スレッド ローカル ストレージ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="896"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="904"/>
         <source>Paged pool</source>
         <translation>ページプール</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="897"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="905"/>
         <source>Peak paged pool</source>
         <translation>ページプール最大</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="898"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="906"/>
         <source>Non-paged pool</source>
         <translation>非ページプール</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="899"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="907"/>
         <source>Peak non-paged pool</source>
         <translation>非ページプール最大</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="901"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="909"/>
         <source>Minimum working set</source>
         <translation>ワーキングセット最小値</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="902"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="910"/>
         <source>Maximum working set</source>
         <translation>ワーキングセット最大値</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="903"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="911"/>
         <source>Private bytes delta</source>
         <translation>プライベート バイト デルタ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="904"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="912"/>
         <source>Subsystem</source>
         <translation>サブシステム</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="906"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="914"/>
         <source>Package name</source>
         <translation>パッケージ名</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="907"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="915"/>
         <source>App ID</source>
         <translation>App ID</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="908"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="916"/>
         <source>DPI awareness</source>
         <translation>DPI 認識</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="910"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="918"/>
         <source>Time stamp</source>
         <translation>タイムスタンプ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="911"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="919"/>
         <source>File modified time</source>
         <translation>ファイル更新日時</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="912"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="920"/>
         <source>File size</source>
         <translation>ファイルサイズ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="914"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="922"/>
         <source>Job Object ID</source>
         <translation>ジョブ オブジェクト ID</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="915"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="923"/>
         <source>Protection</source>
         <translation>プロテクト</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="916"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="924"/>
         <source>Desktop</source>
         <translation>デスクトップ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="917"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="925"/>
         <source>Critical Process</source>
         <translation>重大プロセス</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="919"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="927"/>
         <source>Power throttling</source>
         <translation>電力スロットリング</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="920"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="928"/>
         <source>Running Time</source>
         <translation>実行時間</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="921"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="929"/>
         <source>Suspended Time</source>
         <translation>一時停止時間</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="922"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="930"/>
         <source>Hang Count</source>
         <translation>ハング回数</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="923"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="931"/>
         <source>Ghost Count</source>
         <translation>ゴースト回数</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="925"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="933"/>
         <source>Error mode</source>
         <translation>エラーモード</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="926"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="934"/>
         <source>Code page</source>
         <translation>コードページ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="927"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="935"/>
         <source>References</source>
         <translation>参照</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="928"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="936"/>
         <source>Granted access</source>
         <translation>許可されたアクセス</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="933"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="941"/>
         <source>Network total rate</source>
         <translation>ネットワーク合計速度</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="934"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="942"/>
         <source>Network receives</source>
         <translation>ネットワーク受信</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="935"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="943"/>
         <source>Network sends</source>
         <translation>ネットワーク送信</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="936"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="944"/>
         <source>Network receive bytes</source>
         <translation>ネットワーク受信バイト</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="937"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="945"/>
         <source>Network send bytes</source>
         <translation>ネットワーク送信バイト</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="939"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="947"/>
         <source>Network receives delta</source>
         <translation>ネットワーク受信デルタ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="940"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="948"/>
         <source>Network sends delta</source>
         <translation>ネットワーク送信デルタ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="941"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="949"/>
         <source>Network receive bytes delta</source>
         <translation>ネットワーク受信バイト デルタ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="942"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="950"/>
         <source>Network send bytes delta</source>
         <translation>ネットワーク送信バイト デルタ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="944"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="952"/>
         <source>Network receive rate</source>
         <translation>ネットワーク受信速度</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="945"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="953"/>
         <source>Network send rate</source>
         <translation>ネットワーク送信速度</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="948"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="956"/>
         <source>Disk total rate</source>
         <translation>ディスク合計速度</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="949"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="957"/>
         <source>Disk reads</source>
         <translation>ディスク読み取り</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="950"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="958"/>
         <source>Disk writes</source>
         <translation>ディスク書き込み</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="951"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="959"/>
         <source>Disk read bytes</source>
         <translation>I/O 読み取りバイト</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="952"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="960"/>
         <source>Disk write bytes</source>
         <translation>I/O 書き込みバイト</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="954"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="962"/>
         <source>Disk reads delta</source>
         <translation>I/O 読み取りデルタ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="955"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="963"/>
         <source>Disk writes delta</source>
         <translation>I/O 書き込みデルタ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="956"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="964"/>
         <source>Disk read bytes delta</source>
         <translation>I/O 読み取りバイト デルタ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="957"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="965"/>
         <source>Disk write bytes delta</source>
         <translation>I/O 書き込みバイト デルタ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="959"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="967"/>
         <source>Disk read rate</source>
         <translation>ディスク読み取り速度</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ProcessModel.cpp" line="960"/>
+        <location filename="GUI/Models/ProcessModel.cpp" line="968"/>
         <source>Disk write rate</source>
         <translation>ディスク書き込み速度</translation>
     </message>
@@ -3401,7 +3468,7 @@ Modifiers:<byte value="xd"/>
     <message>
         <location filename="GUI/ProcessTree.cpp" line="616"/>
         <source>    Sandboxed in: %1</source>
-        <translation>    Sandboxed in: %1</translation>
+        <translation>    Sandboxed in : %1</translation>
     </message>
     <message>
         <location filename="GUI/ProcessTree.cpp" line="626"/>
@@ -3436,7 +3503,7 @@ Modifiers:<byte value="xd"/>
     <message>
         <location filename="GUI/ProcessTree.cpp" line="650"/>
         <source>    %1: %2 (%3)</source>
-        <translation>    %1: %2 (%3)</translation>
+        <translation>    %1 : %2 (%3)</translation>
     </message>
     <message>
         <location filename="GUI/ProcessTree.cpp" line="650"/>
@@ -3446,7 +3513,7 @@ Modifiers:<byte value="xd"/>
     <message>
         <location filename="GUI/ProcessTree.cpp" line="655"/>
         <source>    Package name: %1</source>
-        <translation>    パッケージ名: %1</translation>
+        <translation>    パッケージ名 : %1</translation>
     </message>
     <message>
         <location filename="GUI/ProcessTree.cpp" line="658"/>
@@ -3698,7 +3765,7 @@ Modifiers:<byte value="xd"/>
     <message>
         <location filename="GUI/TaskInfo/ProcessView.cpp" line="505"/>
         <source>Protection: %1</source>
-        <translation>プロテクト: %1</translation>
+        <translation>プロテクト : %1</translation>
     </message>
     <message>
         <location filename="GUI/TaskInfo/ProcessView.cpp" line="505"/>
@@ -3970,17 +4037,17 @@ Modifiers:<byte value="xd"/>
 <context>
     <name>CRunAsDialog</name>
     <message>
-        <location filename="GUI/RunAsDialog.cpp" line="196"/>
+        <location filename="GUI/RunAsDialog.cpp" line="247"/>
         <source>Unable to start the program, Error: %1</source>
         <translation>プログラムを起動できません。エラー : %1</translation>
     </message>
     <message>
-        <location filename="GUI/RunAsDialog.cpp" line="227"/>
+        <location filename="GUI/RunAsDialog.cpp" line="278"/>
         <source>Select binary</source>
         <translation>バイナリの選択</translation>
     </message>
     <message>
-        <location filename="GUI/RunAsDialog.cpp" line="227"/>
+        <location filename="GUI/RunAsDialog.cpp" line="278"/>
         <source>All files (*.*)</source>
         <translation>すべてのファイル (*.*)</translation>
     </message>
@@ -4331,7 +4398,7 @@ Modifiers:<byte value="xd"/>
     <message>
         <location filename="GUI/Search/SearchWindow.cpp" line="112"/>
         <source>Results: %1</source>
-        <translation>結果: %1</translation>
+        <translation>結果 : %1</translation>
     </message>
     <message>
         <location filename="GUI/Search/SearchWindow.cpp" line="119"/>
@@ -4520,37 +4587,47 @@ UI が使用できないほど遅くなるのを防ぐために、検索をキ�
 <context>
     <name>CServicesView</name>
     <message>
-        <location filename="GUI/SystemInfo/ServicesView.cpp" line="80"/>
+        <location filename="GUI/SystemInfo/ServicesView.cpp" line="81"/>
+        <source>Open</source>
+        <translation>開く</translation>
+    </message>
+    <message>
+        <location filename="GUI/SystemInfo/ServicesView.cpp" line="83"/>
         <source>Start</source>
         <translation>開始</translation>
     </message>
     <message>
-        <location filename="GUI/SystemInfo/ServicesView.cpp" line="81"/>
+        <location filename="GUI/SystemInfo/ServicesView.cpp" line="84"/>
         <source>Continue</source>
         <translation>継続</translation>
     </message>
     <message>
-        <location filename="GUI/SystemInfo/ServicesView.cpp" line="82"/>
+        <location filename="GUI/SystemInfo/ServicesView.cpp" line="85"/>
         <source>Pause</source>
         <translation>一時停止</translation>
     </message>
     <message>
-        <location filename="GUI/SystemInfo/ServicesView.cpp" line="83"/>
+        <location filename="GUI/SystemInfo/ServicesView.cpp" line="86"/>
         <source>Stop</source>
         <translation>停止</translation>
     </message>
     <message>
-        <location filename="GUI/SystemInfo/ServicesView.cpp" line="86"/>
+        <location filename="GUI/SystemInfo/ServicesView.cpp" line="89"/>
         <source>Delete</source>
         <translation>削除</translation>
     </message>
     <message>
-        <location filename="GUI/SystemInfo/ServicesView.cpp" line="88"/>
-        <source>Open key</source>
+        <location filename="GUI/SystemInfo/ServicesView.cpp" line="92"/>
+        <source>Open Key</source>
         <translation>キーを開く</translation>
     </message>
     <message>
-        <location filename="GUI/SystemInfo/ServicesView.cpp" line="92"/>
+        <location filename="GUI/SystemInfo/ServicesView.cpp" line="94"/>
+        <source>Open Process</source>
+        <translation>プロセスを開く</translation>
+    </message>
+    <message>
+        <location filename="GUI/SystemInfo/ServicesView.cpp" line="99"/>
         <source>Show Kernel Services</source>
         <translation>カーネルサービスの表示</translation>
     </message>
@@ -4558,109 +4635,109 @@ UI が使用できないほど遅くなるのを防ぐために、検索をキ�
 <context>
     <name>CSettingsWindow</name>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="33"/>
+        <location filename="GUI/SettingsWindow.cpp" line="34"/>
         <source>Task Explorer - Settings</source>
         <translation>Task Explorer - 設定</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="88"/>
+        <location filename="GUI/SettingsWindow.cpp" line="90"/>
         <source>None</source>
         <translation>なし</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="89"/>
+        <location filename="GUI/SettingsWindow.cpp" line="91"/>
         <source>Native</source>
         <translation>ネイティブ</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="90"/>
+        <location filename="GUI/SettingsWindow.cpp" line="92"/>
         <source>Qt</source>
         <translation>Qt</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="94"/>
+        <location filename="GUI/SettingsWindow.cpp" line="97"/>
         <source>%1</source>
         <translation>%1</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="98"/>
+        <location filename="GUI/SettingsWindow.cpp" line="103"/>
         <source>Select font</source>
         <translation>フォントの設定</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="100"/>
+        <location filename="GUI/SettingsWindow.cpp" line="105"/>
         <source>Reset font</source>
         <translation>フォントをリセット</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="126"/>
+        <location filename="GUI/SettingsWindow.cpp" line="132"/>
         <source>Close to Tray</source>
         <translation>閉じるでトレイに最小化</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="127"/>
+        <location filename="GUI/SettingsWindow.cpp" line="133"/>
         <source>Prompt before Close</source>
         <translation>閉じる前に通知する</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="128"/>
+        <location filename="GUI/SettingsWindow.cpp" line="134"/>
         <source>Close</source>
         <translation>閉じる</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="134"/>
+        <location filename="GUI/SettingsWindow.cpp" line="140"/>
         <source>Show static Icon</source>
         <translation>アイコンを表示</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="135"/>
+        <location filename="GUI/SettingsWindow.cpp" line="141"/>
         <source>CPU plot</source>
         <translation>CPU グラフ</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="136"/>
+        <location filename="GUI/SettingsWindow.cpp" line="142"/>
         <source>CPU plot and Memory bar</source>
         <translation>CPU グラフとメモリバー</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="137"/>
+        <location filename="GUI/SettingsWindow.cpp" line="143"/>
         <source>CPU plot and RAM bar</source>
         <translation>CPU グラフとRAMバー</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="138"/>
+        <location filename="GUI/SettingsWindow.cpp" line="144"/>
         <source>CPU plot and RAM+Swap bars</source>
         <translation>CPU グラフとRAM+スワップバー</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="148"/>
+        <location filename="GUI/SettingsWindow.cpp" line="154"/>
         <source>Description (Binary name)</source>
         <translation>説明 (バイナリ名)</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="149"/>
+        <location filename="GUI/SettingsWindow.cpp" line="155"/>
         <source>Binary name (Description)</source>
         <translation>バイナリ名 (説明)</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="150"/>
+        <location filename="GUI/SettingsWindow.cpp" line="156"/>
         <source>Binary name only</source>
         <translation>バイナリ名のみ</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="68"/>
+        <location filename="GUI/SettingsWindow.cpp" line="74"/>
         <source>Linux CPU Usage shows 100% per core, i.e. if a process is using 2 cores to 100% it will show as 200% total cpu usage.<byte value="xd"/>
 PartiallyChecked state means apply only to thread std::list.</source>
         <translation>Linux の CPU 使用率はコアごとに 100% と表示されます。つまり、プロセスが 2 つのコアを 100% 使用している場合、合計 CPU 使用率は 200% と表示されます。<byte value="xd"/>
 PartiallyChecked 状態は、スレッド std::list にのみ適用されることを意味します。</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="46"/>
+        <location filename="GUI/SettingsWindow.cpp" line="52"/>
         <source>Auto Detection</source>
         <translation>自動検出</translation>
     </message>
     <message>
-        <location filename="GUI/SettingsWindow.cpp" line="47"/>
+        <location filename="GUI/SettingsWindow.cpp" line="53"/>
         <source>No Translation</source>
         <translation>未翻訳</translation>
     </message>
@@ -4938,7 +5015,7 @@ PartiallyChecked 状態は、スレッド std::list にのみ適用されるこ�
     <message>
         <location filename="API/Windows/SymbolProvider.cpp" line="753"/>
         <source>File: %1: line %2</source>
-        <translation>ファイル: %1: 行 %2</translation>
+        <translation>ファイル : %1 : 行 %2</translation>
     </message>
 </context>
 <context>
@@ -5254,27 +5331,27 @@ PartiallyChecked 状態は、スレッド std::list にのみ適用されるこ�
 <context>
     <name>CStringView</name>
     <message>
-        <location filename="GUI/Search/StringView.cpp" line="59"/>
+        <location filename="GUI/Search/StringView.cpp" line="60"/>
         <source>Edit memory</source>
         <translation>メモリの編集</translation>
     </message>
     <message>
-        <location filename="GUI/Search/StringView.cpp" line="61"/>
+        <location filename="GUI/Search/StringView.cpp" line="62"/>
         <source>Save string(s)</source>
         <translation>文字列の保存</translation>
     </message>
     <message>
-        <location filename="GUI/Search/StringView.cpp" line="117"/>
+        <location filename="GUI/Search/StringView.cpp" line="134"/>
         <source>Memory Editor: %1 (%2) 0x%3</source>
         <translation>メモリ エディタ : %1 (%2) 0x%3</translation>
     </message>
     <message>
-        <location filename="GUI/Search/StringView.cpp" line="126"/>
+        <location filename="GUI/Search/StringView.cpp" line="143"/>
         <source>Dump String</source>
         <translation>ダンプ文字列</translation>
     </message>
     <message>
-        <location filename="GUI/Search/StringView.cpp" line="126"/>
+        <location filename="GUI/Search/StringView.cpp" line="143"/>
         <source>Dump files (*.dmp);;All files (*.*)</source>
         <translation>ダンプファイル (*.dmp);;すべてのファイルs (*.*)</translation>
     </message>
@@ -5401,7 +5478,7 @@ PartiallyChecked 状態は、スレッド std::list にのみ適用されるこ�
 <context>
     <name>CTaskExplorer</name>
     <message>
-        <location filename="main.cpp" line="343"/>
+        <location filename="main.cpp" line="369"/>
         <source>You are attempting to run the 32-bit version of Task Explorer on 64-bit Windows. Most features will not work correctly.
 
 Please run the 64-bit version of Task Explorer instead.</source>
@@ -5410,767 +5487,772 @@ Please run the 64-bit version of Task Explorer instead.</source>
 代わりに、64 ビット バージョンのタスク エクスプローラーを実行してください。</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="107"/>
+        <location filename="GUI/TaskExplorer.cpp" line="111"/>
         <source>TaskExplorer v%1</source>
         <translation>TaskExplorer v%1</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="210"/>
+        <location filename="GUI/TaskExplorer.cpp" line="214"/>
         <source>Run...</source>
         <translation>実行...</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="212"/>
+        <location filename="GUI/TaskExplorer.cpp" line="216"/>
         <source>Run as...</source>
         <translation>管理者として実行...</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="215"/>
+        <location filename="GUI/TaskExplorer.cpp" line="219"/>
         <source>Run as TrustedInstaller...</source>
         <translation>TrustedInstallerとして実行...</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="222"/>
+        <location filename="GUI/TaskExplorer.cpp" line="228"/>
         <source>Restart Elevated</source>
         <translation>昇格して再起動</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="224"/>
+        <location filename="GUI/TaskExplorer.cpp" line="230"/>
         <source>Exit</source>
         <translation>終了</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="243"/>
+        <location filename="GUI/TaskExplorer.cpp" line="249"/>
         <source>&amp;View</source>
         <translation>表示(&amp;V)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="244"/>
+        <location filename="GUI/TaskExplorer.cpp" line="250"/>
         <source>System Tabs</source>
         <translation>システム タブ</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="129"/>
+        <location filename="GUI/TaskExplorer.cpp" line="133"/>
         <source> (Administrator)</source>
         <translation> (管理者)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="123"/>
+        <location filename="GUI/TaskExplorer.cpp" line="127"/>
         <source> - [%1KSI%2]</source>
         <oldsource> - [KSI Level %1]</oldsource>
         <translation> - [%1KSI%2]</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="131"/>
+        <location filename="GUI/TaskExplorer.cpp" line="135"/>
         <source> (root)</source>
         <translation> (root)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="209"/>
+        <location filename="GUI/TaskExplorer.cpp" line="213"/>
         <source>&amp;Tasks</source>
         <translation>タスク(&amp;T)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="219"/>
+        <location filename="GUI/TaskExplorer.cpp" line="223"/>
         <source>Computer</source>
         <translation>コンピューター</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="220"/>
+        <location filename="GUI/TaskExplorer.cpp" line="224"/>
         <source>Users</source>
         <translation>ユーザー</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="227"/>
+        <location filename="GUI/TaskExplorer.cpp" line="233"/>
         <source>Lock</source>
         <translation>ロック</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="228"/>
+        <location filename="GUI/TaskExplorer.cpp" line="234"/>
         <source>Logout</source>
         <translation>ログアウト</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="230"/>
+        <location filename="GUI/TaskExplorer.cpp" line="236"/>
         <source>Standby</source>
         <translation>スタンバイ</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="231"/>
+        <location filename="GUI/TaskExplorer.cpp" line="237"/>
         <source>Hibernate</source>
         <translation>休止状態</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="233"/>
+        <location filename="GUI/TaskExplorer.cpp" line="239"/>
         <source>Restart</source>
         <translation>再起動</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="234"/>
+        <location filename="GUI/TaskExplorer.cpp" line="240"/>
         <source>Force Restart</source>
         <translation>強制再起動</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="235"/>
+        <location filename="GUI/TaskExplorer.cpp" line="241"/>
         <source>Restart to Boot Menu</source>
         <translation>再起動してブートメニューを表示</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="237"/>
+        <location filename="GUI/TaskExplorer.cpp" line="243"/>
         <source>Shutdown</source>
         <translation>シャットダウン</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="238"/>
+        <location filename="GUI/TaskExplorer.cpp" line="244"/>
         <source>Force Shutdown</source>
         <translation>強制シャットダウン</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="239"/>
+        <location filename="GUI/TaskExplorer.cpp" line="245"/>
         <source>Hybrid Shutdown</source>
         <translation>ハイブリッドシャットダウン</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="261"/>
+        <location filename="GUI/TaskExplorer.cpp" line="267"/>
         <source>Task Tabs</source>
         <translation>タスク タブ</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="271"/>
+        <location filename="GUI/TaskExplorer.cpp" line="277"/>
         <source>System Info</source>
         <translation>システム情報</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="274"/>
+        <location filename="GUI/TaskExplorer.cpp" line="280"/>
         <source>Pause Refresh</source>
         <translation>更新の一時停止</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="276"/>
+        <location filename="GUI/TaskExplorer.cpp" line="282"/>
         <source>Refresh Now</source>
         <translation>今すぐ更新</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="277"/>
+        <location filename="GUI/TaskExplorer.cpp" line="283"/>
         <source>Reset all Panels</source>
         <translation>すべてのパネルをリセット</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="279"/>
+        <location filename="GUI/TaskExplorer.cpp" line="285"/>
         <source>Tree/List</source>
         <translation>ツリー / リスト</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="282"/>
+        <location filename="GUI/TaskExplorer.cpp" line="288"/>
         <source>Expand Process Tree</source>
         <translation>プロセスツリーを展開</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="285"/>
-        <location filename="GUI/TaskExplorer.cpp" line="452"/>
+        <location filename="GUI/TaskExplorer.cpp" line="291"/>
+        <location filename="GUI/TaskExplorer.cpp" line="458"/>
         <source>Filter Processes</source>
         <translation>プロセスのフィルター</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="287"/>
+        <location filename="GUI/TaskExplorer.cpp" line="293"/>
         <source>Select Filters</source>
         <translation>フィルターの選択</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="288"/>
+        <location filename="GUI/TaskExplorer.cpp" line="294"/>
         <source>Windows Processes</source>
         <translation>Windows プロセス</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="290"/>
+        <location filename="GUI/TaskExplorer.cpp" line="296"/>
         <source>System Processes</source>
         <translation>システム プロセス</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="292"/>
+        <location filename="GUI/TaskExplorer.cpp" line="298"/>
         <source>Service Processes</source>
         <translation>サービス プロセス</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="294"/>
+        <location filename="GUI/TaskExplorer.cpp" line="300"/>
         <source>Processes of Other Logged-In Users</source>
         <translation>他のログインユーザーのプロセス</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="301"/>
+        <location filename="GUI/TaskExplorer.cpp" line="307"/>
         <source>&amp;Find</source>
         <translation>検索(&amp;F)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="302"/>
+        <location filename="GUI/TaskExplorer.cpp" line="308"/>
         <source>Find Hidden Processes</source>
         <translation>非表示プロセスの検索</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="304"/>
+        <location filename="GUI/TaskExplorer.cpp" line="310"/>
         <source>Find Handles</source>
         <translation>ハンドルの検索</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="306"/>
+        <location filename="GUI/TaskExplorer.cpp" line="312"/>
         <source>Find Module (dll)</source>
         <translation>モジュールの検索 (dll)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="307"/>
+        <location filename="GUI/TaskExplorer.cpp" line="313"/>
         <source>Find String in Memory</source>
         <translation>メモリ内文字列の検索</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="309"/>
+        <location filename="GUI/TaskExplorer.cpp" line="315"/>
         <source>&amp;Options</source>
         <translation>オプション(&amp;O)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="310"/>
+        <location filename="GUI/TaskExplorer.cpp" line="316"/>
         <source>Settings</source>
         <translation>設定</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="320"/>
+        <location filename="GUI/TaskExplorer.cpp" line="326"/>
         <source>Auto Run</source>
         <translation>自動実行</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="323"/>
+        <location filename="GUI/TaskExplorer.cpp" line="329"/>
         <source>Skip UAC</source>
         <translation>UACをスキップ</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="329"/>
+        <location filename="GUI/TaskExplorer.cpp" line="335"/>
         <source>&amp;Tools</source>
         <translation>ツール(&amp;T)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="330"/>
+        <location filename="GUI/TaskExplorer.cpp" line="336"/>
         <source>&amp;Services</source>
         <translation>サービス(&amp;S)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="331"/>
+        <location filename="GUI/TaskExplorer.cpp" line="337"/>
         <source>Create new Service</source>
         <translation>新しいサービスの作成</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="333"/>
+        <location filename="GUI/TaskExplorer.cpp" line="339"/>
         <source>ReLoad all Service</source>
         <translation>すべてのサービスを再読み込み</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="335"/>
+        <location filename="GUI/TaskExplorer.cpp" line="341"/>
         <source>Service Control Manager Permissions</source>
         <translation>サービス コントロール マネージャーのアクセス許可</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="337"/>
+        <location filename="GUI/TaskExplorer.cpp" line="343"/>
         <source>&amp;Free Memory</source>
         <translation>メモリの解放(&amp;F)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="338"/>
+        <location filename="GUI/TaskExplorer.cpp" line="344"/>
         <source>Empty Working set</source>
         <translation>ワーキングセットを解放</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="339"/>
+        <location filename="GUI/TaskExplorer.cpp" line="345"/>
         <source>Empty Modified pages</source>
         <translation>変更されたページを解放</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1501"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1616"/>
         <source>Found %1 hidden processes and added them to the process std::list.</source>
         <translation>%1 個の隠しプロセスが見つかり、プロセス std::list に追加されました。</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="343"/>
+        <location filename="GUI/TaskExplorer.cpp" line="349"/>
         <source>Combine Pages</source>
         <translation>ページの結合</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="116"/>
+        <location filename="GUI/TaskExplorer.cpp" line="120"/>
         <source>---</source>
         <translation>---</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="117"/>
+        <location filename="GUI/TaskExplorer.cpp" line="121"/>
         <source>--</source>
         <translation>--</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="118"/>
+        <location filename="GUI/TaskExplorer.cpp" line="122"/>
         <source>-</source>
         <translation>-</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="119"/>
+        <location filename="GUI/TaskExplorer.cpp" line="123"/>
         <source>~</source>
         <translation>~</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="120"/>
+        <location filename="GUI/TaskExplorer.cpp" line="124"/>
         <source>+</source>
         <translation>+</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="121"/>
+        <location filename="GUI/TaskExplorer.cpp" line="125"/>
         <source>++</source>
         <translation>++</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="123"/>
+        <location filename="GUI/TaskExplorer.cpp" line="127"/>
         <source>Limited </source>
         <translation>限定 </translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="312"/>
+        <location filename="GUI/TaskExplorer.cpp" line="226"/>
+        <source>Window Finder</source>
+        <translation>ウィンドウ ファインダー</translation>
+    </message>
+    <message>
+        <location filename="GUI/TaskExplorer.cpp" line="318"/>
         <source>Driver Options</source>
         <translation>ドライバのオプション</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="346"/>
+        <location filename="GUI/TaskExplorer.cpp" line="352"/>
         <source>Persistence Options</source>
         <translation>永続オプション</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="349"/>
+        <location filename="GUI/TaskExplorer.cpp" line="355"/>
         <source>Flush Dns Cache</source>
         <translation>DNSキャッシュをフラッシュ</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="351"/>
+        <location filename="GUI/TaskExplorer.cpp" line="357"/>
         <source>Security Explorer</source>
         <translation>Security Explorer</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="357"/>
+        <location filename="GUI/TaskExplorer.cpp" line="363"/>
         <source>Use Driver to Monitor System</source>
         <translation>ドライバを使用してシステムを監視</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="360"/>
+        <location filename="GUI/TaskExplorer.cpp" line="366"/>
         <source>Monitor ETW Events</source>
         <translation>ETWイベントを監視</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="365"/>
+        <location filename="GUI/TaskExplorer.cpp" line="371"/>
         <source>Monitor Windows Firewall</source>
         <translation>Windowsファイアウォールを監視</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="371"/>
-        <location filename="GUI/TaskExplorer.cpp" line="469"/>
+        <location filename="GUI/TaskExplorer.cpp" line="377"/>
+        <location filename="GUI/TaskExplorer.cpp" line="475"/>
         <source>Monitor Debug Output</source>
         <translation>デバッグ出力を監視</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="387"/>
+        <location filename="GUI/TaskExplorer.cpp" line="393"/>
         <source>&amp;Help</source>
         <translation>ヘルプ(&amp;H)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="388"/>
+        <location filename="GUI/TaskExplorer.cpp" line="394"/>
         <source>Support TaskExplorer on Patreon</source>
         <translation>PatreonでTaskExplorerをサポート</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="391"/>
+        <location filename="GUI/TaskExplorer.cpp" line="397"/>
         <source>About ProcessHacker Library</source>
         <translation>ProcessHackerライブラリについて</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="393"/>
+        <location filename="GUI/TaskExplorer.cpp" line="399"/>
         <source>About the Qt Framework</source>
         <translation>Qtフレームワークについて</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="395"/>
-        <location filename="GUI/TaskExplorer.cpp" line="1891"/>
+        <location filename="GUI/TaskExplorer.cpp" line="401"/>
+        <location filename="GUI/TaskExplorer.cpp" line="2012"/>
         <source>About TaskExplorer</source>
         <translation>TaskExplorerについて</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="408"/>
+        <location filename="GUI/TaskExplorer.cpp" line="414"/>
         <source>Refresh Now/Reset Hold</source>
         <translation>今すぐ更新／ホールドを解除</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="413"/>
+        <location filename="GUI/TaskExplorer.cpp" line="419"/>
         <source>Extremly fast (30Hz)</source>
         <translation>極めて高速 (30Hz)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="414"/>
+        <location filename="GUI/TaskExplorer.cpp" line="420"/>
         <source>Ultra fast (0.1s)</source>
         <translation>超高速 (0.1秒)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="415"/>
+        <location filename="GUI/TaskExplorer.cpp" line="421"/>
         <source>Very fast (0.25s)</source>
         <translation>非常に高速 (0.25秒)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="416"/>
+        <location filename="GUI/TaskExplorer.cpp" line="422"/>
         <source>Fast (0.5s)</source>
         <translation>高速 (0.5秒)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="417"/>
+        <location filename="GUI/TaskExplorer.cpp" line="423"/>
         <source>Normal (1s)</source>
         <translation>通常 (1秒)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="418"/>
+        <location filename="GUI/TaskExplorer.cpp" line="424"/>
         <source>Slow (2s)</source>
         <translation>低速 (2秒)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="419"/>
+        <location filename="GUI/TaskExplorer.cpp" line="425"/>
         <source>Very slow (5s)</source>
         <translation>非常に低速 (5秒)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="420"/>
+        <location filename="GUI/TaskExplorer.cpp" line="426"/>
         <source>Extremely slow (10s)</source>
         <translation>極めて低速 (10秒)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="430"/>
+        <location filename="GUI/TaskExplorer.cpp" line="436"/>
         <source>Hold ALL removed items</source>
         <translation>すべての削除済み項目を保持</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="435"/>
+        <location filename="GUI/TaskExplorer.cpp" line="441"/>
         <source>Short persistence (2.5s)</source>
         <translation>短期間の保持 (2.5秒)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="436"/>
+        <location filename="GUI/TaskExplorer.cpp" line="442"/>
         <source>Normal persistence (5s)</source>
         <translation>通常の保持 (5秒)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="437"/>
+        <location filename="GUI/TaskExplorer.cpp" line="443"/>
         <source>Long persistence (10s)</source>
         <translation>長期間の保持 (10秒)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="438"/>
+        <location filename="GUI/TaskExplorer.cpp" line="444"/>
         <source>Very long persistence (60s)</source>
         <translation>最長期間の保持 (60秒)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="439"/>
+        <location filename="GUI/TaskExplorer.cpp" line="445"/>
         <source>Extremely long persistence (5m)</source>
         <translation>極長期間の保持 (5分)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="440"/>
+        <location filename="GUI/TaskExplorer.cpp" line="446"/>
         <source>Pseudo static persistence (1h)</source>
         <translation>擬似的な静的保持 (1時間)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="487"/>
+        <location filename="GUI/TaskExplorer.cpp" line="493"/>
         <source>Search...</source>
         <translation>検索...</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="611"/>
+        <location filename="GUI/TaskExplorer.cpp" line="617"/>
         <source>TaskExplorer is ready...</source>
         <translation>TaskExplorer は準備OK...</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="711"/>
+        <location filename="GUI/TaskExplorer.cpp" line="724"/>
         <source>Do you want to close TaskExplorer?</source>
         <translation>TaskExplorer を閉じますか?</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="828"/>
+        <location filename="GUI/TaskExplorer.cpp" line="941"/>
         <source>CPU: %1%    </source>
         <translation>CPU : %1%    </translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="838"/>
+        <location filename="GUI/TaskExplorer.cpp" line="951"/>
         <source>GPU-%1: %2%    </source>
         <translation>GPU-%1 : %2%    </translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="855"/>
+        <location filename="GUI/TaskExplorer.cpp" line="968"/>
         <source>Memory: %1/%2/(%3 + %4)    </source>
         <translation>メモリ : %1/%2/(%3 + %4)    </translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="857"/>
+        <location filename="GUI/TaskExplorer.cpp" line="970"/>
         <source>Memory: %1/%2/%3    </source>
         <translation>メモリ : %1/%2/%3    </translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="860"/>
+        <location filename="GUI/TaskExplorer.cpp" line="973"/>
         <source>Installed: %1</source>
         <translation>インストール済み : %1</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="861"/>
+        <location filename="GUI/TaskExplorer.cpp" line="974"/>
         <source>Swap: %1</source>
         <translation>スワップ : %1</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="862"/>
+        <location filename="GUI/TaskExplorer.cpp" line="975"/>
         <source>Commited: %1</source>
         <translation>コミット済み : %1</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="863"/>
+        <location filename="GUI/TaskExplorer.cpp" line="976"/>
         <source>Physical: %1</source>
         <translation>物理 : %1</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="870"/>
+        <location filename="GUI/TaskExplorer.cpp" line="983"/>
         <source>R: %1</source>
         <translation>R : %1</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="872"/>
+        <location filename="GUI/TaskExplorer.cpp" line="985"/>
         <source>W: %1</source>
         <translation>W : %1</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="876"/>
+        <location filename="GUI/TaskExplorer.cpp" line="989"/>
         <source>FileIO; Read: %1; Write: %2; Other: %3</source>
-        <translation>ファイルIO; 読み取り: %1; 書き込み: %2; その他: %3</translation>
+        <translation>ファイルIO; 読み取り : %1 ; 書き込み : %2 ; その他 : %3</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="877"/>
+        <location filename="GUI/TaskExplorer.cpp" line="990"/>
         <source>MMapIO; Read: %1; Write: %2</source>
-        <translation>MMapIO; 読み取り: %1; 書き込み: %2</translation>
+        <translation>MMapIO; 読み取 り: %1 ; 書き込 み: %2</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="880"/>
+        <location filename="GUI/TaskExplorer.cpp" line="993"/>
         <source>DiskIO; Read: %1; Write: %2</source>
-        <translation>ディスクIO; 読み取り: %1; 書き込み: %2</translation>
+        <translation>ディスクIO; 読み取り : %1 ; 書き込み : %2</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="896"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1009"/>
         <source>TCP/IP; Download: %1; Upload: %2</source>
-        <translation>TCP/IP; ダウンロード : %1; アップロード: %2</translation>
+        <translation>TCP/IP; ダウンロード : %1 ; アップロード : %2</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="897"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1010"/>
         <source>VPN/RAS; Download: %1; Upload: %2</source>
-        <translation>VPN/RAS; ダウンロード : %1; アップロード : %2</translation>
+        <translation>VPN/RAS; ダウンロード : %1 ; アップロード : %2</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1096"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1209"/>
         <source>Do you really want to %1?</source>
         <translation>本当に %1 しますか?</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1154"/>
-        <location filename="GUI/TaskExplorer.cpp" line="1241"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1267"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1354"/>
         <source>Failed to %1, due to: %2</source>
         <translation>%1 に失敗しました,原因 : %2</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1165"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1278"/>
         <source>Users (%1)</source>
         <translation>ユーザー (%1)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1179"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1292"/>
         <source>Connect</source>
         <translation>接続</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1180"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1293"/>
         <source>Disconnect</source>
         <translation>切断</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1181"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1294"/>
         <source>Logoff</source>
         <translation>ログオフ</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1189"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1302"/>
         <source>%1: %2 (%3)</source>
         <translation>%1 : %2 (%3)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1216"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1329"/>
         <source>Connect to session, enter Password:</source>
         <translation>セッションに接続するパスワードの入力 :</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1489"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1604"/>
         <source>Memory opertion failed; Error: %1</source>
         <translation>メモリ操作に失敗しました,エラー : %1</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1503"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1618"/>
         <source>No hidden processes found.</source>
         <translation>隠しプロセスは見つかりませんでした。</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1710"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1831"/>
         <source>Graph background</source>
         <translation>グラフの背景</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1711"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1832"/>
         <source>Graph text</source>
         <translation>グラフのテキスト</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1713"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1834"/>
         <source>Plot background</source>
         <translation>プロットの背景</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1714"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1835"/>
         <source>Plot text</source>
         <translation>プロットのテキスト</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1715"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1836"/>
         <source>Plot grid</source>
         <translation>プロットグリッド</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1717"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1838"/>
         <source>List grid color</source>
         <translation>リストのグリッドの色</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1718"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1839"/>
         <source>Default background</source>
         <translation>既定の背景</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1721"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1842"/>
         <source>New items</source>
         <translation>新しい項目</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1722"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1843"/>
         <source>Removed items</source>
         <translation>削除された項目</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1725"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1846"/>
         <source>Dangerous process</source>
         <translation>危険なプロセス</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1727"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1848"/>
         <source>System processes</source>
         <translation>システム プロセス</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1728"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1849"/>
         <source>Current user processes</source>
         <translation>現在のユーザー プロセス</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1729"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1850"/>
         <source>Service processes</source>
         <translation>サービス プロセス</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1731"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1852"/>
         <source>Sandboxed processes</source>
         <translation>Sandboxed プロセス</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1732"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1853"/>
         <source>Job processes</source>
         <translation>ジョブ プロセス</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1733"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1854"/>
         <source>Pico processes</source>
         <translation>Pico プロセス</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1734"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1855"/>
         <source>Immersive processes</source>
         <translation>没入型プロセス</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1735"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1856"/>
         <source>.NET processes</source>
         <translation>.NET プロセス</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1737"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1858"/>
         <source>Elevated processes</source>
         <translation>昇格プロセス</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1739"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1860"/>
         <source>Kernel Services (Driver)</source>
         <translation>カーネル サービス (ドライバ)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1740"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1861"/>
         <source>Gui threads</source>
         <translation>GUI スレッド</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1741"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1862"/>
         <source>Inherited handles</source>
         <translation>継承されたハンドル</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1742"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1863"/>
         <source>Protected handles/Critical tasks</source>
         <translation>プロテクトハンドル/重要なタスク</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1745"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1866"/>
         <source>Executable memory</source>
         <translation>実行可能メモリ</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="890"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1003"/>
         <source>D: %1</source>
         <translation>D : %1</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="296"/>
+        <location filename="GUI/TaskExplorer.cpp" line="302"/>
         <source>Processes of the Current User</source>
         <translation>現在のユーザーのプロセス</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="340"/>
+        <location filename="GUI/TaskExplorer.cpp" line="346"/>
         <source>Empty Standby std::list</source>
         <translation>スタンバイ中の std::list を解放</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="341"/>
+        <location filename="GUI/TaskExplorer.cpp" line="347"/>
         <source>Empty Priority 0 std::list</source>
         <translation>優先度 0 の std::list を解放</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="592"/>
+        <location filename="GUI/TaskExplorer.cpp" line="598"/>
         <source>TaskExplorer with kernel driver is ready...</source>
         <translation>カーネルドライバを使用したTaskExplorerの準備ができました...</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="892"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1005"/>
         <source>U: %1</source>
         <translation>U : %1</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1023"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1136"/>
         <source>Operation failed for %1 item(s).</source>
         <translation>%1 個の項目に対する操作が失敗しました。</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="905"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1018"/>
         <source>Task Explorer<byte value="xd"/>
 CPU : %1%<byte value="xd"/>
 RAM : %2%</source>
@@ -6179,14 +6261,14 @@ CPU : %1%<byte value="xd"/>
 RAM : %2%</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="908"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1021"/>
         <source><byte value="xd"/>
 Swap: %1%</source>
         <translation><byte value="xd"/>
 スワップ : %1%</translation>
     </message>
     <message>
-        <location filename="main.cpp" line="257"/>
+        <location filename="main.cpp" line="283"/>
         <source>Disable KTaskExplorer driver. Note: this will limit the aplications functionality!</source>
         <translation>TaskExplorerドライバーを無効にします。注意 : これによりアプリケーションの機能が制限されます!</translation>
     </message>
@@ -6196,34 +6278,34 @@ Swap: %1%</source>
         <translation>DynDataの更新</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1875"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1996"/>
         <source>&lt;p&gt;TaskExplorer is a powerfull multi-purpose Task Manager that helps you monitor system resources, debug software and detect malware.&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;On Windows TaskExplorer is powered by the ProsessHacker Library.&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;Visit &lt;a href=&quot;https://github.com/DavidXanatos/TaskExplorer&quot;&gt;TaskExplorer on github&lt;/a&gt; for more information.&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;Config Dir: %1&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;Icons from &lt;a href=&quot;https://icons8.com&quot;&gt;icons8.com&lt;/a&gt;&lt;/p&gt;&lt;p&gt;&lt;/p&gt;</source>
         <translation>&lt;p&gt;TaskExplorer は、システム リソースの監視、ソフトウェアのデバッグ、マルウェアの検出に役立つ強力な多目的タスク マネージャーです。&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;Windows では、TaskExplorer は ProsessHacker ライブラリを活用しています。&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;Visit &lt;a href=&quot;https://github.com/DavidXanatos/TaskExplorer&quot;&gt;TaskExplorer on github&lt;/a&gt; for more information.&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;Config Dir: %1&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;Icons from &lt;a href=&quot;https://icons8.com&quot;&gt;icons8.com&lt;/a&gt;&lt;/p&gt;&lt;p&gt;&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="main.cpp" line="223"/>
+        <location filename="main.cpp" line="249"/>
         <source>Failed to update DynData, %1, Error: 0x%2 (%3).
 Do you want to continue anyways (Ok), or terminate (Cancel)?</source>
         <translation>DynData の更新に失敗しました, %1, エラー : 0x%2 (%3).
 このまま続行しますか (Ok), または終了しますか (キャンセル)?</translation>
     </message>
     <message>
-        <location filename="main.cpp" line="231"/>
+        <location filename="main.cpp" line="257"/>
         <source>The current DynData for the KTaskExplorer driver does not yet supported on your windows kernel version.&lt;br /&gt;You can check for &lt;a href=&quot;https://github.com/DavidXanatos/TaskExplorer/releases&quot;&gt;TaskExplorer updates on github&lt;/a&gt;, or grab the latest ksidyn.bin and ksidyn.sig from &lt;a href=&quot;https://systeminformer.sourceforge.io/downloads&quot;&gt;the latest SystemInformer&lt;/a&gt; and put them in the instalaltion directors next to KSystemInformer.sys.&lt;br /&gt;Instalation Directory: %4&lt;br /&gt;&lt;br /&gt;Operating System Details:&lt;br /&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;Windows %1&lt;br /&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;Windows Kernel %2&lt;br /&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;TaskExplorer %3&lt;br /&gt;&lt;br /&gt;</source>
         <translation>KTaskExplorer ドライバーの現在の DynData は、Windows カーネル バージョンではまだサポートされていません。&lt;br /&gt;You can check for &lt;a href=&quot;https://github.com/DavidXanatos/TaskExplorer/releases&quot;&gt;TaskExplorer updates on github&lt;/a&gt;, or grab the latest ksidyn.bin and ksidyn.sig from &lt;a href=&quot;https://systeminformer.sourceforge.io/downloads&quot;&gt;the latest SystemInformer&lt;/a&gt; and put them in the instalaltion directors next to KSystemInformer.sys.&lt;br /&gt;Instalation Directory: %4&lt;br /&gt;&lt;br /&gt;Operating System Details:&lt;br /&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;Windows %1&lt;br /&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;Windows Kernel %2&lt;br /&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;TaskExplorer %3&lt;br /&gt;&lt;br /&gt;</translation>
     </message>
     <message>
-        <location filename="main.cpp" line="244"/>
+        <location filename="main.cpp" line="270"/>
         <source>Update did not help, do you want to continue anyways (Ok), or terminate (Cancel)?</source>
         <translation>更新しても解決しませんでした。このまま続行しますか (OK)、それとも終了しますか (キャンセル)?</translation>
     </message>
     <message>
-        <location filename="main.cpp" line="246"/>
+        <location filename="main.cpp" line="272"/>
         <source>Do you want to try to download updated DynData (Yes), start without the driver (No), or terminate (Cancel)?</source>
         <translation>更新された DynData をダウンロードしますか (はい)、ドライバーなしで起動しますか (いいえ)、それとも終了しますか (キャンセル)?</translation>
     </message>
     <message>
-        <location filename="main.cpp" line="251"/>
+        <location filename="main.cpp" line="277"/>
         <source>Failed to load KTaskExplorer driver, %1, Error: 0x%2 (%3).
 Do you want to continue anyways (Ok), or terminate (Cancel)?</source>
         <translation>KTaskExplorer ドライバの読み込みに失敗しました, %1, エラー : 0x%2 (%3).
@@ -6248,11 +6330,6 @@ Do you want to continue anyways (Ok), or terminate (Cancel)?</source>
         <location filename="API/Windows/ProcessHacker.cpp" line="1001"/>
         <source>Updated DynData successfully</source>
         <translation>DynData が正常に更新されました</translation>
-    </message>
-    <message>
-        <location filename="API/Windows/ProcessHacker.cpp" line="1014"/>
-        <source>Latest SI build already downloaded</source>
-        <translation>最新のSIビルドはすでにダウンロード済みです</translation>
     </message>
     <message>
         <location filename="API/Windows/ProcessHacker.cpp" line="1029"/>
@@ -6285,64 +6362,74 @@ Do you want to continue anyways (Ok), or terminate (Cancel)?</source>
         <translation>更新チェックに失敗しました。エラー : 認識できない応答です</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1870"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1991"/>
         <source>&lt;h3&gt;About TaskExplorer&lt;/h3&gt;&lt;p&gt;Version %1&lt;/p&gt;&lt;p&gt;Copyright (C) 2019-2025 David Xanatos (xanasoft.com)&lt;/p&gt;</source>
         <translation>&lt;h3&gt;About TaskExplorer&lt;/h3&gt;&lt;p&gt;Version %1&lt;/p&gt;&lt;p&gt;Copyright (C) 2019-2025 David Xanatos (xanasoft.com)&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1803"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1924"/>
         <source>Reset Columns</source>
         <translation>列をリセット</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1804"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1925"/>
         <source>Copy Cell</source>
         <translation>セルをコピー</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1805"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1926"/>
         <source>Copy Row</source>
         <translation>行をコピー</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1806"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1927"/>
         <source>Copy Panel</source>
         <translation>パネルをコピー</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1807"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1928"/>
         <source>Case Sensitive</source>
         <translation>大文字と小文字を区別</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1808"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1929"/>
         <source>RegExp</source>
         <translation>RegExp</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1809"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1930"/>
         <source>Highlight</source>
         <translation>強調表示</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1810"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1931"/>
         <source>Close</source>
         <translation>閉じる</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1811"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1932"/>
         <source>&amp;Find ...</source>
         <translation>検索(&amp;F) ...</translation>
     </message>
     <message>
-        <location filename="GUI/TaskExplorer.cpp" line="1812"/>
+        <location filename="GUI/TaskExplorer.cpp" line="1933"/>
         <source>All columns</source>
         <translation>すべての列</translation>
     </message>
     <message>
-        <location filename="main.cpp" line="264"/>
+        <location filename="main.cpp" line="290"/>
         <source>Failed to update DynData, %1.</source>
         <translation>DynData、%1 の更新に失敗しました。</translation>
+    </message>
+    <message>
+        <location filename="GUI/WndFinder.cpp" line="143"/>
+        <source>Drag the Finder Tool over a window to select it, then release the mouse to open process properties.</source>
+        <translation>ファインダー ツールをウィンドウ上にドラッグして選択し、マウスを放すとプロセスのプロパティが開きます。</translation>
+    </message>
+    <message>
+        <location filename="GUI/WndFinder.cpp" line="213"/>
+        <source>TaskExplorer - Window Finder</source>
+        <translation>TaskExplorer - ウィンドウ ファインダー</translation>
     </message>
 </context>
 <context>
@@ -6576,258 +6663,279 @@ Do you want to continue anyways (Ok), or terminate (Cancel)?</source>
 <context>
     <name>CThreadModel</name>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="128"/>
-        <location filename="GUI/Models/ThreadModel.cpp" line="302"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="136"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="325"/>
         <source>Critical</source>
         <translation>重大</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="201"/>
-        <location filename="GUI/Models/ThreadModel.cpp" line="202"/>
-        <location filename="GUI/Models/ThreadModel.cpp" line="203"/>
-        <location filename="GUI/Models/ThreadModel.cpp" line="205"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="215"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="216"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="217"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="219"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="220"/>
         <source>Yes</source>
         <translation>はい</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="276"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="293"/>
         <source>Thread</source>
         <translation>スレッド</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="277"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="297"/>
         <source>CPU graph</source>
         <translation>CPU グラフ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="278"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="298"/>
         <source>CPU</source>
         <translation>CPU</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="279"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="299"/>
         <source>Cycles delta</source>
         <translation>サイクル デルタ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="281"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="301"/>
         <source>Start address</source>
         <translation>開始アドレス</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="292"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="312"/>
         <source>Priority</source>
         <translation>優先度</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="282"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="302"/>
         <source>Service</source>
         <translation>サービス</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="175"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="184"/>
         <source>%1 (%2): %3</source>
         <translation>%1 (%2) : %3</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="283"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="295"/>
+        <source>LXSS TID</source>
+        <translation>LXSS TID</translation>
+    </message>
+    <message>
+        <location filename="GUI/Models/ThreadModel.cpp" line="303"/>
         <source>Name</source>
         <translation>名前</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="284"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="304"/>
         <source>Type</source>
         <translation>種類</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="286"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="306"/>
         <source>Created</source>
         <translation>作成日時</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="288"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="308"/>
         <source>Start module</source>
         <translation>開始モジュール</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="290"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="310"/>
         <source>Context switches</source>
         <translation>コンテキストスイッチ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="291"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="311"/>
         <source>Context switches delta</source>
         <translation>コンテキストスイッチ デルタ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="293"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="313"/>
         <source>Base priority</source>
         <translation>ベース優先度</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="294"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="315"/>
+        <source>Base priority (actual)</source>
+        <translation>ベース優先度 (現在)</translation>
+    </message>
+    <message>
+        <location filename="GUI/Models/ThreadModel.cpp" line="317"/>
         <source>Page priority</source>
         <translation>ページ優先度</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="295"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="318"/>
         <source>I/O priority</source>
         <translation>I/O 優先度</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="296"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="319"/>
         <source>Cycles</source>
         <translation>サイクル</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="297"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="320"/>
         <source>State</source>
         <translation>状態</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="298"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="321"/>
         <source>Kernel time</source>
         <translation>カーネル時間</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="299"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="322"/>
         <source>User time</source>
         <translation>ユーザー時間</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="301"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="324"/>
         <source>Ideal processor</source>
         <translation>アイドル プロセッサ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="303"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="326"/>
         <source>Impersonation Token</source>
         <translation>偽装トークン</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="304"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="327"/>
         <source>App Domain</source>
         <translation>App ドメイン</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="306"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="329"/>
         <source>Pending IRP</source>
         <translation>保留中の IRP</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="307"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="330"/>
         <source>Last system call</source>
         <translation>最終システムコール</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="308"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="331"/>
         <source>Last status code</source>
         <translation>最終ステータスコード</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="309"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="332"/>
         <source>COM apartment</source>
         <translation>COM アパートメント</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="310"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="333"/>
+        <source>COM flags</source>
+        <translation>COM フラグ</translation>
+    </message>
+    <message>
+        <location filename="GUI/Models/ThreadModel.cpp" line="334"/>
         <source>Fiber</source>
         <translation>ファイバー</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="311"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="335"/>
         <source>Priority boost</source>
         <translation>優先度ブースト</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="312"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="336"/>
         <source>Stack usage</source>
         <translation>スタック使用量</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="313"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="337"/>
         <source>Wait time</source>
         <translation>待ち時間</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="314"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="338"/>
         <source>I/O reads</source>
         <translation>I/O 読み取り</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="315"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="339"/>
         <source>I/O writes</source>
         <translation>I/O 書き込み</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="316"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="340"/>
         <source>I/O other</source>
         <translation>I/O その他</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="317"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="341"/>
         <source>I/O read bytes</source>
         <translation>I/O 読み取りバイト</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="318"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="342"/>
         <source>I/O write bytes</source>
         <translation>I/O 書き込みバイト</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="319"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="343"/>
         <source>I/O other bytes</source>
         <translation>I/O その他バイト</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="321"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="345"/>
         <source>I/O reads delta</source>
         <translation>I/O 読み取りデルタ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="322"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="346"/>
         <source>I/O writes delta</source>
         <translation>I/O 書き込みデルタ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="323"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="347"/>
         <source>I/O other delta</source>
         <translation>I/O その他デルタ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="325"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="349"/>
         <source>I/O read bytes delta</source>
         <translation>I/O 読み取りバイト デルタ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="326"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="350"/>
         <source>I/O write bytes delta</source>
         <translation>I/O 書き込みバイト デルタ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="327"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="351"/>
         <source>I/O other bytes delta</source>
         <translation>I/O その他バイト デルタ</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="329"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="353"/>
         <source>I/O read rate</source>
         <translation>I/O 読み取り速度</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="330"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="354"/>
         <source>I/O write rate</source>
         <translation>I/O 書き込み速度</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="331"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="355"/>
         <source>I/O other rate</source>
         <translation>I/O その他速度</translation>
     </message>
     <message>
-        <location filename="GUI/Models/ThreadModel.cpp" line="334"/>
+        <location filename="GUI/Models/ThreadModel.cpp" line="357"/>
         <source>Power throttling</source>
         <translation>電力スロットリング</translation>
+    </message>
+    <message>
+        <location filename="GUI/Models/ThreadModel.cpp" line="359"/>
+        <source>RPC usage</source>
+        <translation>RPC 使用率</translation>
     </message>
 </context>
 <context>
@@ -7138,7 +7246,7 @@ You can change this option later on in the settings.</source>
     </message>
     <message>
         <location filename="GUI/TaskInfo/TokenView.cpp" line="204"/>
-        <location filename="GUI/TaskInfo/TokenView.cpp" line="707"/>
+        <location filename="GUI/TaskInfo/TokenView.cpp" line="708"/>
         <source>Package</source>
         <translation>パッケージ</translation>
     </message>
@@ -7227,7 +7335,7 @@ You can change this option later on in the settings.</source>
     </message>
     <message>
         <location filename="GUI/TaskInfo/TokenView.cpp" line="293"/>
-        <location filename="GUI/TaskInfo/TokenView.cpp" line="980"/>
+        <location filename="GUI/TaskInfo/TokenView.cpp" line="981"/>
         <source>Linked Token</source>
         <translation>リンクされたトークン</translation>
     </message>
@@ -7342,75 +7450,75 @@ You can change this option later on in the settings.</source>
         <translation>ログオン セッション</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/TokenView.cpp" line="623"/>
         <location filename="GUI/TaskInfo/TokenView.cpp" line="624"/>
         <location filename="GUI/TaskInfo/TokenView.cpp" line="625"/>
         <location filename="GUI/TaskInfo/TokenView.cpp" line="626"/>
+        <location filename="GUI/TaskInfo/TokenView.cpp" line="627"/>
         <source>0x%1</source>
         <translation>0x%1</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/TokenView.cpp" line="653"/>
+        <location filename="GUI/TaskInfo/TokenView.cpp" line="654"/>
         <source>True</source>
         <translation>真</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/TokenView.cpp" line="653"/>
+        <location filename="GUI/TaskInfo/TokenView.cpp" line="654"/>
         <source>False</source>
         <translation>偽</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/TokenView.cpp" line="672"/>
+        <location filename="GUI/TaskInfo/TokenView.cpp" line="673"/>
         <source>%1: %2</source>
         <translation>%1 : %2</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/TokenView.cpp" line="705"/>
+        <location filename="GUI/TaskInfo/TokenView.cpp" line="706"/>
         <source>Full name</source>
         <translation>完全な名前</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/TokenView.cpp" line="706"/>
+        <location filename="GUI/TaskInfo/TokenView.cpp" line="707"/>
         <source>Capability</source>
         <translation>機能</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/TokenView.cpp" line="708"/>
+        <location filename="GUI/TaskInfo/TokenView.cpp" line="709"/>
         <source>Guid</source>
         <translation>GUID</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/TokenView.cpp" line="753"/>
+        <location filename="GUI/TaskInfo/TokenView.cpp" line="754"/>
         <source>Type: %1</source>
         <translation>種類 : %1</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/TokenView.cpp" line="754"/>
+        <location filename="GUI/TaskInfo/TokenView.cpp" line="755"/>
         <source>Flags: %1 (0x%2)</source>
         <translation>フラグ : %1 (0x%2)</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/TokenView.cpp" line="775"/>
+        <location filename="GUI/TaskInfo/TokenView.cpp" line="776"/>
         <source>Value %1: %2</source>
         <translation>値 %1 : %2</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/TokenView.cpp" line="924"/>
+        <location filename="GUI/TaskInfo/TokenView.cpp" line="925"/>
         <source>Original Token</source>
         <translation>オリジナル トークン</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/TokenView.cpp" line="950"/>
+        <location filename="GUI/TaskInfo/TokenView.cpp" line="951"/>
         <source>Unable to set the virtualization, error: %1</source>
         <translation>仮想化を設定できません。エラー : %1</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/TokenView.cpp" line="962"/>
+        <location filename="GUI/TaskInfo/TokenView.cpp" line="963"/>
         <source>Once lowered, the integrity level of the token cannot be raised again.</source>
         <translation>一度下げたトークンの整合性レベルを再度上げることはできません。</translation>
     </message>
     <message>
-        <location filename="GUI/TaskInfo/TokenView.cpp" line="968"/>
+        <location filename="GUI/TaskInfo/TokenView.cpp" line="969"/>
         <source>Unable to set the integrity level, error: %1</source>
         <translation>整合性レベルを設定できません、エラー : %1</translation>
     </message>
@@ -7798,52 +7906,62 @@ A 64-bit dump will be created instead.</source>
         <translation>ハンドル属性の設定に失敗しました</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinHandle.cpp" line="535"/>
+        <location filename="API/Windows/WinHandle.cpp" line="544"/>
+        <source>N/A</source>
+        <translation>N/A</translation>
+    </message>
+    <message>
+        <location filename="API/Windows/WinHandle.cpp" line="579"/>
+        <source>0x%1</source>
+        <translation>0x%1</translation>
+    </message>
+    <message>
+        <location filename="API/Windows/WinHandle.cpp" line="607"/>
         <source>Commit</source>
         <translation>コミット</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinHandle.cpp" line="537"/>
+        <location filename="API/Windows/WinHandle.cpp" line="609"/>
         <source>File</source>
         <translation>ファイル</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinHandle.cpp" line="539"/>
+        <location filename="API/Windows/WinHandle.cpp" line="611"/>
         <source>Module</source>
         <translation>モジュール</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinHandle.cpp" line="541"/>
+        <location filename="API/Windows/WinHandle.cpp" line="613"/>
         <source>Reserve</source>
         <translation>予約</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinHandle.cpp" line="542"/>
+        <location filename="API/Windows/WinHandle.cpp" line="614"/>
         <source>Unknown</source>
         <translation>不明</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinHandle.cpp" line="926"/>
+        <location filename="API/Windows/WinHandle.cpp" line="998"/>
         <source>You are about to close one or more handles for a critical process with strict handle checks enabled. This will shut down the operating system immediately!</source>
         <translation>厳密なハンドルチェックが有効になっている重要なプロセスのハンドルを1つ以上閉じようとしています。これにより、オペレーティングシステムが直ちにシャットダウンされます!</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinHandle.cpp" line="936"/>
+        <location filename="API/Windows/WinHandle.cpp" line="1008"/>
         <source>Failed To close Handle</source>
         <translation>ハンドルを閉じることができませんでした</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinHandle.cpp" line="941"/>
+        <location filename="API/Windows/WinHandle.cpp" line="1013"/>
         <source>Unable to open the process</source>
         <translation>プロセスを開けません</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinHandle.cpp" line="984"/>
+        <location filename="API/Windows/WinHandle.cpp" line="1056"/>
         <source>Unable to open process handle</source>
         <translation>プロセスハンドルを開けません</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinHandle.cpp" line="992"/>
+        <location filename="API/Windows/WinHandle.cpp" line="1064"/>
         <source>Unable to open duplicate handle</source>
         <translation>重複したハンドルを開けません</translation>
     </message>
@@ -8317,117 +8435,127 @@ A 64-bit dump will be created instead.</source>
         <translation>+WCM</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinMemory.cpp" line="204"/>
+        <location filename="API/Windows/WinMemory.cpp" line="170"/>
+        <source>%1%%</source>
+        <translation>%1%%</translation>
+    </message>
+    <message>
+        <location filename="API/Windows/WinMemory.cpp" line="172"/>
+        <source> (%1)</source>
+        <translation> (%1)</translation>
+    </message>
+    <message>
+        <location filename="API/Windows/WinMemory.cpp" line="220"/>
         <source>USER_SHARED_DATA</source>
         <translation>USER_SHARED_DATA</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinMemory.cpp" line="206"/>
+        <location filename="API/Windows/WinMemory.cpp" line="222"/>
         <source>HYPERVISOR_SHARED_DATA</source>
         <translation>HYPERVISOR_SHARED_DATA</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinMemory.cpp" line="209"/>
+        <location filename="API/Windows/WinMemory.cpp" line="225"/>
         <source>PEB%1</source>
         <translation>PEB%1</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinMemory.cpp" line="209"/>
-        <location filename="API/Windows/WinMemory.cpp" line="212"/>
-        <location filename="API/Windows/WinMemory.cpp" line="215"/>
-        <location filename="API/Windows/WinMemory.cpp" line="218"/>
-        <location filename="API/Windows/WinMemory.cpp" line="221"/>
-        <location filename="API/Windows/WinMemory.cpp" line="224"/>
+        <location filename="API/Windows/WinMemory.cpp" line="225"/>
+        <location filename="API/Windows/WinMemory.cpp" line="228"/>
+        <location filename="API/Windows/WinMemory.cpp" line="231"/>
+        <location filename="API/Windows/WinMemory.cpp" line="234"/>
+        <location filename="API/Windows/WinMemory.cpp" line="237"/>
+        <location filename="API/Windows/WinMemory.cpp" line="240"/>
         <source> 32-bit</source>
         <translation> 32-bit</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinMemory.cpp" line="212"/>
+        <location filename="API/Windows/WinMemory.cpp" line="228"/>
         <source>TEB%1 (thread %2)</source>
         <translation>TEB%1 (スレッド %2)</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinMemory.cpp" line="215"/>
+        <location filename="API/Windows/WinMemory.cpp" line="231"/>
         <source>Stack%1 (thread %2)</source>
         <translation>スタック%1 (スレッド %2)</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinMemory.cpp" line="218"/>
+        <location filename="API/Windows/WinMemory.cpp" line="234"/>
         <source>Heap%1 (ID %2)</source>
         <translation>ヒープ %1 (ID %2)</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinMemory.cpp" line="221"/>
+        <location filename="API/Windows/WinMemory.cpp" line="237"/>
         <source>Heap segment%1 (ID %2)</source>
         <translation>ヒープ セグメント %1 (ID %2)</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinMemory.cpp" line="224"/>
+        <location filename="API/Windows/WinMemory.cpp" line="240"/>
         <source>CFG Bitmap%1</source>
         <translation>CFG ビットマップ %1</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinMemory.cpp" line="226"/>
+        <location filename="API/Windows/WinMemory.cpp" line="242"/>
         <source>ApiSetMap</source>
         <translation>ApiSetMap</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinMemory.cpp" line="245"/>
+        <location filename="API/Windows/WinMemory.cpp" line="261"/>
         <source>Unchecked</source>
         <translation>Unchecked</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinMemory.cpp" line="247"/>
+        <location filename="API/Windows/WinMemory.cpp" line="263"/>
         <source>Unsigned</source>
         <translation>Unsigned</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinMemory.cpp" line="249"/>
+        <location filename="API/Windows/WinMemory.cpp" line="265"/>
         <source>Enterprise</source>
         <translation>Enterprise</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinMemory.cpp" line="251"/>
+        <location filename="API/Windows/WinMemory.cpp" line="267"/>
         <source>Developer</source>
         <translation>Developer</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinMemory.cpp" line="253"/>
+        <location filename="API/Windows/WinMemory.cpp" line="269"/>
         <source>Authenticode</source>
         <translation>Authenticode</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinMemory.cpp" line="255"/>
+        <location filename="API/Windows/WinMemory.cpp" line="371"/>
         <source>StoreApp</source>
         <translation>StoreApp</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinMemory.cpp" line="257"/>
+        <location filename="API/Windows/WinMemory.cpp" line="273"/>
         <source>Antimalware</source>
         <translation>Antimalware</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinMemory.cpp" line="259"/>
+        <location filename="API/Windows/WinMemory.cpp" line="275"/>
         <source>Microsoft</source>
         <translation>Microsoft</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinMemory.cpp" line="261"/>
+        <location filename="API/Windows/WinMemory.cpp" line="277"/>
         <source>CodeGen</source>
         <translation>CodeGen</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinMemory.cpp" line="263"/>
+        <location filename="API/Windows/WinMemory.cpp" line="279"/>
         <source>Windows</source>
         <translation>Windows</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinMemory.cpp" line="265"/>
+        <location filename="API/Windows/WinMemory.cpp" line="281"/>
         <source>WinTcb</source>
         <translation>WinTcb</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinMemory.cpp" line="271"/>
+        <location filename="API/Windows/WinMemory.cpp" line="287"/>
         <source>Custom</source>
         <translation>カスタム</translation>
     </message>
@@ -8436,32 +8564,32 @@ A 64-bit dump will be created instead.</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="API/Windows/WinMemory.cpp" line="306"/>
+        <location filename="API/Windows/WinMemory.cpp" line="322"/>
         <source>Unable to change memory protection</source>
         <translation>メモリ保護を変更できません</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinMemory.cpp" line="313"/>
+        <location filename="API/Windows/WinMemory.cpp" line="329"/>
         <source>Not dumpable memory item</source>
         <translation>ダンプできないメモリ項目</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinMemory.cpp" line="320"/>
+        <location filename="API/Windows/WinMemory.cpp" line="336"/>
         <source>Unable to open the process</source>
         <translation>プロセスを開けません</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinMemory.cpp" line="378"/>
+        <location filename="API/Windows/WinMemory.cpp" line="394"/>
         <source>Unable to unmap the section view</source>
         <translation>セクションビューのマッピングを解除できません</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinMemory.cpp" line="380"/>
+        <location filename="API/Windows/WinMemory.cpp" line="396"/>
         <source>Unable to free the memory region</source>
         <translation>メモリ領域を解放できません</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinMemory.cpp" line="382"/>
+        <location filename="API/Windows/WinMemory.cpp" line="398"/>
         <source>Unable to decommit the memory region</source>
         <translation>メモリ領域をデコミットできません</translation>
     </message>
@@ -8670,587 +8798,577 @@ A 64-bit dump will be created instead.</source>
 <context>
     <name>CWinProcess</name>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="250"/>
+        <location filename="API/Windows/WinProcess.cpp" line="252"/>
         <source>Unknown process PID: %1</source>
         <translation>不明なプロセス PID : %1</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="289"/>
+        <location filename="API/Windows/WinProcess.cpp" line="291"/>
         <source>System Idle Process</source>
         <translation>システム アイドル プロセス</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2011"/>
-        <source>x86_64</source>
-        <translation>x86_64</translation>
-    </message>
-    <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2012"/>
-        <source>x86</source>
-        <translation>x86</translation>
-    </message>
-    <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2033"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2051"/>
         <source>Native</source>
         <translation>Native</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2034"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2052"/>
         <source>Windows</source>
         <translation>Windows</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2035"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2053"/>
         <source>Windows console</source>
         <translation>Windows console</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2036"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2054"/>
         <source>OS/2</source>
         <translation>OS/2</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2037"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2055"/>
         <source>POSIX</source>
         <translation>POSIX</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2038"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2056"/>
         <source>Unknown</source>
         <translation>不明</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2159"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2177"/>
         <source>Not responding</source>
         <translation>Not responding</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2159"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2177"/>
         <source>Running</source>
         <translation>Running</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2175"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2193"/>
         <source>10</source>
         <translation>10</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2176"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2194"/>
         <source>8.1</source>
         <translation>8.1</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2177"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2195"/>
         <source>8</source>
         <translation>8</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2178"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2196"/>
         <source>7</source>
         <translation>7</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2179"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2197"/>
         <source>Vista</source>
         <translation>Vista</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2180"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2198"/>
         <source>XP</source>
         <translation>XP</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2192"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2210"/>
         <source>ASLR</source>
         <translation>ASLR</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2201"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2219"/>
         <source>DEP</source>
         <translation>DEP</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2205"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2223"/>
         <source>CFG</source>
         <translation>CFG</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2208"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2226"/>
         <source>XFG Audit</source>
         <translation>XFG Audit</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2210"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2228"/>
         <source>XFG</source>
         <translation>XFG</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2213"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2231"/>
         <source>CET strict</source>
         <translation>CET strict</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2215"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2233"/>
         <source>CET</source>
         <translation>CET</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2318"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2336"/>
         <source>Editing environment variable(s) of suspended processes is not supported.</source>
         <translation>中断されたプロセスの環境変数の編集はサポートされていません。</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2346"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2364"/>
         <source>Unable to set the environment variable.</source>
         <translation>環境変数を設定できません。</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2350"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2368"/>
         <source>Unable to delete the environment variable.</source>
         <translation>環境変数を削除できません。</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2360"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2378"/>
         <source>Hidden (!)</source>
         <translation>Hidden (!)</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2362"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2380"/>
         <source>Terminated</source>
         <translation>Terminated</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2367"/>
-        <location filename="API/Windows/WinProcess.cpp" line="2994"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2385"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3012"/>
         <source>Critical</source>
         <translation>Critical</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2369"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2387"/>
         <source>Sandboxed</source>
         <translation>Sandboxed</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2371"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2389"/>
         <source>Debugged</source>
         <translation>Debugged</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2373"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2391"/>
         <source>Suspended</source>
         <translation>Suspended</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2375"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2393"/>
         <source>Handle Filtered</source>
         <translation>Handle Filtered</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2378"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2396"/>
         <source>Elevated</source>
         <translation>Elevated</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2380"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2398"/>
         <source>Pico</source>
         <translation>Pico</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2382"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2400"/>
         <source>Cross Session</source>
         <translation>Cross Session</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2384"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2402"/>
         <source>Frozen</source>
         <translation>Frozen</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2386"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2404"/>
         <source>Background</source>
         <translation>Background</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2388"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2406"/>
         <source>Packaged (UWP)</source>
         <translation>Packaged (UWP)</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2390"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2408"/>
         <source>Secure</source>
         <translation>Secure</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2392"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2410"/>
         <source>Immersive</source>
         <translation>Immersive</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2394"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2412"/>
         <source>DotNet</source>
         <translation>DotNet</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2396"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2414"/>
         <source>Packed</source>
         <translation>Packed</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2398"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2416"/>
         <source>Wow64</source>
         <translation>Wow64</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2400"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2418"/>
         <source>InSignificantJob</source>
         <translation>InSignificantJob</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2402"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2420"/>
         <source>Reflected</source>
         <translation>Reflected</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2404"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2422"/>
         <source>System Process</source>
         <translation>System Process</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2406"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2424"/>
         <source>Secure System</source>
         <translation>Secure System</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2413"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2431"/>
         <source>Job</source>
         <translation>ジョブ</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2415"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2433"/>
         <source>Service</source>
         <translation>サービス</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2417"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2435"/>
         <source>System</source>
         <translation>システム</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2419"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2437"/>
         <source>Owned</source>
         <translation>所有</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2421"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2439"/>
         <source>, </source>
         <translation>, </translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2471"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2489"/>
         <source>Unable to locate the debugger.</source>
         <translation>デバッガーが見つかりません。</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2487"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2505"/>
         <source>Failed to create debugger process</source>
         <translation>デバッガプロセスの作成に失敗しました</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2519"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2537"/>
         <source>The process is not being debugged.</source>
         <translation>プロセスはデバッグされていません。</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2524"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2542"/>
         <source>Failed to detach debugger</source>
         <translation>デバッガのデタッチに失敗しました</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2676"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2694"/>
         <source>Unaware</source>
         <translation>Unaware</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2677"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2695"/>
         <source>System aware</source>
         <translation>System aware</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2678"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2696"/>
         <source>Per-monitor aware</source>
         <translation>Per-monitor aware</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2705"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2723"/>
         <source>Light %1</source>
         <translation>Light %1</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2706"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2724"/>
         <source>Full %1</source>
         <translation>Full %1</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2707"/>
-        <location filename="API/Windows/WinProcess.cpp" line="2967"/>
-        <location filename="API/Windows/WinProcess.cpp" line="2986"/>
-        <location filename="API/Windows/WinProcess.cpp" line="2999"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2725"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2985"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3004"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3017"/>
         <source>Unknown %1</source>
         <translation>不明 %1</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2712"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2730"/>
         <source>Yes</source>
         <translation>はい</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2731"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2749"/>
         <source>KPH %1</source>
         <translation>KPH %1</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2845"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2863"/>
         <source>Loader Integrity</source>
         <translation>ローダー整合性</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2845"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2863"/>
         <source>OS signing levels for dependent module loads are enabled.</source>
         <translation>依存モジュールのロードに対する OS 署名レベルが有効になっています。</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2850"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2868"/>
         <source>Module Tampering</source>
         <translation>モジュールの改ざん</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2850"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2868"/>
         <source>Module Tampering protection is enabled.</source>
         <translation>モジュール改ざん防止が有効になっています。</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2855"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2873"/>
         <source>Indirect branch prediction</source>
         <translation>間接分岐予測</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2855"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2873"/>
         <source>Protects against sibling hardware threads (hyperthreads) from interfering with indirect branch predictions.</source>
         <translation>兄弟ハードウェア スレッド (ハイパースレッド) が間接分岐予測に干渉するのを防ぎます。</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2860"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2878"/>
         <source>Dynamic code (downgrade)</source>
         <translation>動的コード (ダウングレード)</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2860"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2878"/>
         <source>Allows a broker to downgrade the dynamic code policy for a process.</source>
         <translation>ブローカーがプロセスの動的コード ポリシーをダウングレードできるようにします。</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2865"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2883"/>
         <source>Speculative store bypass</source>
         <translation>投機的ストアバイパス</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2865"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2883"/>
         <source>Disables spectre mitigations for the process.</source>
         <translation>プロセスのスペクター軽減策を無効にします。</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2961"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2979"/>
         <source>Real time</source>
         <translation>リアルタイム</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2962"/>
-        <location filename="API/Windows/WinProcess.cpp" line="2995"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2980"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3013"/>
         <source>High</source>
         <translation>高</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2963"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2981"/>
         <source>Above normal</source>
         <translation>通常以上</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2964"/>
-        <location filename="API/Windows/WinProcess.cpp" line="2980"/>
-        <location filename="API/Windows/WinProcess.cpp" line="2996"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2982"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2998"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3014"/>
         <source>Normal</source>
         <translation>通常</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2965"/>
-        <location filename="API/Windows/WinProcess.cpp" line="2981"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2983"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2999"/>
         <source>Below normal</source>
         <translation>通常以下</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2966"/>
+        <location filename="API/Windows/WinProcess.cpp" line="2984"/>
         <source>Idle</source>
         <translation>アイドル</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2982"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3000"/>
         <source>Medium</source>
         <translation>中</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2983"/>
-        <location filename="API/Windows/WinProcess.cpp" line="2997"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3001"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3015"/>
         <source>Low</source>
         <translation>低</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2984"/>
-        <location filename="API/Windows/WinProcess.cpp" line="2998"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3002"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3016"/>
         <source>Very low</source>
         <translation>非常に低い</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="2985"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3003"/>
         <source>Lowest</source>
         <translation>最低</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="3024"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3042"/>
         <source>Failed to set Process priority boost</source>
         <translation>プロセス優先度ブーストの設定に失敗しました</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="3079"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3097"/>
         <source>Failed to set Process efficiency</source>
         <translation>プロセス効率の設定に失敗しました</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="3119"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3137"/>
         <source>Failed to set Process priority</source>
         <translation>プロセスの優先度を設定できませんでした</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="3159"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3177"/>
         <source>Failed to set Page priority</source>
         <translation>ページの優先度を設定できませんでした</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="3199"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3217"/>
         <source>Failed to set I/O priority</source>
         <translation>I/O優先度の設定に失敗しました</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="3231"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3249"/>
         <source>64 (100%%) | %1 (%2%%)</source>
         <translation>64 (100%%) | %1 (%2%%)</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="3235"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3253"/>
         <source>%1 (%2%%) | 0 (0%%)</source>
         <translation>%1 (%2%%) | 0 (0%%)</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="3252"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3270"/>
         <source>Fail critical</source>
         <translation>重大な失敗</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="3254"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3272"/>
         <source>GP faults</source>
         <translation>GP 例外</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="3256"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3274"/>
         <source>Alignment faults</source>
         <translation>アライメント例外</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="3258"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3276"/>
         <source>Openfile faults</source>
         <translation>ファイルオープン例外</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="3278"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3296"/>
         <source>0x%1</source>
         <translation>0x%1</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="3307"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3325"/>
         <source>Failed to set CPU affinity</source>
         <translation>CPUアフィニティの設定に失敗しました</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="3330"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3348"/>
         <source>You are about to terminate one or more critical processes. This will shut down the operating system immediately.</source>
         <translation>1つまたは複数の重要なプロセスを終了しようとしています。これにより、オペレーティングシステムが直ちにシャットダウンされます。</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="3350"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3368"/>
         <source>Failed to terminate process</source>
         <translation>プロセスを終了できませんでした</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="3381"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3399"/>
         <source>Failed to suspend process</source>
         <translation>プロセスの一時停止に失敗しました</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="3406"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3424"/>
         <source>Failed to resume process</source>
         <translation>プロセスの再開に失敗しました</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="3420"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3438"/>
         <source>Process already frozen</source>
         <translation>プロセスはすでに凍結されています</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="3425"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3443"/>
         <source>Failed to freeze process</source>
         <translation>プロセスの凍結に失敗しました</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="3435"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3453"/>
         <source>Process is not frozen</source>
         <translation>プロセスは凍結されていません</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="3439"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3457"/>
         <source>Failed to un-freeze process</source>
         <translation>プロセスの凍結解除に失敗しました</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="3486"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3504"/>
         <source>If the process ends, the operating system will shut down immediately.</source>
         <translation>プロセスが終了すると、オペレーティング システムは直ちにシャットダウンします。</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="3498"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3516"/>
         <source>Unable to change the process critical status.</source>
         <translation>プロセスの重大なステータスを変更できません。</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="3526"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3544"/>
         <source>Unable to reduce the working set of a process</source>
         <translation>プロセスのワーキングセットを削減できません</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="3649"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3667"/>
         <source>load the DLL into</source>
         <translation>DLLの動的読み込み</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="3855"/>
+        <location filename="API/Windows/WinProcess.cpp" line="3873"/>
         <source>Failed Flush Heaps</source>
         <translation>失敗したフラッシュヒープ</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="4003"/>
+        <location filename="API/Windows/WinProcess.cpp" line="4021"/>
         <source>Unknown action</source>
         <translation>不明なアクション</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinProcess.cpp" line="4004"/>
+        <location filename="API/Windows/WinProcess.cpp" line="4022"/>
         <source>Unknown path</source>
         <translation>不明なパス</translation>
     </message>
@@ -9721,9 +9839,10 @@ A 64-bit dump will be created instead.</source>
         <translation>権限 &apos;%1&apos; はすでに追加されています。</translation>
     </message>
     <message>
-        <source>The service has %1 failure actions configured, but this program only supports editing 3.
+        <location filename="GUI/SystemInfo/WinSvcWindow.cpp" line="594"/>
+        <source>The service has %1 failure actions configured, but this program only supports editing 3.<byte value="xd"/>
 If you save the recovery information using this program, the additional failure actions will be lost.</source>
-        <translation>サービスには %1 個の障害アクションが設定されていますが、このプログラムでは 3 個の編集のみがサポートされています。
+        <translation>サービスには %1 個の障害アクションが設定されていますが、このプログラムでは 3 個の編集のみがサポートされています。<byte value="xd"/>
 このプログラムを使用して回復情報を保存すると、追加の障害アクションは失われます。</translation>
     </message>
     <message>
@@ -9745,75 +9864,75 @@ If you save the recovery information using this program, the additional failure 
 <context>
     <name>CWinThread</name>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="428"/>
-        <location filename="API/Windows/WinThread.cpp" line="435"/>
+        <location filename="API/Windows/WinThread.cpp" line="443"/>
+        <location filename="API/Windows/WinThread.cpp" line="450"/>
         <source>Yes</source>
         <translation>はい</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="434"/>
+        <location filename="API/Windows/WinThread.cpp" line="449"/>
         <source>Anonymous</source>
         <translation>Anonymous</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="482"/>
+        <location filename="API/Windows/WinThread.cpp" line="497"/>
         <source>Unknown process</source>
         <translation>不明なプロセス</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="496"/>
+        <location filename="API/Windows/WinThread.cpp" line="511"/>
         <source>Unknown</source>
         <translation>不明</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="501"/>
+        <location filename="API/Windows/WinThread.cpp" line="516"/>
         <source>Wait:</source>
         <translation>待機 :</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="503"/>
+        <location filename="API/Windows/WinThread.cpp" line="518"/>
         <source>Waiting</source>
         <translation>待機中</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="510"/>
-        <location filename="API/Windows/WinThread.cpp" line="1121"/>
+        <location filename="API/Windows/WinThread.cpp" line="525"/>
+        <location filename="API/Windows/WinThread.cpp" line="1178"/>
         <source> (%1)</source>
         <translation> (%1)</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="536"/>
+        <location filename="API/Windows/WinThread.cpp" line="556"/>
         <source>Time critical</source>
         <translation>タイムクリティカル</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="538"/>
+        <location filename="API/Windows/WinThread.cpp" line="558"/>
         <source>Highest</source>
         <translation>最高</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="540"/>
+        <location filename="API/Windows/WinThread.cpp" line="560"/>
         <source>Above normal</source>
         <translation>通常以上</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="542"/>
-        <location filename="API/Windows/WinThread.cpp" line="811"/>
+        <location filename="API/Windows/WinThread.cpp" line="562"/>
+        <location filename="API/Windows/WinThread.cpp" line="833"/>
         <source>Normal</source>
         <translation>通常</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="544"/>
+        <location filename="API/Windows/WinThread.cpp" line="564"/>
         <source>Below normal</source>
         <translation>通常以下</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="546"/>
+        <location filename="API/Windows/WinThread.cpp" line="566"/>
         <source>Lowest</source>
         <translation>最低</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="549"/>
+        <location filename="API/Windows/WinThread.cpp" line="569"/>
         <source>Idle</source>
         <translation>アイドル</translation>
     </message>
@@ -9822,265 +9941,265 @@ If you save the recovery information using this program, the additional failure 
         <translation></translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="595"/>
+        <location filename="API/Windows/WinThread.cpp" line="617"/>
         <source>Failed to set Thread priority boost</source>
         <translation>スレッド優先度ブーストの設定に失敗しました</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="626"/>
+        <location filename="API/Windows/WinThread.cpp" line="648"/>
         <source>Failed to set Thread priority</source>
         <translation>スレッドの優先度を設定できませんでした</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="651"/>
+        <location filename="API/Windows/WinThread.cpp" line="673"/>
         <source>Failed to set Page priority</source>
         <translation>ページの優先度を設定できませんでした</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="676"/>
+        <location filename="API/Windows/WinThread.cpp" line="698"/>
         <source>Failed to set I/O priority</source>
         <translation>I/O優先度の設定に失敗しました</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="701"/>
+        <location filename="API/Windows/WinThread.cpp" line="723"/>
         <source>Failed to set CPU affinity</source>
         <translation>CPUアフィニティの設定に失敗しました</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="724"/>
+        <location filename="API/Windows/WinThread.cpp" line="746"/>
         <source>You are about to terminate one or more critical threads. This will shut down the operating system immediately.</source>
         <translation>1つ以上の重要なスレッドを終了しようとしています。これにより、オペレーティングシステムが直ちにシャットダウンされます。</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="740"/>
+        <location filename="API/Windows/WinThread.cpp" line="762"/>
         <source>Failed to terminate thread</source>
         <translation>スレッドを終了できませんでした</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="771"/>
+        <location filename="API/Windows/WinThread.cpp" line="793"/>
         <source>Failed to suspend thread</source>
         <translation>スレッドを一時停止できませんでした</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="796"/>
+        <location filename="API/Windows/WinThread.cpp" line="818"/>
         <source>Failed to resume thread</source>
         <translation>スレッドを再開できませんでした</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="803"/>
+        <location filename="API/Windows/WinThread.cpp" line="825"/>
         <source>%1:%2</source>
         <translation>%1 : %2</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="810"/>
+        <location filename="API/Windows/WinThread.cpp" line="832"/>
         <source>Main</source>
         <translation>メイン</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="811"/>
+        <location filename="API/Windows/WinThread.cpp" line="833"/>
         <source>GUI</source>
         <translation>GUI</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="841"/>
+        <location filename="API/Windows/WinThread.cpp" line="863"/>
         <source>If the process ends, the operating system will shut down immediately.</source>
         <translation>プロセスが終了すると、オペレーティング システムは直ちにシャットダウンします。</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="853"/>
+        <location filename="API/Windows/WinThread.cpp" line="875"/>
         <source>Unable to change the thread critical status.</source>
         <translation>スレッドの重大なステータスを変更できません。</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="875"/>
+        <location filename="API/Windows/WinThread.cpp" line="897"/>
         <source>There is no synchronous I/O to cancel.</source>
         <translation>キャンセルする同期 I/O はありません。</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="879"/>
+        <location filename="API/Windows/WinThread.cpp" line="901"/>
         <source>Unable to cancel synchronous I/O</source>
         <translation>同期I/Oをキャンセルできません</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1011"/>
+        <location filename="API/Windows/WinThread.cpp" line="1068"/>
         <source>Local TID</source>
         <translation>ローカル TID</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1013"/>
+        <location filename="API/Windows/WinThread.cpp" line="1070"/>
         <source>UUID initialized</source>
         <translation>UUID 初期化</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1015"/>
+        <location filename="API/Windows/WinThread.cpp" line="1072"/>
         <source>Inside thread detach</source>
         <translation>スレッド内デタッチ</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1019"/>
+        <location filename="API/Windows/WinThread.cpp" line="1076"/>
         <source>WOW Thread</source>
         <translation>WOW スレッド</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1021"/>
+        <location filename="API/Windows/WinThread.cpp" line="1078"/>
         <source>Thread Uninitializing</source>
         <translation>スレッドの初期化解除</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1023"/>
+        <location filename="API/Windows/WinThread.cpp" line="1080"/>
         <source>OLE1DDE disabled</source>
         <translation>OLE1DDE 無効</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1025"/>
+        <location filename="API/Windows/WinThread.cpp" line="1082"/>
         <source>Single threaded (STA)</source>
         <translation>シングル スレッド (STA)</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1027"/>
+        <location filename="API/Windows/WinThread.cpp" line="1084"/>
         <source>Multi threaded (MTA)</source>
         <translation>マルチ スレッド (MTA)</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1029"/>
+        <location filename="API/Windows/WinThread.cpp" line="1086"/>
         <source>Impersonating</source>
         <translation>偽装</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1031"/>
+        <location filename="API/Windows/WinThread.cpp" line="1088"/>
         <source>Eventlogger disabled</source>
         <translation>イベントロガー 無効</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1033"/>
+        <location filename="API/Windows/WinThread.cpp" line="1090"/>
         <source>Neutral threaded (NTA)</source>
         <translation>ニュートラル スレッド (NTA)</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1035"/>
+        <location filename="API/Windows/WinThread.cpp" line="1092"/>
         <source>Dispatch thread</source>
         <translation>ディスパッチ スレッド</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1037"/>
+        <location filename="API/Windows/WinThread.cpp" line="1094"/>
         <source>HOSTTHREAD</source>
         <translation>HOSTTHREAD</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1039"/>
+        <location filename="API/Windows/WinThread.cpp" line="1096"/>
         <source>ALLOWCOINIT</source>
         <translation>ALLOWCOINIT</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1041"/>
+        <location filename="API/Windows/WinThread.cpp" line="1098"/>
         <source>PENDINGUNINIT</source>
         <translation>PENDINGUNINIT</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1043"/>
+        <location filename="API/Windows/WinThread.cpp" line="1100"/>
         <source>FIRSTMTAINIT</source>
         <translation>FIRSTMTAINIT</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1045"/>
+        <location filename="API/Windows/WinThread.cpp" line="1102"/>
         <source>FIRSTNTAINIT</source>
         <translation>FIRSTNTAINIT</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1047"/>
+        <location filename="API/Windows/WinThread.cpp" line="1104"/>
         <source>APTIN INITIALIZING</source>
         <translation>APTIN INITIALIZING</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1049"/>
+        <location filename="API/Windows/WinThread.cpp" line="1106"/>
         <source>UIMSGS IN MODAL LOOP</source>
         <translation>UIMSGS IN MODAL LOOP</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1051"/>
+        <location filename="API/Windows/WinThread.cpp" line="1108"/>
         <source>Marshaling error object</source>
         <translation>Marshaling error object</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1053"/>
+        <location filename="API/Windows/WinThread.cpp" line="1110"/>
         <source>WinRT initialized</source>
         <translation>WinRT initialized</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1055"/>
+        <location filename="API/Windows/WinThread.cpp" line="1112"/>
         <source>ApplicationSTA</source>
         <translation>ApplicationSTA</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1057"/>
+        <location filename="API/Windows/WinThread.cpp" line="1114"/>
         <source>IN_SHUTDOWN_CALLBACKS</source>
         <translation>IN_SHUTDOWN_CALLBACKS</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1059"/>
+        <location filename="API/Windows/WinThread.cpp" line="1116"/>
         <source>POINTER_INPUT_BLOCKED</source>
         <translation>POINTER_INPUT_BLOCKED</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1061"/>
+        <location filename="API/Windows/WinThread.cpp" line="1118"/>
         <source>IN_ACTIVATION_FILTER</source>
         <translation>IN_ACTIVATION_FILTER</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1063"/>
+        <location filename="API/Windows/WinThread.cpp" line="1120"/>
         <source>ASTATOASTAEXEMPT_QUIRK</source>
         <translation>ASTATOASTAEXEMPT_QUIRK</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1065"/>
+        <location filename="API/Windows/WinThread.cpp" line="1122"/>
         <source>ASTATOASTAEXEMPT_PROXY</source>
         <translation>ASTATOASTAEXEMPT_PROXY</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1067"/>
+        <location filename="API/Windows/WinThread.cpp" line="1124"/>
         <source>ASTATOASTAEXEMPT_INDOUBT</source>
         <translation>ASTATOASTAEXEMPT_INDOUBT</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1069"/>
+        <location filename="API/Windows/WinThread.cpp" line="1126"/>
         <source>DETECTED_USER_INITIALIZED</source>
         <translation>DETECTED_USER_INITIALIZED</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1071"/>
+        <location filename="API/Windows/WinThread.cpp" line="1128"/>
         <source>BRIDGE_STA</source>
         <translation>BRIDGE_STA</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1073"/>
+        <location filename="API/Windows/WinThread.cpp" line="1130"/>
         <source>NA_INITIALIZING</source>
         <translation>NA_INITIALIZING</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1094"/>
+        <location filename="API/Windows/WinThread.cpp" line="1151"/>
         <source>%1 (0x%2)</source>
         <translation>%1 (0x%2)</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1096"/>
-        <location filename="API/Windows/WinThread.cpp" line="1117"/>
+        <location filename="API/Windows/WinThread.cpp" line="1153"/>
+        <location filename="API/Windows/WinThread.cpp" line="1174"/>
         <source>0x%1</source>
         <translation>0x%1</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1098"/>
+        <location filename="API/Windows/WinThread.cpp" line="1155"/>
         <source> (Arg0: 0x%1)</source>
         <translation> (Arg0 : 0x%1)</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1103"/>
+        <location filename="API/Windows/WinThread.cpp" line="1160"/>
         <source> - %1</source>
         <translation> - %1</translation>
     </message>
     <message>
-        <location filename="API/Windows/WinThread.cpp" line="1017"/>
+        <location filename="API/Windows/WinThread.cpp" line="1074"/>
         <source>Channel thread initialized</source>
-        <translation>Channel thread initialized</translation>
+        <translation>チャネルスレッド初期化済み</translation>
     </message>
 </context>
 <context>
@@ -10119,7 +10238,7 @@ If you save the recovery information using this program, the additional failure 
     <message>
         <location filename="API/Windows/WinToken.cpp" line="519"/>
         <source>Enabled (as a group)</source>
-        <translation>有効 （グループとして)</translation>
+        <translation>有効 (グループとして)</translation>
     </message>
     <message>
         <location filename="API/Windows/WinToken.cpp" line="526"/>
@@ -10131,13 +10250,13 @@ If you save the recovery information using this program, the additional failure 
         <location filename="API/Windows/WinToken.cpp" line="528"/>
         <location filename="API/Windows/WinToken.cpp" line="579"/>
         <source>Enabled (modified)</source>
-        <translation>有効 （変更済み）</translation>
+        <translation>有効 (変更済み)</translation>
     </message>
     <message>
         <location filename="API/Windows/WinToken.cpp" line="533"/>
         <location filename="API/Windows/WinToken.cpp" line="584"/>
         <source>Disabled (modified)</source>
-        <translation>無効 （変更済み）</translation>
+        <translation>無効 (変更済み)</translation>
     </message>
     <message>
         <location filename="API/Windows/WinToken.cpp" line="535"/>
@@ -10726,6 +10845,11 @@ If you save the recovery information using this program, the additional failure 
         <location filename="Forms/DriverWindow.ui" line="182"/>
         <source>(Requires Restart)</source>
         <translation>(要再起動)</translation>
+    </message>
+    <message>
+        <location filename="Forms/DriverWindow.ui" line="189"/>
+        <source>Get latest DynData</source>
+        <translation>最新の DynData を取得</translation>
     </message>
     <message>
         <location filename="Forms/DriverWindow.ui" line="165"/>
