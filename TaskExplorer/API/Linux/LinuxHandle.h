@@ -58,7 +58,7 @@ public:
 protected:
 	EHandleType				m_Type;
 	quint64					m_Inode;
-	quint32					m_Flags;	// O_RDONLY/O_WRONLY/... from fdinfo
+	quint32					m_Flags;	// fdinfo's open flags as CHandleInfo::EOpenFlag values
 };
 
 typedef QSharedPointer<CLinuxHandle> CLinuxHandlePtr;
