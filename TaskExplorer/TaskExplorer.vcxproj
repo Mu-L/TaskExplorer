@@ -445,7 +445,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="GUI\AffinityDialog.cpp" />
-    <ClCompile Include="GUI\PlatformAbout.cpp" />
     <ClCompile Include="GUI\DynDataUpdater.cpp" />
     <ClCompile Include="GUI\DriverWindow.cpp" />
     <ClCompile Include="GUI\Filters\ProcessFilterModel.cpp" />
