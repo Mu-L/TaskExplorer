@@ -344,6 +344,9 @@
     <ClCompile Include="GUI\UnlockDialog.cpp">
       <Filter>TaskExplorer</Filter>
     </ClCompile>
+    <ClCompile Include="..\MiniDump\MiniDumpFilter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -375,6 +378,9 @@
     </ClInclude>
     <ClInclude Include="GUI\TaskStrings.h">
       <Filter>TaskExplorer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MiniDump\MiniDumpFilter.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

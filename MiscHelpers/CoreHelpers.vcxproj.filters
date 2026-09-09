@@ -111,6 +111,15 @@
     <ClCompile Include="Common\XVariant.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="Common\Status.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\CredentialStore.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\PasswordHash.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -123,9 +132,6 @@
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="Common\DebugHelpers.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\FlexError.h">
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="Common\Xml.h">
@@ -193,6 +199,12 @@
     </ClInclude>
     <ClInclude Include="Common\XVariant.h">
       <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Status.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\CredentialStore.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

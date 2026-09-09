@@ -200,9 +200,6 @@
     <ClCompile Include="API\Windows\WinDriver.cpp">
       <Filter>API\Windows</Filter>
     </ClCompile>
-    <ClCompile Include="SVC\CredentialStore.cpp">
-      <Filter>SVC</Filter>
-    </ClCompile>
     <ClCompile Include="SVC\ServerSetup.cpp">
       <Filter>SVC</Filter>
     </ClCompile>
@@ -437,6 +434,21 @@
     <ClCompile Include="API\Windows\WinHelper.cpp">
       <Filter>API\Windows</Filter>
     </ClCompile>
+    <ClCompile Include="API\GdiInfo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="API\RpcInfo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="API\PoolInfo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="API\RemoteApi.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="API\TokenInfo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="API\Windows\ProcessHacker.h">
@@ -658,6 +670,9 @@
     <ClInclude Include="API\Windows\ProcessHacker\clr\xclrdata.h">
       <Filter>API\Windows\ProcessHacker\clr</Filter>
     </ClInclude>
+    <ClInclude Include="API\StatusEx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="API\Cluster.h">
@@ -729,9 +744,6 @@
     <QtMoc Include="API\Windows\WinDriver.h">
       <Filter>API\Windows</Filter>
     </QtMoc>
-    <ClInclude Include="SVC\CredentialStore.h">
-      <Filter>SVC</Filter>
-    </ClInclude>
     <ClInclude Include="SVC\ServerSetup.h">
       <Filter>SVC</Filter>
     </ClInclude>
@@ -843,6 +855,21 @@
     <QtMoc Include="API\Windows\WinHeap.h">
       <Filter>API\Windows</Filter>
     </QtMoc>
+    <QtMoc Include="API\RemoteApi.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="API\RpcInfo.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="API\PoolInfo.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="API\TokenInfo.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="API\JobInfo.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resources\exe16.png">
@@ -868,11 +895,7 @@
     </Image>
   </ItemGroup>
   <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="Resources\TaskExplorer.rc">
-      <Filter>Resource Files</Filter>
-    </ResourceCompile>
+    <ResourceCompile Include="TaskCore.rc" />
   </ItemGroup>
   <ItemGroup>
     <None Include="API\Windows\WinHelpers\FuncHook\Detours\Makefile">
@@ -950,93 +973,6 @@
     <ClInclude Include="API\ProcessSecurity.h">
       <Filter>API</Filter>
     </ClInclude>
-    <ClCompile Include="API\Remote\RemoteProcess.cpp">
-      <Filter>API\Remote</Filter>
-    </ClCompile>
-    <ClCompile Include="API\Remote\RemoteSystem.cpp">
-      <Filter>API\Remote</Filter>
-    </ClCompile>
-    <QtMoc Include="API\Remote\RemoteProcess.h">
-      <Filter>API\Remote</Filter>
-    </QtMoc>
-    <QtMoc Include="API\Remote\RemoteSystem.h">
-      <Filter>API\Remote</Filter>
-    </QtMoc>
-    <ClCompile Include="API\Remote\RemoteThread.cpp">
-      <Filter>API\Remote</Filter>
-    </ClCompile>
-    <QtMoc Include="API\Remote\RemoteThread.h">
-      <Filter>API\Remote</Filter>
-    </QtMoc>
-    <ClCompile Include="API\Remote\RemoteAction.cpp">
-      <Filter>API\Remote</Filter>
-    </ClCompile>
-    <ClCompile Include="API\Remote\RemoteAssemblyEnum.cpp">
-      <Filter>API\Remote</Filter>
-    </ClCompile>
-    <ClCompile Include="API\Remote\RemoteJob.cpp">
-      <Filter>API\Remote</Filter>
-    </ClCompile>
-    <ClCompile Include="API\Remote\RemoteToken.cpp">
-      <Filter>API\Remote</Filter>
-    </ClCompile>
-    <ClCompile Include="API\Remote\RemoteModule.cpp">
-      <Filter>API\Remote</Filter>
-    </ClCompile>
-    <QtMoc Include="API\Remote\RemoteAssemblyEnum.h">
-      <Filter>API\Remote</Filter>
-    </QtMoc>
-    <QtMoc Include="API\Remote\RemoteJob.h">
-      <Filter>API\Remote</Filter>
-    </QtMoc>
-    <QtMoc Include="API\Remote\RemoteToken.h">
-      <Filter>API\Remote</Filter>
-    </QtMoc>
-    <QtMoc Include="API\Remote\RemoteModule.h">
-      <Filter>API\Remote</Filter>
-    </QtMoc>
-    <ClCompile Include="API\Remote\RemoteHandle.cpp">
-      <Filter>API\Remote</Filter>
-    </ClCompile>
-    <QtMoc Include="API\Remote\RemoteHandle.h">
-      <Filter>API\Remote</Filter>
-    </QtMoc>
-    <ClCompile Include="API\Remote\RemoteSocket.cpp">
-      <Filter>API\Remote</Filter>
-    </ClCompile>
-    <QtMoc Include="API\Remote\RemoteSocket.h">
-      <Filter>API\Remote</Filter>
-    </QtMoc>
-    <ClCompile Include="API\Remote\RemoteHeap.cpp">
-      <Filter>API\Remote</Filter>
-    </ClCompile>
-    <QtMoc Include="API\Remote\RemoteHeap.h">
-      <Filter>API\Remote</Filter>
-    </QtMoc>
-    <ClCompile Include="API\Remote\RemoteMemory.cpp">
-      <Filter>API\Remote</Filter>
-    </ClCompile>
-    <QtMoc Include="API\Remote\RemoteMemory.h">
-      <Filter>API\Remote</Filter>
-    </QtMoc>
-    <ClCompile Include="API\Remote\RemoteService.cpp">
-      <Filter>API\Remote</Filter>
-    </ClCompile>
-    <QtMoc Include="API\Remote\RemoteService.h">
-      <Filter>API\Remote</Filter>
-    </QtMoc>
-    <ClCompile Include="API\Remote\RemoteWnd.cpp">
-      <Filter>API\Remote</Filter>
-    </ClCompile>
-    <QtMoc Include="API\Remote\RemoteWnd.h">
-      <Filter>API\Remote</Filter>
-    </QtMoc>
-    <ClCompile Include="API\Remote\RemoteDriver.cpp">
-      <Filter>API\Remote</Filter>
-    </ClCompile>
-    <QtMoc Include="API\Remote\RemoteDriver.h">
-      <Filter>API\Remote</Filter>
-    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="Resources\TaskCore.qrc">

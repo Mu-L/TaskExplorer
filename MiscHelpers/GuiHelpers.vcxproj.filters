@@ -87,6 +87,12 @@
     <ClCompile Include="Common\CustomTheme.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="Common\IncrementalPlot.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\TabPanel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MiscHelpers.h">
@@ -99,9 +105,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Common\CommonGui.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\ExitDialog.h">
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="Common\FlowLayout.h">
@@ -124,6 +127,15 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <QtMoc Include="Common\ExitDialog.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="Common\IncrementalPlot.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="Common\TabPanel.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="Common\CheckableMessageBox.h">

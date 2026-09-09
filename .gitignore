@@ -10,3 +10,12 @@ CMakeUserPresets.json
 /ProcessHacker/kphlib/obj
 /ProcessHacker/KSystemInformer/ksidll/obj
 /ProcessHacker/KSystemInformer/obj
+/MiscHelpers/x64
+/qextwidgets/GeneratedFiles
+/qextwidgets/x64
+/qhexedit/src/GeneratedFiles
+/qtservice/qtservice/qtservice/x64
+/qtsingleapp/qtsingleapp/qtsingleapp/x64
+/qwt/qwt/x64
+/TaskExplorer/GeneratedFiles
+/TaskExplorer/x64
