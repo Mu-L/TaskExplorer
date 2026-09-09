@@ -1594,8 +1594,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 //
 // Test command lines:
 // 
-// sign C:\Projects\TaskExplorer\Installer\Output\TaskExplorer-v1.7.0.exe /version:1.7.0
-// commit /path:C:\Projects\TaskExplorer\Installer\Build /version:1.7.0
+// sign C:\Projects\TaskExplorer\Installer\Output\TaskExplorer-v1.8.0.exe /version:1.8.0
+// commit /path:C:\Projects\TaskExplorer\Installer\Build /version:1.7.1
 // update /path:C:\Projects\TaskExplorer\Installer\Test /channel:stable /temp:C:\Projects\TaskExplorer\Installer\Temp
 //
 //

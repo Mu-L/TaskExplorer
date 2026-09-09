@@ -136,13 +136,6 @@ QString CLinuxThread::GetStartAddressString() const
 	QReadLocker Locker(&m_Mutex);
 	return m_StartAddressString;
 }
-
-QString CLinuxThread::GetStateString() const
-{
-	QReadLocker Locker(&m_Mutex);
-	return LinuxStateToString(m_State);
-}
-
 bool CLinuxThread::HasPriorityBoost() const
 {
 	return false;
@@ -150,13 +143,7 @@ bool CLinuxThread::HasPriorityBoost() const
 
 STATUS CLinuxThread::SetPriorityBoost(bool Value)
 {
-	return ERR(tr("Priority boost is not supported on Linux."));
-}
-
-QString CLinuxThread::GetPriorityString() const
-{
-	QReadLocker Locker(&m_Mutex);
-	return LinuxNiceToPriorityString(m_Nice);
+	return ERR(TE_PriorityBoostUnsupported);
 }
 
 STATUS CLinuxThread::SetPriority(qint32 Value)
@@ -168,7 +155,7 @@ STATUS CLinuxThread::SetPriority(qint32 Value)
 	//
 	errno = 0;
 	if (setpriority(PRIO_PROCESS, (id_t)GetThreadId(), Value) != 0 && errno != 0)
-		return ErrnoToStatus(tr("Failed to set thread priority"));
+		return ErrnoToStatus(TE_SetThreadPriorityFailed);
 
 	QWriteLocker Locker(&m_Mutex);
 	m_Nice = Value;
@@ -176,34 +163,15 @@ STATUS CLinuxThread::SetPriority(qint32 Value)
 	return OK;
 }
 
-QString CLinuxThread::GetBasePriorityString() const
-{
-	QReadLocker Locker(&m_Mutex);
-	return LinuxSchedPolicyToString(m_SchedPolicy);
-}
-
 STATUS CLinuxThread::SetBasePriority(qint32 Value)
 {
 	// See CLinuxProcess::SetBasePriority - the shared GUI never calls this.
-	return ERR(tr("Setting the scheduling policy is not supported; use chrt(1)."));
-}
-
-QString CLinuxThread::GetPagePriorityString() const
-{
-	return QString();
+	return ERR(TE_SettingSchedulingPolicy);
 }
 
 STATUS CLinuxThread::SetPagePriority(qint32 Value)
 {
-	return ERR(tr("Page priority is not supported on Linux."));
-}
-
-QString CLinuxThread::GetIOPriorityString() const
-{
-	// Sampled in UpdateDynamicData so that repainting the thread list does not
-	// issue a syscall per visible row.
-	QReadLocker Locker(&m_Mutex);
-	return LinuxIoPrioToString(m_IoPrio);
+	return ERR(TE_PagePriorityUnsupported);
 }
 
 STATUS CLinuxThread::SetIOPriority(qint32 Value)
@@ -214,7 +182,7 @@ STATUS CLinuxThread::SetIOPriority(qint32 Value)
 	// thread group's.
 	//
 	if (LinuxSetIoPrio(GetThreadId(), Value) != 0)
-		return ErrnoToStatus(tr("Failed to set the I/O priority"));
+		return ErrnoToStatus(TE_SetIoPriorityFailed);
 
 	QWriteLocker Locker(&m_Mutex);
 	m_IoPrio = Value;
@@ -225,12 +193,12 @@ STATUS CLinuxThread::SetIOPriority(qint32 Value)
 STATUS CLinuxThread::SetAffinityMask(quint64 Value)
 {
 	if (Value == 0)
-		return ERR(tr("The affinity mask must select at least one CPU."));
+		return ERR(TE_AffinityMaskEmpty);
 
 	// sched_setaffinity is per thread; passing a tid is the documented way to
 	// pin one thread without touching its siblings.
 	if (!LinuxSetAffinity(GetThreadId(), Value))
-		return ErrnoToStatus(tr("Failed to set the affinity mask"));
+		return ErrnoToStatus(TE_SetAffinityFailed);
 
 	QWriteLocker Locker(&m_Mutex);
 	m_AffinityMask = Value;
@@ -241,7 +209,7 @@ STATUS CLinuxThread::Terminate(bool bForce)
 {
 	// Linux offers no safe way to kill a single thread of another process;
 	// tgkill with SIGKILL takes the whole thread group down.
-	return ERR(tr("Terminating an individual thread is not supported on Linux."));
+	return ERR(TE_TerminatingIndividualThread);
 }
 
 bool CLinuxThread::IsSuspended() const
@@ -252,24 +220,23 @@ bool CLinuxThread::IsSuspended() const
 
 STATUS CLinuxThread::Suspend()
 {
-	return ERR(tr("Suspending an individual thread is not supported on Linux."));
+	return ERR(TE_SuspendingIndividualThread);
 }
 
 STATUS CLinuxThread::Resume()
 {
-	return ERR(tr("Resuming an individual thread is not supported on Linux."));
+	return ERR(TE_ResumingIndividualThread);
 }
 
 //
-// Builds a one-frame trace whose symbol is an explanation. The stack view shows
-// the symbol column, so this puts the reason in front of the user instead of
-// leaving an empty list they cannot interpret.
+// An empty trace carrying the reason it is empty. The view puts that in front
+// of the user instead of leaving a blank list they cannot interpret; what it
+// says is decided there, not here.
 //
-static CStackTracePtr MakeMessageTrace(quint64 Pid, quint64 Tid, const QString& Message)
+static CStackTracePtr MakeFailedTrace(quint64 Pid, quint64 Tid, const STATUS& Failure)
 {
 	CStackTracePtr Trace(new CStackTrace(Pid, Tid));
-	quint64 Params[4] = { 0, 0, 0, 0 };
-	Trace->AddFrame(Message, 0, 0, 0, 0, 0, Params, 0);
+	Trace->SetFailure(Failure);
 	return Trace;
 }
 
@@ -318,8 +285,7 @@ void CLinuxThread::RequestStackTrace()
 	if (Socket.isEmpty())
 	{
 		m_StackTraceJob = 0;
-		emit StackTraced(MakeMessageTrace(Pid, Tid,
-			tr("The TaskHelper process could not be started, so stacks cannot be unwound.")));
+		emit StackTraced(MakeFailedTrace(Pid, Tid, ERR(TE_HelperNotStarted)));
 		return;
 	}
 
@@ -338,8 +304,7 @@ void CLinuxThread::RequestStackTrace()
 
 	if (Reply.isEmpty())
 	{
-		emit StackTraced(MakeMessageTrace(Pid, Tid,
-			tr("The TaskHelper process did not answer.")));
+		emit StackTraced(MakeFailedTrace(Pid, Tid, ERR(TE_HelperNoAnswer)));
 		return;
 	}
 
@@ -353,18 +318,16 @@ void CLinuxThread::RequestStackTrace()
 		// whether we are elevated.
 		//
 		const QString Error = Reply["Error"].toString();
-		QString Message;
-		if (Error == "ptrace" || Error.contains("not permitted", Qt::CaseInsensitive))
-		{
-			Message = tr("Cannot read this thread's stack: ptrace access was denied. "
-			             "Restart TaskExplorer elevated, or lower kernel.yama.ptrace_scope.");
-		}
-		else if (!Error.isEmpty())
-			Message = tr("Stack trace failed: %1").arg(Error);
-		else
-			Message = tr("No stack frames were returned.");
 
-		emit StackTraced(MakeMessageTrace(Pid, Tid, Message));
+		STATUS Failure;
+		if (Error == "ptrace" || Error.contains("not permitted", Qt::CaseInsensitive))
+			Failure = ERR(TE_StackPtraceDenied);
+		else if (!Error.isEmpty())
+			Failure = ERR(TE_StackTraceFailed, QVariantList() << Error);
+		else
+			Failure = ERR(TE_StackNoFrames);
+
+		emit StackTraced(MakeFailedTrace(Pid, Tid, Failure));
 		return;
 	}
 
@@ -406,21 +369,26 @@ void CLinuxThread::RequestStackTrace()
 		// Source location where the debug information provided one, otherwise the
 		// module and the offset into it.
 		//
-		QString FileInfo;
+		CStackTrace::SStackFrame StackFrame;
+		StackFrame.Symbol = Symbol;
+		StackFrame.PcAddress = Address;
+
 		if (Frame.contains("File"))
 		{
-			FileInfo = Frame["File"].toString();
-			const int Line = Frame["Line"].toInt();
-			if (Line)
-				FileInfo += ":" + QString::number(Line);
+			StackFrame.FileName = Frame["File"].toString();
+			StackFrame.LineNumber = (quint32)Frame["Line"].toInt();
 		}
 		else if (!Module.isEmpty())
 		{
-			FileInfo = Offset ? QString("%1+0x%2").arg(Module).arg(Offset, 0, 16) : Module;
+			//
+			// With no source to point at, the module and the offset into it are
+			// the best locator there is; both are values, so they travel as the
+			// file name and are joined for reading.
+			//
+			StackFrame.FileName = Offset ? QString("%1+0x%2").arg(Module).arg(Offset, 0, 16) : Module;
 		}
 
-		quint64 Params[4] = { 0, 0, 0, 0 };
-		Trace->AddFrame(Symbol, Address, 0, 0, 0, 0, Params, 0, FileInfo);
+		Trace->AddFrame(StackFrame);
 	}
 
 	emit StackTraced(Trace);

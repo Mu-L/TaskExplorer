@@ -12,10 +12,14 @@
 #include "stdafx.h"
 #include "WaitChainDialog.h"
 #include "../../MiscHelpers/Common/Settings.h"
-#include "../API/Windows/ProcessHacker.h"
-#include "../API/Windows/WindowsAPI.h"
 
+//
+// Windows SDK only: the wait chain API lives in advapi32, which both the GUI
+// and the core may link. phlib is not involved.
+//
+#include <windows.h>
 #include <wct.h>
+#include "TaskExplorer.h"
 // Wait Chain Traversal Documentation:
 // http://msdn.microsoft.com/en-us/library/windows/desktop/ms681622.aspx
 
@@ -26,7 +30,6 @@ struct SWaitChainTraversal
 	SWaitChainTraversal()
 	{
 		ProcessId = NULL;
-		QueryHandle = NULL;
 		ThreadId = NULL;
 
 		ThreadNodes = NULL;
@@ -34,7 +37,6 @@ struct SWaitChainTraversal
 	}
 
 	HANDLE ProcessId;
-	HANDLE QueryHandle;
 	HANDLE ThreadId;
 
     HWCT WctSessionHandle;
@@ -68,10 +70,10 @@ BOOLEAN WaitChainRegisterCallbacks(_Inout_ SWaitChainTraversal* Context)
     if (!(Context->Ole32ModuleHandle = LoadLibrary(L"ole32.dll")))
         return FALSE;
 
-    if (!(coGetCallStateCallback = (PCOGETCALLSTATE)PhGetProcedureAddress(Context->Ole32ModuleHandle, "CoGetCallState", 0)))
+    if (!(coGetCallStateCallback = (PCOGETCALLSTATE)GetProcAddress(Context->Ole32ModuleHandle, "CoGetCallState")))
         return FALSE;
 
-    if (!(coGetActivationStateCallback = (PCOGETACTIVATIONSTATE)PhGetProcedureAddress(Context->Ole32ModuleHandle, "CoGetActivationState", 0)))
+    if (!(coGetActivationStateCallback = (PCOGETACTIVATIONSTATE)GetProcAddress(Context->Ole32ModuleHandle, "CoGetActivationState")))
         return FALSE;
 
     RegisterWaitChainCOMCallback(coGetCallStateCallback, coGetActivationStateCallback);
@@ -96,14 +98,15 @@ CWaitChainDialog::CWaitChainDialog(const CProcessPtr& pProcess, QWidget *parent)
 {
 	InitGUI();
 
+	m_pProcess = pProcess;
+
 	m = new SWaitChainTraversal();
 	m->ProcessId = (HANDLE)pProcess->GetProcessId();
-	m->QueryHandle = ((CWinProcess*)pProcess.data())->GetQueryHandle();
 
 	STATUS status = InitWCT();
 	if (status.IsError())
 	{
-		QMessageBox::critical(this, tr("Wait Chain Traversal"), status.GetText());
+		QMessageBox::critical(this, tr("Wait Chain Traversal"), CTaskExplorer::FormatError(status));
 		m_TimerId = -1;
 		m_pWorker = NULL;
 	}
@@ -123,15 +126,16 @@ CWaitChainDialog::CWaitChainDialog(const CThreadPtr& pThread, QWidget* parent)
 {
 	InitGUI();
 
+	m_pProcess = pThread->GetProcess().staticCast<CProcessInfo>();
+
 	m = new SWaitChainTraversal();
 	m->ProcessId = (HANDLE)pThread->GetProcessId();
 	m->ThreadId = (HANDLE)pThread->GetThreadId();
-	m->QueryHandle = ((CWinProcess*)pThread->GetProcess().data())->GetQueryHandle();
 
 	STATUS status = InitWCT();
 	if (status.IsError())
 	{
-		QMessageBox::critical(this, tr("Wait Chain Traversal"), status.GetText());
+		QMessageBox::critical(this, tr("Wait Chain Traversal"), CTaskExplorer::FormatError(status));
 		m_TimerId = -1;
 		m_pWorker = NULL;
 	}
@@ -227,11 +231,11 @@ void CWaitChainDialog::timerEvent(QTimerEvent *e)
 STATUS CWaitChainDialog::InitWCT()
 {
     if (!WaitChainRegisterCallbacks(m))
-        return ERR(tr("Failed to WaitChainRegisterCallbacks"), NTSTATUS_FROM_WIN32(GetLastError()));
+        return ERR(TE_Message, QVariantList() << tr("Failed to register wait chain callbacks."), GetLastError());
 
     // Synchronous WCT session
     if (!(m->WctSessionHandle = OpenThreadWaitChainSession(0, NULL)))
-        return ERR(tr("Failed to OpenThreadWaitChainSession"), NTSTATUS_FROM_WIN32(GetLastError()));
+        return ERR(TE_Message, QVariantList() << tr("Failed to open a wait chain session."), GetLastError());
 
     return OK;
 }
@@ -331,21 +335,22 @@ void CWaitChainDialog::UpdateThread(ulong nodeInfoLength, struct _WAITCHAIN_NODE
 			// -- ContextSwitches --
 			//wctNode->LockObject.ObjectName[6]
 
-			if (PhIsDigitCharacter(wctNode->LockObject.ObjectName[0]))
+			if (QChar(wctNode->LockObject.ObjectName[0]).isDigit())
 			{
 				pNode->setText(eName, QString::fromWCharArray(wctNode->LockObject.ObjectName));
 			}
 			//else
 			//{
-			//    rootNode->ObjectNameString = PhFormatString(L"[%lu, %lu]",
-			//        wctNode.LockObject.ObjectName[0],
-			//        wctNode.LockObject.ObjectName[2]
-			//        );
+			//    // the name is a [pid, tid] pair rather than text
 			//}
 		}
 
 		if (wctNode->LockObject.Timeout.QuadPart > 0)
-			pNode->setText(eTimeout, QDateTime::fromSecsSinceEpoch(FILETIME2time(wctNode->LockObject.Timeout.QuadPart)).toString("dd.MM.yyyy hh:mm:ss"));
+		{
+			// FILETIME is 100ns ticks since 1601; shift it onto the Unix epoch
+			const qint64 Timeout = (qint64)(wctNode->LockObject.Timeout.QuadPart / 10000000ULL) - 11644473600LL;
+			pNode->setText(eTimeout, QDateTime::fromSecsSinceEpoch(Timeout).toString("dd.MM.yyyy hh:mm:ss"));
+		}
     }
 
 	CleanUpChildNodes();
@@ -363,28 +368,23 @@ bool CWaitChainDialog::Refresh()
 		ThreadIds.append((quint64)m->ThreadId);
 		//UpdateThread(m->ThreadId, OldNodes);
 	}
-	else
-    {
-		HANDLE threadHandle;
-        NTSTATUS status = NtGetNextThread(m->QueryHandle, NULL, THREAD_QUERY_LIMITED_INFORMATION, 0, 0, &threadHandle);
+	else if (!m_pProcess.isNull())
+	{
+		//
+		// Ask the process for its threads instead of walking them natively.
+		//
+		// The list is only refreshed while something is watching it, so keep it
+		// warm the same way CThreadsView does; on the first pass it may still be
+		// empty and the next tick a second later fills it in.
+		//
+		QTimer::singleShot(0, m_pProcess.data(), SLOT(UpdateThreads()));
 
-        while (NT_SUCCESS(status))
-        {
-			THREAD_BASIC_INFORMATION basicInfo;
-			if (NT_SUCCESS(PhGetThreadBasicInformation(threadHandle, &basicInfo)))
-			{
-				ThreadIds.append((quint64)basicInfo.ClientId.UniqueThread);
-				//UpdateThread(basicInfo.ClientId.UniqueThread, OldNodes);
-			}
+		foreach(const CThreadPtr& pThread, m_pProcess->GetThreadList())
+			ThreadIds.append(pThread->GetThreadId());
 
-			HANDLE newThreadHandle;
-            status = NtGetNextThread(m->QueryHandle, threadHandle, THREAD_QUERY_LIMITED_INFORMATION, 0, 0, &newThreadHandle);
-
-            NtClose(threadHandle);
-
-            threadHandle = newThreadHandle;
-        }
-    }
+		if (ThreadIds.isEmpty())
+			return false;
+	}
     
 	m->ThreadNodeCount = ThreadIds.size();
 	m->ThreadNodes = new SWaitChainTraversal::SThreadNodes[m->ThreadNodeCount];

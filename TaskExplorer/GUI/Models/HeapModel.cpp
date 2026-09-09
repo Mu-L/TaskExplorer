@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "../TaskStrings.h"
 #include "../TaskExplorer.h"
 #include "HeapModel.h"
 #include "../../../MiscHelpers/Common/Common.h"
@@ -83,9 +84,9 @@ void CHeapModel::Sync(QMap<quint64, CHeapPtr> List)
 					case eCommited:
 									ColValue.Formatted = FormatSize(Value.toULongLong()); break;	
 					case eEntries:	ColValue.Formatted = FormatNumber(Value.toULongLong()); break;
-					case eFlags:	ColValue.Formatted = pHeap->GetFlagsString(); break;
-					case eClass:	ColValue.Formatted = pHeap->GetClassString(); break;
-					case eType:		ColValue.Formatted = pHeap->GetTypeString(); break;
+					case eFlags:	ColValue.Formatted = ::GetHeapFlagsString(pHeap); break;
+					case eClass:	ColValue.Formatted = ::GetHeapClassString(pHeap); break;
+					case eType:		ColValue.Formatted = ::GetHeapTypeString(pHeap); break;
 				}
 			}
 

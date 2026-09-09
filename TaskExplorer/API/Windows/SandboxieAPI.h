@@ -1,4 +1,5 @@
 #pragma once
+#include "../../taskcore_global.h"
 
 #include <QObject>
 
@@ -6,7 +7,7 @@
 #define CONF_GET_NO_EXPAND          0x20000000L
 #define CONF_GET_NO_TEMPLS          0x10000000L
 
-class CSandboxieAPI : public QObject
+class TASKCORE_EXPORT CSandboxieAPI : public QObject
 {
 	Q_OBJECT
 
@@ -41,8 +42,62 @@ public:
 
 	quint32 QueryProcessInfoEx(quint64 ProcessId, quint32* pil = NULL, quint32* pit = NULL);
 
-	static QString ImageTypeToStr(quint32 type);
-	static QStringList ImageFlagsToStr(quint32 flags);
+	//
+	// How Sandboxie classified the image a boxed process was started from, and
+	// what it decided to do about it. Both are the service's own numbering.
+	//
+	enum EImageType
+	{
+		eImageUnspecified = 0,
+		eImageSandboxieRpcSs,
+		eImageSandboxieDcomLaunch,
+		eImageSandboxieCrypto,
+		eImageSandboxieWuAu,
+		eImageSandboxieBits,
+		eImageSandboxieSbieSvc,
+		eImageMsiInstaller,
+		eImageTrustedInstaller,
+		eImageWuaucLt,
+		eImageShellExplorer,
+		eImageInternetExplorer,
+		eImageMozillaFirefox,
+		eImageWindowsMediaPlayer,
+		eImageNullsoftWinamp,
+		eImagePandoraKmPlayer,
+		eImageWindowsLiveMail,
+		eImageServiceModelReg,
+		eImageRunDll32,
+		eImageDllHost,
+		eImageDllHostWinInetCache,
+		eImageWispTis,
+		eImageGoogleChrome,
+		eImageGoogleUpdate,
+		eImageAcrobatReader,
+		eImageOfficeOutlook,
+		eImageOfficeExcel,
+		eImageFlashPlayerSandbox,
+		eImagePluginContainer,
+		eImageOtherWebBrowser,
+		eImageOtherMailClient,
+	};
+
+	enum EImageFlag
+	{
+		eSbieValidProcess		= 0x00000001,
+		eSbieForcedProcess		= 0x00000002,
+		eSbieProcessIsStartExe	= 0x00000008,
+		eSbieParentWasStartExe	= 0x00000010,
+		eSbieImageFromSbieDir	= 0x00000020,
+		eSbieImageFromSandbox	= 0x00000040,
+		eSbieDropRights			= 0x00000080,
+		eSbieRightsDropped		= 0x00000100,
+		eSbieOpenAllWinClass	= 0x00002000,
+		eSbieProcessInPcaJob	= 0x08000000,
+		eSbieCreateConsoleHide	= 0x10000000,
+		eSbieCreateConsoleShow	= 0x20000000,
+		eSbieProtectedProcess	= 0x40000000,
+		eSbieHostInjectProcess	= 0x80000000,
+	};
 
 protected:
 	/*struct SBoxedProcess

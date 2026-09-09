@@ -69,6 +69,70 @@ public:
 
 	virtual bool RootAvaiable();
 
+	virtual EOsType GetOsType() const					{ return eOsWindows; }
+	virtual quint64 GetCpuTimeDivider() const;   // CPU_TIME_DIVIDER, defined below the class
+	virtual void GetSymbolFromAddress(quint64 ProcessId, quint64 Address, QObject* pReceiver, const char* pSlot);
+
+	virtual STATUS PowerAction(EPowerAction Action, bool bForce, int SoftForce);
+	virtual STATUS MemoryCommand(EMemoryCommand Command);
+	virtual QList<SPrincipal> EnumLsaAccounts() const;
+	virtual QList<SPrincipal> EnumLogonSessions() const;
+	virtual QList<SPrincipal> EnumSamUsers() const;
+	virtual QList<SPrincipal> EnumSamGroups() const;
+	virtual QList<SCredential> EnumCredentials() const;
+	virtual QList<SPrivilege> EnumPrivileges() const;
+	virtual CSecurityEditablePtr GetSecurityObject(ESecurityObject Type, const QString& Name,
+								const QByteArray& Sid = QByteArray(), quint32 RelativeId = 0) const;
+
+	virtual STATUS UserSessionAction(quint32 SessionId, EUserAction Action, const QString& Password = QString());
+	virtual bool IsSystemMonitorOn() const;
+	virtual STATUS SetSystemMonitor(bool bEnable);
+	virtual STATUS RunProgram(const SRunOptions& Options);
+	virtual QStringList GetRunHistory() const;
+	virtual SRunAsChoices GetRunAsChoices() const;
+	virtual bool IsServiceAccount(const QString& UserName) const;
+	virtual STATUS RunProgramAs(const SRunAsOptions& Options);
+	virtual STATUS ShowRunDialog(ERunDialogMode Mode);
+	virtual STATUS RestartElevated();
+	virtual QStringList EnumRunningObjects() const;
+
+	virtual QString LookupSidByName(const QString& Name) const;
+	virtual QString LookupNameBySid(const QString& Sid) const;
+
+
+	virtual CServiceInfo::SLabeledValues GetNewServiceTypes() const;
+	virtual CServiceInfo::SLabeledValues GetNewServiceStartTypes() const;
+	virtual CServiceInfo::SLabeledValues GetNewServiceErrorControlTypes() const;
+
+	virtual void	SetMainWindow(quint64 Wnd);
+	virtual STATUS CreateNewService(const QString& Name, const QString& DisplayName, const QString& BinaryPath,
+									quint32 Type, quint32 StartType, quint32 ErrorControl);
+	virtual bool HandleNativeNotify(void* pHeader, qintptr* pResult);
+	virtual void DumpObjectCounts() const;
+
+	virtual EArchitecture GetArchitecture() const;
+	virtual QString GetStatusMessage(quint32 Status) const;
+	virtual SKernelDriver GetKernelDriver() const;
+	virtual STATUS LoadDynData(const QString& DriverPath);
+
+	virtual QList<SNtObject> EnumObjectDirectory(const QString& Path) const;
+
+	virtual QList<SAtom> GetAtomTable() const;
+	virtual STATUS DeleteAtom(quint32 AtomId);
+
+	virtual SMemoryList GetMemoryList() const;
+
+
+	virtual QList<SHandleType> GetHandleTypes() const;
+	virtual int GetFileHandleTypeIndex() const;
+	virtual int GetEtwHandleTypeIndex() const;
+	virtual void CancelSymbolJob(quint64 JobId);
+	virtual void GetAddressFromSymbol(quint64 ProcessId, const QString& Symbol, QObject* pReceiver, const char* pSlot);
+	virtual quint64 GetKernelProcessId() const;
+	virtual int    GetDebugMonitor() const;
+	virtual STATUS SetDebugMonitor(int Modes);
+	virtual bool HasCapability(ECapability Capability) const;
+
 	virtual CProcessPtr GetProcessByID(quint64 ProcessId, bool bAddIfNew = false);
 
 	virtual bool UpdateAll();
@@ -270,3 +334,41 @@ time_t FILETIME2time(quint64 fileTime);
 QString GetPathFromCmd(QString commandLine, quint32 processID, QString imageName/*, DateTime timeStamp*/, quint32 parentID = 0);
 
 QString expandEnvStrings(const QString &command);
+
+//
+// Start a program inside a given logon session.
+//
+// A process only starts in the session its token says, so a service - which
+// lives in session 0 with no desktop and nobody looking at it - cannot start
+// anything a person will see by asking the ordinary way. It has to build a
+// token for the session it means.
+//
+// Two routes, because two callers are entitled by different means.
+// WTSQueryUserToken is the direct one and wants SeTcbPrivilege, which
+// LocalSystem has; an elevated administrator does not, and borrows the token of
+// a process already in the session instead, which wants SeDebugPrivilege - and
+// that one an administrator does have. Neither grants anything: both produce
+// the token that session is already running under.
+//
+// bLinkedToken asks for the *unfiltered* token where the session's user has
+// one, which is what an elevated program in that session would run with. It is
+// not an escalation - getting this far already required being LocalSystem or an
+// elevated administrator - but it is not the default either, because a program
+// somebody asked to run unelevated should run unelevated.
+//
+STATUS StartProcessInSession(quint32 SessionId, const QString& CommandLine,
+							 bool bLinkedToken, quint64* pProcessId = NULL);
+
+//
+// Which session a person is actually sitting at, or -1 when nobody is.
+//
+quint32 GetInteractiveSessionId();
+
+//
+// Whether this process is somewhere a started program would be seen.
+//
+// Session 0 is reserved for services and has no interactive desktop, so a
+// program started there runs where nobody can look at it - which is not an
+// error and produces no error, and is exactly the trap this exists to name.
+//
+bool IsInInteractiveSession();

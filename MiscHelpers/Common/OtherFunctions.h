@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../mischelpers_global.h"
+#include "../corehelpers_global.h"
 
 /////////////////////////
 // HeapSort
@@ -112,20 +112,20 @@ void Reverse(T* Data, size_t Size)
 
 
 
-MISCHELPERS_EXPORT QString		ReadFileAsString(const QString& filename);
-MISCHELPERS_EXPORT bool			WriteStringToFile(const QString& filename, const QString& content);
-MISCHELPERS_EXPORT bool			CreateDir(const QString& path);
-MISCHELPERS_EXPORT bool			DeleteDir(const QString& path, bool bEmpty = false);
-MISCHELPERS_EXPORT bool			CopyDir(const QString& srcDirPath, const QString& destDirPath, bool bMove = false);
-MISCHELPERS_EXPORT QStringList	ListDir(const QString& srcDirPath, const QStringList& NameFilter = QStringList(), bool bAndSubDirs = true);
-MISCHELPERS_EXPORT bool			SafeRemove(const QString& path);
+COREHELPERS_EXPORT QString		ReadFileAsString(const QString& filename);
+COREHELPERS_EXPORT bool			WriteStringToFile(const QString& filename, const QString& content);
+COREHELPERS_EXPORT bool			CreateDir(const QString& path);
+COREHELPERS_EXPORT bool			DeleteDir(const QString& path, bool bEmpty = false);
+COREHELPERS_EXPORT bool			CopyDir(const QString& srcDirPath, const QString& destDirPath, bool bMove = false);
+COREHELPERS_EXPORT QStringList	ListDir(const QString& srcDirPath, const QStringList& NameFilter = QStringList(), bool bAndSubDirs = true);
+COREHELPERS_EXPORT bool			SafeRemove(const QString& path);
 
-MISCHELPERS_EXPORT QString GetRelativeSharedPath(const QString& fullPath, const QStringList& shared, QString& rootPath);
+COREHELPERS_EXPORT QString GetRelativeSharedPath(const QString& fullPath, const QStringList& shared, QString& rootPath);
 
-MISCHELPERS_EXPORT QString NameOfFile(const QString& FileName);
+COREHELPERS_EXPORT QString NameOfFile(const QString& FileName);
 
-MISCHELPERS_EXPORT QIcon IconAddOverlay(const QIcon& Icon, const QString& Name, int Size = 24);
+// IconAddOverlay moved to CommonGui.h - it was the only thing here that draws.
 
 #ifdef _DEBUG
-MISCHELPERS_EXPORT void GlobalTest();
+COREHELPERS_EXPORT void GlobalTest();
 #endif

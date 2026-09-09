@@ -1,0 +1,1226 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|ARM64">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM64">
+      <Configuration>Release</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{3F2A1C64-9D07-4E15-B8A2-7C51E9D40A11}</ProjectGuid>
+    <Keyword>QtVS_v302</Keyword>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+    <SpectreMitigation>false</SpectreMitigation>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+    <SpectreMitigation>false</SpectreMitigation>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+    <SpectreMitigation>false</SpectreMitigation>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+    <SpectreMitigation>false</SpectreMitigation>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+    <SpectreMitigation>false</SpectreMitigation>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+    <SpectreMitigation>false</SpectreMitigation>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup Condition="'$(QtMsBuild)'=='' or !Exists('$(QtMsBuild)\qt.targets')">
+    <QtMsBuild>$(MSBuildProjectDirectory)\QtMsBuild</QtMsBuild>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\TaskCore\</IntDir>
+    <IncludePath>..\ProcessHacker\phlib\include;..\ProcessHacker\kphlib\include;..\ProcessHacker\phnt\include;C:\Program Files (x86)\Visual Leak Detector\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)$(Platform)\$(Configuration)\;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\TaskCore\</IntDir>
+    <IncludePath>..\ProcessHacker\phlib\include;..\ProcessHacker\kphlib\include;..\ProcessHacker\phnt\include;C:\Program Files (x86)\Visual Leak Detector\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)$(Platform)\$(Configuration)\;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\TaskCore\</IntDir>
+    <IncludePath>..\ProcessHacker\phlib\include;..\ProcessHacker\kphlib\include;..\ProcessHacker\phnt\include;C:\Program Files (x86)\Visual Leak Detector\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)$(Platform)\$(Configuration)\;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\TaskCore\</IntDir>
+    <IncludePath>..\ProcessHacker\phlib\include;..\ProcessHacker\kphlib\include;..\ProcessHacker\phnt\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)$(Platform)\$(Configuration)\;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\TaskCore\</IntDir>
+    <IncludePath>..\ProcessHacker\phlib\include;..\ProcessHacker\kphlib\include;..\ProcessHacker\phnt\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)$(Platform)\$(Configuration)\;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\TaskCore\</IntDir>
+    <IncludePath>..\ProcessHacker\phlib\include;..\ProcessHacker\kphlib\include;..\ProcessHacker\phnt\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)$(Platform)\$(Configuration)\;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <Target Name="QtMsBuildNotFound" BeforeTargets="CustomBuild;ClCompile" Condition="!Exists('$(QtMsBuild)\qt.targets') or !Exists('$(QtMsBuild)\qt.props')">
+    <Message Importance="High" Text="QtMsBuild: could not locate qt.targets, qt.props; project may not build correctly." />
+  </Target>
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="Shared" />
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <ImportGroup Condition="Exists('$(QtMsBuild)\qt_defaults.props')">
+    <Import Project="$(QtMsBuild)\qt_defaults.props" />
+  </ImportGroup>
+  <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <QtInstall>6.8.3_msvc2022_64</QtInstall>
+    <QtModules>core;network;gui;concurrent;core-private</QtModules>
+    <QtExcludedOptions>-Zc:strictStrings</QtExcludedOptions>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="QtSettings">
+    <QtInstall>6.8.1_msvc2022_64</QtInstall>
+    <QtModules>core;network;gui;concurrent;core-private</QtModules>
+    <QtExcludedOptions>-Zc:strictStrings</QtExcludedOptions>
+  </PropertyGroup>
+  <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <QtInstall>5.15.16_msvc2022</QtInstall>
+    <QtModules>core;network;gui;concurrent;core-private</QtModules>
+    <QtExcludedOptions>-Zc:strictStrings</QtExcludedOptions>
+  </PropertyGroup>
+  <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <QtInstall>6.8.3_msvc2022_64</QtInstall>
+    <QtModules>core;network;gui;concurrent;core-private</QtModules>
+    <QtExcludedOptions>-Zc:strictStrings</QtExcludedOptions>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="QtSettings">
+    <QtInstall>6.8.1_msvc2022_64</QtInstall>
+    <QtModules>core;network;gui;concurrent;core-private</QtModules>
+    <QtExcludedOptions>-Zc:strictStrings</QtExcludedOptions>
+  </PropertyGroup>
+  <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <QtInstall>5.15.16_msvc2022</QtInstall>
+    <QtModules>core;network;gui;concurrent;core-private</QtModules>
+    <QtExcludedOptions>-Zc:strictStrings</QtExcludedOptions>
+  </PropertyGroup>
+  <ImportGroup Condition="Exists('$(QtMsBuild)\qt.props')">
+    <Import Project="$(QtMsBuild)\qt.props" />
+  </ImportGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PreprocessorDefinitions>TASKCORE_LIB;UNICODE;_UNICODE;WIN32;_ENABLE_EXTENDED_ALIGNED_STORAGE;WIN64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.\GeneratedFiles\$(ConfigurationName);.\GeneratedFiles;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <Optimization>Disabled</Optimization>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
+      <OmitFramePointers>false</OmitFramePointers>
+      <StringPooling>true</StringPooling>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <OutputFile>$(OutDir)\$(ProjectName).dll</OutputFile>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>..\ProcessHacker\phlib\bin\Debug64\phlib.lib;ntdll.lib;userenv.lib;uxtheme.lib;aclui.lib;winsta.lib;iphlpapi.lib;ws2_32.lib;Netapi32.lib;Rasapi32.lib;taskschd.lib;Shlwapi.lib;cfgmgr32.lib;Gdi32.lib;wbemuuid.lib;dnsapi.lib;..\x64\Debug\CoreHelpers.lib;rpcrt4.lib;..\ProcessHacker\tools\thirdparty\bin\Debug64\thirdparty.lib;%(AdditionalDependencies);windowscodecs.lib;winhttp.lib;gdiplus.lib</AdditionalDependencies>
+      <ModuleDefinitionFile>
+      </ModuleDefinitionFile>
+      <DelayLoadDLLs>advapi32.dll;aclui.dll;comdlg32.dll;comctl32.dll;gdi32.dll;iphlpapi.dll;oleaut32.dll;ole32.dll;shell32.dll;user32.dll;uxtheme.dll;version.dll;winsta.dll;ws2_32.dll;cfgmgr32.dll;dnsapi.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+    </Link>
+    <QtMoc>
+      <ExecutionDescription>Moc'ing %(Identity)...</ExecutionDescription>
+      <ForceInclude>stdafx.h;../../%(RelativeDir)/%(Filename)%(Extension)</ForceInclude>
+      <QtMocDir>.\GeneratedFiles\$(ConfigurationName)</QtMocDir>
+      <QtMocFileName>moc_%(Filename).cpp</QtMocFileName>
+    </QtMoc>
+    <QtUic>
+      <ExecutionDescription>Uic'ing %(Identity)...</ExecutionDescription>
+      <QtUicDir>.\GeneratedFiles</QtUicDir>
+      <QtUicFileName>ui_%(Filename).h</QtUicFileName>
+    </QtUic>
+    <QtRcc>
+      <ExecutionDescription>Rcc'ing %(Identity)...</ExecutionDescription>
+      <QtRccDir>.\GeneratedFiles</QtRccDir>
+      <QtRccFileName>qrc_%(Filename).cpp</QtRccFileName>
+    </QtRcc>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PreprocessorDefinitions>TASKCORE_LIB;UNICODE;_UNICODE;WIN32;_ENABLE_EXTENDED_ALIGNED_STORAGE;WIN64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.\GeneratedFiles\$(ConfigurationName);.\GeneratedFiles;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <Optimization>Disabled</Optimization>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
+      <OmitFramePointers>false</OmitFramePointers>
+      <StringPooling>true</StringPooling>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <ConformanceMode>false</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <OutputFile>$(OutDir)\$(ProjectName).dll</OutputFile>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>..\ProcessHacker\phlib\bin\Debug64\phlib.lib;ntdll.lib;userenv.lib;uxtheme.lib;aclui.lib;winsta.lib;iphlpapi.lib;ws2_32.lib;Netapi32.lib;Rasapi32.lib;taskschd.lib;Shlwapi.lib;cfgmgr32.lib;Gdi32.lib;wbemuuid.lib;dnsapi.lib;..\x64\Debug\CoreHelpers.lib;rpcrt4.lib;..\ProcessHacker\tools\thirdparty\bin\Debug64\thirdparty.lib;%(AdditionalDependencies);windowscodecs.lib;gdiplus.lib</AdditionalDependencies>
+      <ModuleDefinitionFile>
+      </ModuleDefinitionFile>
+      <DelayLoadDLLs>advapi32.dll;aclui.dll;comdlg32.dll;comctl32.dll;gdi32.dll;iphlpapi.dll;oleaut32.dll;ole32.dll;shell32.dll;user32.dll;uxtheme.dll;version.dll;winsta.dll;ws2_32.dll;cfgmgr32.dll;dnsapi.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+    </Link>
+    <QtMoc>
+      <ExecutionDescription>Moc'ing %(Identity)...</ExecutionDescription>
+      <ForceInclude>stdafx.h;../../%(RelativeDir)/%(Filename)%(Extension)</ForceInclude>
+      <QtMocDir>.\GeneratedFiles\$(ConfigurationName)</QtMocDir>
+      <QtMocFileName>moc_%(Filename).cpp</QtMocFileName>
+    </QtMoc>
+    <QtUic>
+      <ExecutionDescription>Uic'ing %(Identity)...</ExecutionDescription>
+      <QtUicDir>.\GeneratedFiles</QtUicDir>
+      <QtUicFileName>ui_%(Filename).h</QtUicFileName>
+    </QtUic>
+    <QtRcc>
+      <ExecutionDescription>Rcc'ing %(Identity)...</ExecutionDescription>
+      <QtRccDir>.\GeneratedFiles</QtRccDir>
+      <QtRccFileName>qrc_%(Filename).cpp</QtRccFileName>
+    </QtRcc>
+    <PostBuildEvent>
+      <Command>cmd /c "cd "$(SolutionDir)ProcessHacker\" &amp; "$(SolutionDir)ProcessHacker\tools\CustomBuildTool\bin_old\Release\AMD64\CustomBuildTool.exe" -kph-sign "$(OutDir)$(TargetName)$(TargetExt)""</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PreprocessorDefinitions>TASKCORE_LIB;UNICODE;_UNICODE;WIN32;_ENABLE_EXTENDED_ALIGNED_STORAGE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.\GeneratedFiles\$(ConfigurationName);.\GeneratedFiles;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <Optimization>Disabled</Optimization>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
+      <OmitFramePointers>false</OmitFramePointers>
+      <StringPooling>true</StringPooling>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <ConformanceMode>false</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <OutputFile>$(OutDir)\$(ProjectName).dll</OutputFile>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>..\ProcessHacker\phlib\bin\Debug32\phlib.lib;ntdll.lib;userenv.lib;uxtheme.lib;aclui.lib;winsta.lib;iphlpapi.lib;ws2_32.lib;Netapi32.lib;Rasapi32.lib;taskschd.lib;Shlwapi.lib;cfgmgr32.lib;Gdi32.lib;wbemuuid.lib;..\Win32\Debug\CoreHelpers.lib;rpcrt4.lib;..\ProcessHacker\tools\thirdparty\bin\Debug32\thirdparty.lib;%(AdditionalDependencies);windowscodecs.lib;winhttp.lib;gdiplus.lib</AdditionalDependencies>
+      <ModuleDefinitionFile>
+      </ModuleDefinitionFile>
+      <DelayLoadDLLs>advapi32.dll;aclui.dll;comdlg32.dll;comctl32.dll;gdi32.dll;iphlpapi.dll;oleaut32.dll;ole32.dll;shell32.dll;userenv.dll;user32.dll;uxtheme.dll;version.dll;winsta.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalOptions> /SUBSYSTEM:WINDOWS</AdditionalOptions>
+    </Link>
+    <QtMoc>
+      <ExecutionDescription>Moc'ing %(Identity)...</ExecutionDescription>
+      <ForceInclude>stdafx.h;../../%(RelativeDir)/%(Filename)%(Extension)</ForceInclude>
+      <QtMocDir>.\GeneratedFiles\$(ConfigurationName)</QtMocDir>
+      <QtMocFileName>moc_%(Filename).cpp</QtMocFileName>
+    </QtMoc>
+    <QtUic>
+      <ExecutionDescription>Uic'ing %(Identity)...</ExecutionDescription>
+      <QtUicDir>.\GeneratedFiles</QtUicDir>
+      <QtUicFileName>ui_%(Filename).h</QtUicFileName>
+    </QtUic>
+    <QtRcc>
+      <ExecutionDescription>Rcc'ing %(Identity)...</ExecutionDescription>
+      <QtRccDir>.\GeneratedFiles</QtRccDir>
+      <QtRccFileName>qrc_%(Filename).cpp</QtRccFileName>
+    </QtRcc>
+    <PostBuildEvent>
+      <Command>cmd /c "cd "$(SolutionDir)ProcessHacker\" &amp; "$(SolutionDir)ProcessHacker\tools\CustomBuildTool\bin_old\Release\AMD64\CustomBuildTool.exe" -kph-sign "$(OutDir)$(TargetName)$(TargetExt)""</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PreprocessorDefinitions>TASKCORE_LIB;UNICODE;_UNICODE;WIN32;_ENABLE_EXTENDED_ALIGNED_STORAGE;WIN64;QT_NO_DEBUG;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.\GeneratedFiles\$(ConfigurationName);.\GeneratedFiles;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
+      <TreatWarningAsError>false</TreatWarningAsError>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <OutputFile>$(OutDir)\$(ProjectName).dll</OutputFile>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>..\ProcessHacker\phlib\bin\Release64\phlib.lib;ntdll.lib;userenv.lib;uxtheme.lib;aclui.lib;winsta.lib;iphlpapi.lib;ws2_32.lib;Netapi32.lib;Rasapi32.lib;taskschd.lib;Shlwapi.lib;cfgmgr32.lib;Gdi32.lib;wbemuuid.lib;..\x64\Release\CoreHelpers.lib;rpcrt4.lib;..\ProcessHacker\tools\thirdparty\bin\Release64\thirdparty.lib;%(AdditionalDependencies);windowscodecs.lib;winhttp.lib;gdiplus.lib</AdditionalDependencies>
+      <DelayLoadDLLs>advapi32.dll;aclui.dll;comdlg32.dll;comctl32.dll;gdi32.dll;iphlpapi.dll;oleaut32.dll;ole32.dll;shell32.dll;userenv.dll;user32.dll;uxtheme.dll;version.dll;winsta.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+    </Link>
+    <QtMoc>
+      <ExecutionDescription>Moc'ing %(Identity)...</ExecutionDescription>
+      <ForceInclude>stdafx.h;../../%(RelativeDir)/%(Filename)%(Extension)</ForceInclude>
+      <QtMocDir>.\GeneratedFiles\$(ConfigurationName)</QtMocDir>
+      <QtMocFileName>moc_%(Filename).cpp</QtMocFileName>
+    </QtMoc>
+    <QtUic>
+      <ExecutionDescription>Uic'ing %(Identity)...</ExecutionDescription>
+      <QtUicDir>.\GeneratedFiles</QtUicDir>
+      <QtUicFileName>ui_%(Filename).h</QtUicFileName>
+    </QtUic>
+    <QtRcc>
+      <ExecutionDescription>Rcc'ing %(Identity)...</ExecutionDescription>
+      <QtRccDir>.\GeneratedFiles</QtRccDir>
+      <QtRccFileName>qrc_%(Filename).cpp</QtRccFileName>
+    </QtRcc>
+    <PostBuildEvent>
+      <Command>cmd /c "cd "$(SolutionDir)ProcessHacker\" &amp; "$(SolutionDir)ProcessHacker\tools\CustomBuildTool\bin_old\Release\AMD64\CustomBuildTool.exe" -kph-sign "$(OutDir)$(TargetName)$(TargetExt)""</Command>
+    </PostBuildEvent>
+    <QtTranslation>
+      <BuildAction>lupdate_lrelease</BuildAction>
+    </QtTranslation>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PreprocessorDefinitions>TASKCORE_LIB;UNICODE;_UNICODE;WIN32;_ENABLE_EXTENDED_ALIGNED_STORAGE;WIN64;QT_NO_DEBUG;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.\GeneratedFiles\$(ConfigurationName);.\GeneratedFiles;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
+      <TreatWarningAsError>false</TreatWarningAsError>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <ConformanceMode>false</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <OutputFile>$(OutDir)\$(ProjectName).dll</OutputFile>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>..\ProcessHacker\phlib\bin\Release64\phlib.lib;ntdll.lib;userenv.lib;uxtheme.lib;aclui.lib;winsta.lib;iphlpapi.lib;ws2_32.lib;Netapi32.lib;Rasapi32.lib;taskschd.lib;Shlwapi.lib;cfgmgr32.lib;Gdi32.lib;wbemuuid.lib;..\x64\Release\CoreHelpers.lib;rpcrt4.lib;..\ProcessHacker\tools\thirdparty\bin\Release64\thirdparty.lib;%(AdditionalDependencies);windowscodecs.lib;gdiplus.lib</AdditionalDependencies>
+      <DelayLoadDLLs>advapi32.dll;aclui.dll;comdlg32.dll;comctl32.dll;gdi32.dll;iphlpapi.dll;oleaut32.dll;ole32.dll;shell32.dll;userenv.dll;user32.dll;uxtheme.dll;version.dll;winsta.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+    </Link>
+    <QtMoc>
+      <ExecutionDescription>Moc'ing %(Identity)...</ExecutionDescription>
+      <ForceInclude>stdafx.h;../../%(RelativeDir)/%(Filename)%(Extension)</ForceInclude>
+      <QtMocDir>.\GeneratedFiles\$(ConfigurationName)</QtMocDir>
+      <QtMocFileName>moc_%(Filename).cpp</QtMocFileName>
+    </QtMoc>
+    <QtUic>
+      <ExecutionDescription>Uic'ing %(Identity)...</ExecutionDescription>
+      <QtUicDir>.\GeneratedFiles</QtUicDir>
+      <QtUicFileName>ui_%(Filename).h</QtUicFileName>
+    </QtUic>
+    <QtRcc>
+      <ExecutionDescription>Rcc'ing %(Identity)...</ExecutionDescription>
+      <QtRccDir>.\GeneratedFiles</QtRccDir>
+      <QtRccFileName>qrc_%(Filename).cpp</QtRccFileName>
+    </QtRcc>
+    <PostBuildEvent>
+      <Command>cmd /c "cd "$(SolutionDir)ProcessHacker\" &amp; "$(SolutionDir)ProcessHacker\tools\CustomBuildTool\bin_old\Release\AMD64\CustomBuildTool.exe" -kph-sign "$(OutDir)$(TargetName)$(TargetExt)""</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PreprocessorDefinitions>QT_NO_DEBUG;NDEBUG;UNICODE;_UNICODE;WIN32;_ENABLE_EXTENDED_ALIGNED_STORAGE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.\GeneratedFiles\$(ConfigurationName);.\GeneratedFiles;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
+      <TreatWarningAsError>false</TreatWarningAsError>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <ConformanceMode>false</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <OutputFile>$(OutDir)\$(ProjectName).dll</OutputFile>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>..\ProcessHacker\phlib\bin\Release32\phlib.lib;ntdll.lib;userenv.lib;uxtheme.lib;aclui.lib;winsta.lib;iphlpapi.lib;ws2_32.lib;Netapi32.lib;Rasapi32.lib;taskschd.lib;Shlwapi.lib;cfgmgr32.lib;Gdi32.lib;wbemuuid.lib;..\Win32\Release\CoreHelpers.lib;rpcrt4.lib;..\ProcessHacker\tools\thirdparty\bin\Release32\thirdparty.lib;%(AdditionalDependencies);windowscodecs.lib;winhttp.lib;gdiplus.lib</AdditionalDependencies>
+      <DelayLoadDLLs>advapi32.dll;aclui.dll;comdlg32.dll;comctl32.dll;gdi32.dll;iphlpapi.dll;oleaut32.dll;ole32.dll;shell32.dll;userenv.dll;user32.dll;uxtheme.dll;version.dll;winsta.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalOptions> /SUBSYSTEM:WINDOWS</AdditionalOptions>
+    </Link>
+    <QtMoc>
+      <ExecutionDescription>Moc'ing %(Identity)...</ExecutionDescription>
+      <ForceInclude>stdafx.h;../../%(RelativeDir)/%(Filename)%(Extension)</ForceInclude>
+      <QtMocDir>.\GeneratedFiles\$(ConfigurationName)</QtMocDir>
+      <QtMocFileName>moc_%(Filename).cpp</QtMocFileName>
+    </QtMoc>
+    <QtUic>
+      <ExecutionDescription>Uic'ing %(Identity)...</ExecutionDescription>
+      <QtUicDir>.\GeneratedFiles</QtUicDir>
+      <QtUicFileName>ui_%(Filename).h</QtUicFileName>
+    </QtUic>
+    <QtRcc>
+      <ExecutionDescription>Rcc'ing %(Identity)...</ExecutionDescription>
+      <QtRccDir>.\GeneratedFiles</QtRccDir>
+      <QtRccFileName>qrc_%(Filename).cpp</QtRccFileName>
+    </QtRcc>
+    <PostBuildEvent>
+      <Command>cmd /c "cd "$(SolutionDir)ProcessHacker\" &amp; "$(SolutionDir)ProcessHacker\tools\CustomBuildTool\bin_old\Release\AMD64\CustomBuildTool.exe" -kph-sign "$(OutDir)$(TargetName)$(TargetExt)""</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <QtRcc Include="Resources\TaskCore.qrc" />
+    <ClCompile Include="API\AbstractTask.cpp" />
+    <ClCompile Include="API\AssemblyList.cpp" />
+    <ClCompile Include="API\DriverInfo.cpp" />
+    <ClCompile Include="API\Finders\AbstractFinder.cpp" />
+    <ClCompile Include="API\HandleInfo.cpp" />
+    <ClCompile Include="API\DnsEntry.cpp" />
+    <ClCompile Include="API\HeapInfo.cpp" />
+    <ClCompile Include="API\MemDumper.cpp" />
+    <ClCompile Include="API\MemoryInfo.cpp" />
+    <ClCompile Include="API\ModuleInfo.cpp" />
+    <ClCompile Include="stdafx.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="API\AbstractInfo.cpp" />
+    <ClCompile Include="API\Monitors\DiskMonitor.cpp" />
+    <ClCompile Include="API\Monitors\GpuMonitor.cpp" />
+    <ClCompile Include="API\Monitors\NetMonitor.cpp" />
+    <ClCompile Include="API\PersistentPreset.cpp" />
+    <ClCompile Include="API\ProcessInfo.cpp" />
+    <ClCompile Include="API\ServiceInfo.cpp" />
+    <ClCompile Include="API\SocketInfo.cpp" />
+    <ClCompile Include="API\StackTrace.cpp" />
+    <ClCompile Include="API\GdiInfo.cpp" />
+    <ClCompile Include="API\RpcInfo.cpp" />
+    <ClCompile Include="API\PoolInfo.cpp" />
+    <ClCompile Include="API\Cluster.cpp" />
+    <ClCompile Include="API\RemoteApi.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="TaskCore.rc" />
+    <ClCompile Include="API\SystemAPI.cpp" />
+    <ClCompile Include="API\ThreadInfo.cpp" />
+    <ClCompile Include="API\TokenInfo.cpp" />
+    <ClCompile Include="API\Windows\Finders\WinHandleFinder.cpp" />
+    <ClCompile Include="API\Windows\Finders\WinStringFinder.cpp" />
+    <ClCompile Include="API\Windows\Finders\WinModuleFinder.cpp" />
+    <ClCompile Include="API\Windows\DnsResolver.cpp" />
+    <ClCompile Include="API\Windows\SystemHacker\SystemHacker.cpp" />
+    <ClCompile Include="API\Windows\SystemHacker\xph.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">/we4013 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">/we4013 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">/we4013 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">/we4013 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/we4013 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/we4013 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <ClCompile Include="API\Windows\SystemHacker\xphdata.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="API\Windows\Monitors\EtwEventMonitor.cpp" />
+    <ClCompile Include="API\Windows\Monitors\EventMonitor.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="API\Windows\Monitors\FirewallMonitor.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="API\Windows\Monitors\WinDbgMonitor.cpp" />
+    <ClCompile Include="API\Windows\Monitors\WinDiskMonitor.cpp" />
+    <ClCompile Include="API\Windows\Monitors\WinGpuMonitor.cpp" />
+    <ClCompile Include="API\Windows\Monitors\FwEventMonitor.cpp" />
+    <ClCompile Include="API\Windows\Monitors\WinNetMonitor.cpp" />
+    <ClCompile Include="API\Windows\ProcessHacker.cpp" />
+    <ClCompile Include="API\Windows\ProcessHacker\appsup.cpp" />
+    <ClCompile Include="API\Windows\ProcessHacker\AssemblyEnum.cpp" />
+    <ClCompile Include="API\Windows\ProcessHacker\clrsup.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="API\Windows\ProcessHacker\db.cpp" />
+    <ClCompile Include="API\Windows\ProcessHacker\DotNetCounters.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="API\Windows\ProcessHacker\DotNet.cpp" />
+    <ClCompile Include="API\Windows\ProcessHacker\fw.cpp" />
+    <ClCompile Include="API\Windows\ProcessHacker\GpuCounters.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="API\Windows\ProcessHacker\ksyscall.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="API\Windows\ProcessHacker\memprv.cpp" />
+    <ClCompile Include="API\Windows\ProcessHacker\ndis.cpp" />
+    <ClCompile Include="API\Windows\ProcessHacker\PhSvc.cpp" />
+    <ClCompile Include="API\Windows\ProcessHacker\pool.cpp" />
+    <ClCompile Include="API\Windows\ProcessHacker\ProcMtgn.cpp" />
+    <ClCompile Include="API\Windows\ProcessHacker\RunAs.cpp" />
+    <ClCompile Include="API\Windows\ProcessHacker\storage.cpp" />
+    <ClCompile Include="API\Windows\ProcessHacker\syssccpu.cpp" />
+    <ClCompile Include="API\Windows\RpcEndpoint.cpp" />
+    <ClCompile Include="API\Windows\RunAsTI.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="API\Windows\SandboxieAPI.cpp" />
+    <ClCompile Include="API\Windows\SidResolver.cpp" />
+    <ClCompile Include="API\Windows\SymbolProvider.cpp" />
+    <ClCompile Include="API\Windows\WinAdmin.cpp" />
+    <ClCompile Include="API\Windows\WindowsAPI.cpp" />
+    <ClCompile Include="API\Windows\WindowsHelpers.cpp" />
+    <ClCompile Include="API\Windows\WinHeap.cpp" />
+    <ClCompile Include="API\Windows\WinHelper.cpp" />
+    <ClCompile Include="API\Windows\WinHelpers\FindTool.cpp" />
+    <ClCompile Include="API\Windows\WinHelpers\FuncHook\Detours\creatwth.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\FuncHook\Detours\detours.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\FuncHook\Detours\disasm.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\FuncHook\Detours\disolarm.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\FuncHook\Detours\disolarm64.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\FuncHook\Detours\disolia64.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\FuncHook\Detours\disolx64.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\FuncHook\Detours\disolx86.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\FuncHook\Detours\image.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\FuncHook\Detours\modules.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\FuncHook\Detours\uimports.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\FuncHook\HookUtils.cpp" />
+    <ClCompile Include="API\Windows\WinHelpers\InjectDll\injdll32.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\InjectDll\injdll32_32.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\InjectDll\injdll32_64.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\InjectDll\injdll64.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinDriver.cpp" />
+    <ClCompile Include="API\Windows\WinDumper.cpp" />
+    <ClCompile Include="API\Windows\WinGDI.cpp" />
+    <ClCompile Include="API\Windows\WinAccessRights.cpp" />
+    <ClCompile Include="API\Windows\WinHandle.cpp" />
+    <ClCompile Include="API\Windows\WinHelpers\WindowFromPointEx.cpp" />
+    <ClCompile Include="API\Windows\WinJob.cpp" />
+    <ClCompile Include="API\Windows\WinMemIO.cpp" />
+    <ClCompile Include="API\Windows\WinMemory.cpp" />
+    <ClCompile Include="API\Windows\WinModule.cpp" />
+    <ClCompile Include="API\Windows\WinPoolEntry.cpp" />
+    <ClCompile Include="API\Windows\WinProcess.cpp" />
+    <ClCompile Include="API\Windows\WinRun.cpp" />
+    <ClCompile Include="API\Windows\WinSecurity.cpp" />
+    <ClCompile Include="API\Windows\WinSecurityEditor.cpp" />
+    <ClCompile Include="API\Windows\WinServiceConfig.cpp" />
+    <ClCompile Include="API\Windows\WinService.cpp" />
+    <ClCompile Include="API\Windows\WinSocket.cpp" />
+    <ClCompile Include="API\Windows\WinThread.cpp" />
+    <ClCompile Include="API\Windows\WinToken.cpp" />
+    <ClCompile Include="API\Windows\WinWnd.cpp" />
+    <ClCompile Include="API\WndInfo.cpp" />
+    <ClCompile Include="SVC\ServerSetup.cpp" />
+    <ClCompile Include="SVC\TaskService.cpp" />
+    <ClCompile Include="SVC\WndAgents.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="stdafx.h" />
+    <ClInclude Include="taskcore_global.h" />
+    <ClInclude Include="version.h" />
+    <ClInclude Include="API\CGroupInfo.h" />
+    <ClInclude Include="API\ProcessSecurity.h" />
+    <ClInclude Include="API\Placeholders.h" />
+    <ClInclude Include="API\StatusEx.h" />
+    <ClInclude Include="API\AccessRights.h" />
+    <ClInclude Include="API\Windows\WinAccessRights.h" />
+    <ClInclude Include="API\Windows\ProcessHacker\clr\clrdata.h" />
+    <ClInclude Include="API\Windows\ProcessHacker\clr\cor.h" />
+    <ClInclude Include="API\Windows\ProcessHacker\clr\corsym.h" />
+    <ClInclude Include="API\Windows\ProcessHacker\clr\dacprivate.h" />
+    <ClInclude Include="API\Windows\ProcessHacker\clr\dbgappdomain.h" />
+    <ClInclude Include="API\Windows\ProcessHacker\clr\ipcenums.h" />
+    <ClInclude Include="API\Windows\ProcessHacker\clr\ipcheader.h" />
+    <ClInclude Include="API\Windows\ProcessHacker\clr\ipcshared.h" />
+    <ClInclude Include="API\Windows\ProcessHacker\clr\perfcounterdefs.h" />
+    <ClInclude Include="API\Windows\ProcessHacker\clr\sospriv.h" />
+    <ClInclude Include="API\Windows\ProcessHacker\clr\xclrdata.h" />
+    <ClInclude Include="API\Windows\WinHelper.h" />
+    <ClInclude Include="API\Windows\WinHelpers\FindTool.h" />
+    <ClInclude Include="API\Windows\WinHelpers\FuncHook\Detours\detours.h" />
+    <ClInclude Include="API\Windows\WinHelpers\FuncHook\Detours\detver.h" />
+    <ClInclude Include="API\Windows\WinHelpers\FuncHook\HookUtils.h" />
+    <ClInclude Include="SVC\ServerSetup.h" />
+    <QtMoc Include="SVC\TaskService.h">
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../SVC/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../SVC/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../SVC/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../SVC/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../SVC/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../SVC/%(Filename)%(Extension)</ForceInclude>
+    </QtMoc>
+    <QtMoc Include="SVC\WndAgents.h">
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../SVC/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../SVC/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../SVC/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../SVC/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../SVC/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../SVC/%(Filename)%(Extension)</ForceInclude>
+    </QtMoc>
+    <QtMoc Include="API\Cluster.h">
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+    </QtMoc>
+    <QtMoc Include="API\RemoteApi.h">
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+    </QtMoc>
+    <QtMoc Include="API\SystemAPI.h">
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+    </QtMoc>
+    <ClInclude Include="API\DotNetPerf.h" />
+    <ClInclude Include="API\SecurityInfo.h" />
+    <ClInclude Include="API\TaskStatus.h" />
+    <ClInclude Include="API\Windows\WinSecurityEditor.h" />
+    <QtMoc Include="API\GdiInfo.h">
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+    </QtMoc>
+    <QtMoc Include="API\RpcInfo.h">
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+    </QtMoc>
+    <QtMoc Include="API\PoolInfo.h">
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+    </QtMoc>
+    <QtMoc Include="API\ProcessInfo.h">
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+    </QtMoc>
+    <QtMoc Include="API\AssemblyList.h">
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+    </QtMoc>
+    <QtMoc Include="API\Windows\WindowsAPI.h">
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+    </QtMoc>
+    <QtMoc Include="API\Windows\WinProcess.h">
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+    </QtMoc>
+    <QtMoc Include="API\SocketInfo.h">
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+    </QtMoc>
+    <QtMoc Include="API\HandleInfo.h">
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+    </QtMoc>
+    <QtMoc Include="API\ThreadInfo.h">
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+    </QtMoc>
+    <QtMoc Include="API\TokenInfo.h">
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+    </QtMoc>
+    <QtMoc Include="API\JobInfo.h">
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+    </QtMoc>
+    <QtMoc Include="API\ServiceInfo.h">
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+    </QtMoc>
+    <QtMoc Include="API\ModuleInfo.h">
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+    </QtMoc>
+    <QtMoc Include="API\AbstractTask.h">
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+    </QtMoc>
+    <QtMoc Include="API\DriverInfo.h">
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+    </QtMoc>
+    <QtMoc Include="API\Finders\AbstractFinder.h" />
+    <QtMoc Include="API\DnsEntry.h" />
+    <QtMoc Include="API\HeapInfo.h" />
+    <ClInclude Include="API\MiscStats.h" />
+    <QtMoc Include="API\AbstractInfo.h">
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+    </QtMoc>
+    <QtMoc Include="API\MemDumper.h" />
+    <QtMoc Include="API\MemoryInfo.h" />
+    <QtMoc Include="API\Monitors\DiskMonitor.h" />
+    <QtMoc Include="API\Monitors\GpuMonitor.h" />
+    <QtMoc Include="API\Monitors\NetMonitor.h" />
+    <QtMoc Include="API\PersistentPreset.h" />
+    <ClInclude Include="API\StackTrace.h" />
+    <QtMoc Include="API\Windows\Finders\WinHandleFinder.h" />
+    <QtMoc Include="API\Windows\Finders\WinStringFinder.h" />
+    <QtMoc Include="API\Windows\Finders\WinModuleFinder.h" />
+    <QtMoc Include="API\StringInfo.h" />
+    <QtMoc Include="API\Windows\Monitors\WinDiskMonitor.h" />
+    <QtMoc Include="API\Windows\Monitors\WinGpuMonitor.h" />
+    <QtMoc Include="API\Windows\Monitors\WinNetMonitor.h" />
+    <QtMoc Include="API\Windows\DnsResolver.h" />
+    <QtMoc Include="API\Windows\Monitors\FwEventMonitor.h" />
+    <QtMoc Include="API\Windows\Monitors\EtwEventMonitor.h" />
+    <ClInclude Include="API\Windows\SystemHacker\SystemHacker.h" />
+    <ClInclude Include="API\Windows\SystemHacker\xphuser.h" />
+    <ClInclude Include="API\Windows\SystemHacker\xphuserp.h" />
+    <ClInclude Include="API\Windows\Monitors\d3dkmt\d3dkmdt.h" />
+    <ClInclude Include="API\Windows\Monitors\d3dkmt\d3dkmthk.h" />
+    <ClInclude Include="API\Windows\Monitors\d3dkmt\d3dukmdt.h" />
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs.hpp" />
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\client.hpp" />
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\collection_view.hpp" />
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\compiler_check.hpp" />
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\errors.hpp" />
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\etw.hpp" />
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\filtering\comparers.hpp" />
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\filtering\event_filter.hpp" />
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\filtering\predicates.hpp" />
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\filtering\view_adapters.hpp" />
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\guid.hpp" />
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\kernel_guids.hpp" />
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\kernel_providers.hpp" />
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\kt.hpp" />
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\parser.hpp" />
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\parse_types.hpp" />
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\perfinfo_groupmask.hpp" />
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\property.hpp" />
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\provider.hpp" />
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\schema.hpp" />
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\schema_locator.hpp" />
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\size_provider.hpp" />
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\tdh_helpers.hpp" />
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\trace.hpp" />
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\trace_context.hpp" />
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\ut.hpp" />
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\version_helpers.hpp" />
+    <QtMoc Include="API\Windows\Monitors\WinDbgMonitor.h" />
+    <QtMoc Include="API\Windows\Monitors\EventMonitor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+    </QtMoc>
+    <QtMoc Include="API\Windows\Monitors\FirewallMonitor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+    </QtMoc>
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\wstring_convert.hpp" />
+    <ClInclude Include="API\Windows\ProcessHacker.h" />
+    <QtMoc Include="API\Windows\WinSocket.h">
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+    </QtMoc>
+    <QtMoc Include="API\Windows\WinHandle.h">
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+    </QtMoc>
+    <QtMoc Include="API\Windows\WinThread.h">
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+    </QtMoc>
+    <QtMoc Include="API\Windows\WinService.h">
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+    </QtMoc>
+    <QtMoc Include="API\Windows\WinModule.h">
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+    </QtMoc>
+    <QtMoc Include="API\WndInfo.h">
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../API/%(Filename)%(Extension)</ForceInclude>
+    </QtMoc>
+    <QtMoc Include="API\Windows\WinWnd.h">
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+    </QtMoc>
+    <QtMoc Include="API\Windows\WinJob.h">
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+    </QtMoc>
+    <QtMoc Include="API\Windows\WinDriver.h">
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+      <ForceInclude Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h;../../API/Windows/%(Filename)%(Extension)</ForceInclude>
+    </QtMoc>
+    <QtMoc Include="API\Windows\ProcessHacker\AssemblyEnum.h" />
+    <ClInclude Include="API\Windows\ProcessHacker\appsup.h" />
+    <ClInclude Include="API\Windows\ProcessHacker\clretw.h" />
+    <ClInclude Include="API\Windows\ProcessHacker\clrsup.h" />
+    <ClInclude Include="API\Windows\ProcessHacker\devices.h" />
+    <ClInclude Include="API\Windows\ProcessHacker\DotNet.h" />
+    <ClInclude Include="API\Windows\ProcessHacker\GpuCounters.h" />
+    <ClInclude Include="API\Windows\ProcessHacker\heapstruct.h" />
+    <ClInclude Include="API\Windows\ProcessHacker\memprv.h" />
+    <ClInclude Include="API\Windows\ProcessHacker\PhSvc.h" />
+    <ClInclude Include="API\Windows\ProcessHacker\pooltable.h" />
+    <ClInclude Include="API\Windows\ProcessHacker\ProcMtgn.h" />
+    <ClInclude Include="API\Windows\ProcessHacker\RunAs.h" />
+    <QtMoc Include="API\Windows\SymbolProvider.h" />
+    <QtMoc Include="API\Windows\SidResolver.h" />
+    <ClInclude Include="API\Windows\ProcessHacker\syssccpu.h" />
+    <ClInclude Include="API\Windows\ProcessHacker\wf.h" />
+    <QtMoc Include="API\Windows\SandboxieAPI.h" />
+    <QtMoc Include="API\Windows\RpcEndpoint.h" />
+    <ClInclude Include="API\Windows\WinAdmin.h" />
+    <QtMoc Include="API\Windows\WinDumper.h" />
+    <QtMoc Include="API\Windows\WinMemory.h" />
+    <QtMoc Include="API\Windows\WinMemIO.h" />
+    <QtMoc Include="API\Windows\WinToken.h" />
+    <QtMoc Include="API\Windows\WinGDI.h" />
+    <QtMoc Include="API\Windows\WinPoolEntry.h" />
+    <QtMoc Include="API\Windows\WinHeap.h" />
+    <ClInclude Include="API\Windows\WinHelpers\InjectDll\injdll.h" />
+  </ItemGroup>
+  <ItemGroup>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Resources\exe16.png">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </Image>
+    <Image Include="Resources\exe32.png">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </Image>
+    <Image Include="Resources\exe48.png">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </Image>
+    <Image Include="Resources\exe64.png">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </Image>
+    <Image Include="Resources\finder-empty.bmp" />
+    <Image Include="Resources\finder-full.bmp" />
+    <Image Include="Resources\TaskExplorer.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="API\Windows\WinHelpers\FuncHook\Detours\Makefile" />
+    <QtTranslation Include="taskexplorer_de.ts">
+      <FileType>Document</FileType>
+    </QtTranslation>
+    <QtTranslation Include="taskexplorer_en.ts">
+      <FileType>Document</FileType>
+    </QtTranslation>
+    <QtTranslation Include="taskexplorer_it.ts">
+      <FileType>Document</FileType>
+    </QtTranslation>
+    <QtTranslation Include="taskexplorer_pl.ts">
+      <FileType>Document</FileType>
+    </QtTranslation>
+  </ItemGroup>
+  <ItemGroup>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="Resources\TaskExplorer.manifest" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtTranslation Include="taskexplorer_pt.ts" />
+    <QtTranslation Include="taskexplorer_tr.ts" />
+    <QtTranslation Include="taskexplorer_zh_CN.ts" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="API\Windows\ProcessHacker\clr\LICENSE.TXT" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
+    <Import Project="$(QtMsBuild)\qt.targets" />
+  </ImportGroup>
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties />
+    </VisualStudio>
+  </ProjectExtensions>
+</Project>

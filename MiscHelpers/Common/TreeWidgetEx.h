@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../mischelpers_global.h"
+#include "../guihelpers_global.h"
 #include "TreeViewEx.h"
 
-class MISCHELPERS_EXPORT QTreeWidgetEx: public QTreeWidget
+class GUIHELPERS_EXPORT QTreeWidgetEx: public QTreeWidget
 {
 	Q_OBJECT
 public:

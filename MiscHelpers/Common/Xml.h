@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../mischelpers_global.h"
+#include "../corehelpers_global.h"
 
-class MISCHELPERS_EXPORT CXml {
+class COREHELPERS_EXPORT CXml {
 public:
 	static QString Serialize(const QVariant& Variant, bool bLazy = false);
 	static QVariant Parse(const QString& String, bool bLazy = false);

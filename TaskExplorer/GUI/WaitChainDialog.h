@@ -1,7 +1,8 @@
 #pragma once
 
 #include <QtWidgets/QMainWindow>
-#include "../API/Windows/WinProcess.h"
+#include "../API/ProcessInfo.h"
+#include "../API/ThreadInfo.h"
 #include "../../MiscHelpers/Common/PanelView.h"
 
 class CWaitChainDialog : public QMainWindow
@@ -36,6 +37,7 @@ protected:
 	void closeEvent(QCloseEvent *e);
 	void timerEvent(QTimerEvent *e);
 
+	CProcessPtr			m_pProcess;
 	int					m_TimerId;
 
 	QMap<quint64, QTreeWidgetItem*> m_FailtList;

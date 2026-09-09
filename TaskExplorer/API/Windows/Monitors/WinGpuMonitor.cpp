@@ -336,31 +336,18 @@ bool CWinGpuMonitor::QueryDeviceProperties(
     return true;
 }
 
-QString CWinGpuMonitor::GetNodeEngineTypeString(/*D3DKMT_NODEMETADATA**/struct _D3DKMT_NODEMETADATA* NodeMetaData)
-{
-    switch (NodeMetaData->NodeData.EngineType)
-    {
-    case DXGK_ENGINE_TYPE_OTHER:
-        return QString::fromWCharArray(NodeMetaData->NodeData.FriendlyName);
-    case DXGK_ENGINE_TYPE_3D:
-        return tr("3D");
-    case DXGK_ENGINE_TYPE_VIDEO_DECODE:
-        return tr("Video Decode");
-    case DXGK_ENGINE_TYPE_VIDEO_ENCODE:
-        return tr("Video Encode");
-    case DXGK_ENGINE_TYPE_VIDEO_PROCESSING:
-        return tr("Video Processing");
-    case DXGK_ENGINE_TYPE_SCENE_ASSEMBLY:
-        return tr("Scene Assembly");
-    case DXGK_ENGINE_TYPE_COPY:
-        return tr("Copy");
-    case DXGK_ENGINE_TYPE_OVERLAY:
-        return tr("Overlay");
-    case DXGK_ENGINE_TYPE_CRYPTO:
-        return tr("Crypto");
-    }
-    return tr("ERROR (%1)").arg(NodeMetaData->NodeData.EngineType);
-}
+//
+// The engine types CGpuMonitor names are the display kernel's own.
+//
+static_assert(CGpuMonitor::eEngineOther           == DXGK_ENGINE_TYPE_OTHER,            "engine other");
+static_assert(CGpuMonitor::eEngine3D              == DXGK_ENGINE_TYPE_3D,               "engine 3d");
+static_assert(CGpuMonitor::eEngineVideoDecode     == DXGK_ENGINE_TYPE_VIDEO_DECODE,     "engine video decode");
+static_assert(CGpuMonitor::eEngineVideoEncode     == DXGK_ENGINE_TYPE_VIDEO_ENCODE,     "engine video encode");
+static_assert(CGpuMonitor::eEngineVideoProcessing == DXGK_ENGINE_TYPE_VIDEO_PROCESSING, "engine video processing");
+static_assert(CGpuMonitor::eEngineSceneAssembly   == DXGK_ENGINE_TYPE_SCENE_ASSEMBLY,   "engine scene assembly");
+static_assert(CGpuMonitor::eEngineCopy            == DXGK_ENGINE_TYPE_COPY,             "engine copy");
+static_assert(CGpuMonitor::eEngineOverlay         == DXGK_ENGINE_TYPE_OVERLAY,          "engine overlay");
+static_assert(CGpuMonitor::eEngineCrypto          == DXGK_ENGINE_TYPE_CRYPTO,           "engine crypto");
 
 D3D_FEATURE_LEVEL EtQueryAdapterFeatureLevel(
     _In_ LUID AdapterLuid
@@ -570,18 +557,18 @@ SGpuAdapter* CWinGpuMonitor::AddDisplayAdapter(const wchar_t* DeviceInterface, /
                 sizeof(D3DKMT_NODEMETADATA)
                 )))
             {
-				adapter->Info.Nodes.append(SGpuNode(GetNodeEngineTypeString(&metaDataInfo)));
+				adapter->Info.Nodes.append(SGpuNode(i, metaDataInfo.NodeData.EngineType, QString::fromWCharArray(metaDataInfo.NodeData.FriendlyName)));
             }
             else
             {
-				adapter->Info.Nodes.append(SGpuNode(tr("Node: %1").arg(i)));
+				adapter->Info.Nodes.append(SGpuNode(i));
             }
         }
     }
 	else
 	{
         for (ULONG i = 0; i < adapter->NodeCount; i++)
-			adapter->Info.Nodes.append(SGpuNode(tr("Node: %1").arg(i)));
+			adapter->Info.Nodes.append(SGpuNode(i));
 	}
 
 	return adapter;
@@ -1004,7 +991,9 @@ bool CWinGpuMonitor::UpdateGpuStats()
 	//	return true;
 	
 	// Update per-process statistics.
-	foreach(const CProcessPtr& pProcess, theAPI->GetProcessList())
+	// the global is right here: this monitor reads local adapters through D3DKMT,
+	// so it can only ever describe the machine it is running on
+	foreach(const CProcessPtr& pProcess, theSystem->GetProcessList())
 		UpdateProcessStats(pProcess, elapsedTime);
 
 	return true;

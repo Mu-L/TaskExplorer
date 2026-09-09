@@ -2,14 +2,14 @@
 #include "../../zlib/zlib.h"
 
 
-#include "../mischelpers_global.h"
+#include "../corehelpers_global.h"
 
 
-QByteArray MISCHELPERS_EXPORT Pack(const QByteArray& Data);
-QByteArray MISCHELPERS_EXPORT Unpack(const QByteArray& Data);
+QByteArray COREHELPERS_EXPORT Pack(const QByteArray& Data);
+QByteArray COREHELPERS_EXPORT Unpack(const QByteArray& Data);
 
-bool MISCHELPERS_EXPORT gzip_arr(QByteArray& in);
-bool MISCHELPERS_EXPORT IsgZiped(const QByteArray& zipped);
-QByteArray MISCHELPERS_EXPORT ungzip_arr(z_stream* &zS, QByteArray& zipped, bool bGZip = true, int iRecursion = 0);
+bool COREHELPERS_EXPORT gzip_arr(QByteArray& in);
+bool COREHELPERS_EXPORT IsgZiped(const QByteArray& zipped);
+QByteArray COREHELPERS_EXPORT ungzip_arr(z_stream* &zS, QByteArray& zipped, bool bGZip = true, int iRecursion = 0);
 
-void MISCHELPERS_EXPORT clear_z(z_stream* &zS);
+void COREHELPERS_EXPORT clear_z(z_stream* &zS);

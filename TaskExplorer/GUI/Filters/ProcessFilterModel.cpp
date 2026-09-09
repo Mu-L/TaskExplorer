@@ -2,18 +2,12 @@
 #include "ProcessFilterModel.h"
 #include "../../../MiscHelpers/Common/Common.h"
 #include "../Models/ProcessModel.h"
-#ifdef WIN32
-#include "../../API/Windows/WinProcess.h"
-#endif
-
 CProcessFilterModel::CProcessFilterModel(QObject* parent) 
 	: CSortFilterProxyModel(parent)  
 {
 	m_bEnabled = false;
 	m_iFilterSystem = 0;
-#ifdef WIN32
 	m_iFilterWindows = 0;
-#endif
 	m_iFilterService = 0;
 	m_iFilterOther = 0;
 	m_iFilterOwn = 0;
@@ -30,10 +24,8 @@ bool CProcessFilterModel::filterAcceptsRow(int source_row, const QModelIndex & s
 			CProcessPtr pProcess = pModel->GetProcess(srcIndex);
 			if(pProcess)
 			{
-#ifdef WIN32
-				if(m_iFilterWindows && (pProcess.objectCast<CWinProcess>()->IsWindowsProcess() ? (m_iFilterWindows == 1) : (m_iFilterWindows == 2)))
+				if(m_iFilterWindows && (pProcess->IsWindowsProcess() ? (m_iFilterWindows == 1) : (m_iFilterWindows == 2)))
 					return false;
-#endif
 				if(m_iFilterSystem && (pProcess->IsSystemProcess() ? (m_iFilterSystem == 1) : (m_iFilterSystem == 2)))
 					return false;
 

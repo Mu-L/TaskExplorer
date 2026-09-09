@@ -1,10 +1,10 @@
 #include "stdafx.h"
 #include "../TaskExplorer.h"
+#include "../TaskStrings.h"
 #include "DebugView.h"
 #include "../../../MiscHelpers/Common/KeyValueInputDialog.h"
 #include "../../../MiscHelpers/Common/Finder.h"
 #include "../../API/Windows/WinProcess.h"
-#include "../../API/Windows/ProcessHacker.h"
 #include <algorithm>
 
 CDebugView::CDebugView(QWidget *parent)
@@ -115,8 +115,8 @@ void CDebugView::Refresh()
 				CProcessInfo::SDebugMessage& Message = Messages[i];
 
 				CModulePtr pModule = pProcess->GetModuleInfo();
-				QString Name = pProcess->GetName() + QString(" (%1)").arg(ProcessId);
-				QIcon Icon = pModule->GetFileIcon();
+				QString Name = ::LocalizeName(pProcess->GetName()) + QString(" (%1)").arg(ProcessId);
+				QIcon Icon = ::MakeIcon(pModule->GetFileIcon());
 				NewMessages.append(SNewMessage {ProcessId, Name, Icon.isNull() ? g_ExeIcon : Icon, Message.TimeStamp, Message.Text});
 			}
 		}

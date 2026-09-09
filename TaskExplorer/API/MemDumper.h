@@ -1,4 +1,5 @@
 #pragma once
+#include "../taskcore_global.h"
 #include "ProcessInfo.h"
 
 #ifndef WIN32
@@ -42,7 +43,7 @@ enum MINIDUMP_TYPE
 };
 #endif // !WIN32
 
-class CMemDumper : public QThread
+class TASKCORE_EXPORT CMemDumper : public QThread
 {
 	Q_OBJECT
 
@@ -53,14 +54,35 @@ public:
 
 	static CMemDumper* New();
 
+	//
+	// What a dump should contain, named rather than spelled out as flags.
+	//
+	// The menu asks for "Minimal" or "Full"; composing the MINIDUMP_TYPE bits
+	// for that is the dumper's business, not the view's - and on Windows those
+	// constants come from an SDK header the GUI should not need to include.
+	//
+	enum EDumpPreset
+	{
+		eDumpMinimal,
+		eDumpLimited,
+		eDumpNormal,
+		eDumpFull,
+	};
+	static quint32	GetPresetFlags(EDumpPreset Preset);
+
 	virtual STATUS	PrepareDump(const CProcessPtr& pProcess, quint32 DumpType, const QString& DumpPath) = 0;
 
 public slots:
 	virtual void	Cancel() = 0;
 
 signals:
-	void			ProgressMessage(const QString& Message, int Progress = -1);
-	void			StatusMessage(const QString& Message, int Code = 0);
+	//
+	// What the dump is doing, and how it ended. Both carry a code and its
+	// arguments rather than a sentence, so a viewer watching a dump on another
+	// machine reads it in its own language.
+	//
+	void			ProgressMessage(const CStatus& Message, int Progress = -1);
+	void			StatusMessage(const CStatus& Message);
 
 protected:
 	virtual void	run() {}

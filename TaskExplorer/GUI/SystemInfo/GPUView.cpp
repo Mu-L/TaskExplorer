@@ -1,6 +1,8 @@
 #include "stdafx.h"
+#include "../../API/Cluster.h"
 #include "GPUView.h"
 #include "../TaskExplorer.h"
+#include "../TaskStrings.h"
 
 CGPUView::CGPUView(QWidget *parent)
 	:QWidget(parent)
@@ -119,6 +121,30 @@ void CGPUView::OnMultiPlot(int State)
 		NodePlots.pStackedLayout->setCurrentIndex(m_pMultiGraph->isChecked() ? 1 : 0);
 }
 
+void CGPUView::ResetPlots()
+{
+	m_pGPUPlot->Reset();
+	m_pVRAMPlot->Reset();
+
+	//
+	// The per-node plots as well. They are keyed by adapter name and another
+	// machine has different adapters, so what is here now is about to be
+	// replaced anyway - see how Refresh fills m_NodePlots.
+	//
+	foreach(const SNodePlots& Node, m_NodePlots)
+	{
+		if (Node.pPlot)
+			Node.pPlot->Reset();
+		if (!Node.pGrid)
+			continue;
+		for (int i = 0; i < Node.pGrid->GetCount(); i++)
+		{
+			if (CIncrementalPlot* pPlot = qobject_cast<CIncrementalPlot*>(Node.pGrid->GetWidget(i)))
+				pPlot->Reset();
+		}
+	}
+}
+
 void CGPUView::ReConfigurePlots()
 {
 	m_PlotLimit = theGUI->GetGraphLimit(true);
@@ -145,7 +171,17 @@ void CGPUView::ReConfigurePlots()
 
 void CGPUView::Refresh()
 {
-	CGpuMonitor* pGpuMonitor = theAPI->GetGpuMonitor();
+	CGpuMonitor* pGpuMonitor = CCluster::GetViewSystem()->GetGpuMonitor();
+
+	//
+	// A machine this process does not collect from has no device monitor - the
+	// per-device lists these panels draw are not on the wire. The tab is greyed
+	// for that reason (see CSystemInfoView::UpdateTabAvailability); this is the
+	// second half of it, because UpdateGraphs runs for every panel on every
+	// tick whether its tab is shown or not.
+	//
+	if (!pGpuMonitor)
+		return;
 	
 	QMap<QString, CGpuMonitor::SGpuInfo> GpuList = pGpuMonitor->GetAllGpuList();
 
@@ -187,7 +223,17 @@ void CGPUView::Refresh()
 
 void CGPUView::UpdateGraphs()
 {
-	CGpuMonitor* pGpuMonitor = theAPI->GetGpuMonitor();
+	CGpuMonitor* pGpuMonitor = CCluster::GetViewSystem()->GetGpuMonitor();
+
+	//
+	// A machine this process does not collect from has no device monitor - the
+	// per-device lists these panels draw are not on the wire. The tab is greyed
+	// for that reason (see CSystemInfoView::UpdateTabAvailability); this is the
+	// second half of it, because UpdateGraphs runs for every panel on every
+	// tick whether its tab is shown or not.
+	//
+	if (!pGpuMonitor)
+		return;
 
 	QMap<QString, CGpuMonitor::SGpuInfo> GpuList = pGpuMonitor->GetAllGpuList();
 
@@ -234,7 +280,7 @@ void CGPUView::UpdateGraphs()
 
 			for (int j = 0; j < GpuInfo.Nodes.count(); j++)
 			{
-				NodePlots.pPlot->AddPlot("Node_" + QString::number(j), Colors[j % Colors.size()], Qt::SolidLine, false, GpuInfo.Nodes[j].Name);
+				NodePlots.pPlot->AddPlot("Node_" + QString::number(j), Colors[j % Colors.size()], Qt::SolidLine, false, ::GetGpuNodeString(GpuInfo.Nodes[j]));
 
 				CIncrementalPlot* pPlot = new CIncrementalPlot(Back, Qt::transparent, Grid);
 				pPlot->SetRagne(100);
@@ -242,7 +288,7 @@ void CGPUView::UpdateGraphs()
 				pPlot->SetTextColor(Front);
 				NodePlots.pGrid->AddWidget(pPlot);
 
-				pPlot->SetText(GpuInfo.Nodes[j].Name);
+				pPlot->SetText(::GetGpuNodeString(GpuInfo.Nodes[j]));
 				pPlot->AddPlot("Node", Qt::green, Qt::SolidLine, true);
 			}
 

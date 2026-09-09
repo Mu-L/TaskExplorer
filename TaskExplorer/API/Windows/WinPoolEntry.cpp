@@ -2,7 +2,7 @@
 #include "WinPoolEntry.h"
 #include "ProcessHacker.h"
 
-CWinPoolEntry::CWinPoolEntry(QObject *parent) : CAbstractInfoEx(parent)
+CWinPoolEntry::CWinPoolEntry(QObject *parent) : CPoolEntryInfo(parent)
 {
 }
 
@@ -35,11 +35,4 @@ bool CWinPoolEntry::UpdateDynamicData(struct _SYSTEM_POOLTAG* pPoolTagInfo)
     m_EntryStats.NonPagedTotalSizeDelta.Update(pPoolTagInfo->NonPagedUsed);
 
 	return true;
-}
-
-QString CWinPoolEntry::GetTagString() const
-{ 
-	QReadLocker Locker(&m_Mutex); 
-	QByteArray Arr = QByteArray((char*)&m_TagName, 4);
-	return Arr;
 }

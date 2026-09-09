@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "TaskInfoWindow.h"
 #include "../TaskExplorer.h"
+#include "../TaskStrings.h"
 
 
 CTaskInfoWindow::CTaskInfoWindow(const QList<CProcessPtr>& Processes, quint64 ThreaId, QWidget *parent) 
@@ -23,7 +24,7 @@ CTaskInfoWindow::CTaskInfoWindow(const QList<CProcessPtr>& Processes, quint64 Th
 	QStringList Names;
 	foreach(const CProcessPtr& pProcess, Processes)
 	{
-		Names.append(tr("%1 (%2)").arg(pProcess->GetName()).arg(theGUI->FormatID(pProcess->GetProcessId())));
+		Names.append(tr("%1 (%2)").arg(::LocalizeName(pProcess->GetName())).arg(theGUI->FormatID(pProcess->GetProcessId())));
 	}
 
 	this->setWindowTitle(tr("Task Infos of %1").arg(Names.join(tr(", "))));

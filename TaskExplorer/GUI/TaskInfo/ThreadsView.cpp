@@ -2,11 +2,7 @@
 #include "../TaskExplorer.h"
 #include "ThreadsView.h"
 #include "../../../MiscHelpers/Common/Common.h"
-#ifdef WIN32
-#include "../../API/Windows/WinThread.h"
-#include "../../API/Windows/WindowsAPI.h"
 #include "../WaitChainDialog.h"
-#endif
 #include "../../../MiscHelpers/Common/Finder.h"
 #include "TaskInfoWindow.h"
 #include "TokenView.h"
@@ -69,11 +65,10 @@ CThreadsView::CThreadsView(QWidget *parent)
 	// 
 
 	m_CurStackTraceJob = 0;
+	m_pStackTraceSystem = NULL;
 
 	//m_pMenu = new QMenu();
 	AddTaskItemsToMenu();
-
-#ifdef WIN32
 	m_pMenu->addSeparator();
 
 	m_pMiscMenu = m_pMenu->addMenu(tr("Miscellaneous"));
@@ -87,8 +82,6 @@ CThreadsView::CThreadsView(QWidget *parent)
 	m_pToken = m_pMenu->addAction(tr("Impersonation Token"), this, SLOT(OnThreadToken()));
 	m_pToken2 = m_pMenu->addAction(tr("Original Impersonation Token"), this, SLOT(OnThreadToken()));
 	m_pPermissions = m_pMenu->addAction(tr("Permissions"), this, SLOT(OnPermissions()));
-#endif
-
 	m_pMenu->addSeparator();
 
 	AddPriorityItemsToMenu(eThread);
@@ -139,17 +132,11 @@ void CThreadsView::OnResetColumns()
 	m_pThreadList->SetColumnHidden(CThreadModel::eCPU, false);
 	if(m_ViewMode == eSingle)
 		m_pThreadList->SetColumnHidden(CThreadModel::eCPU_History, false);
-#ifdef WIN32
 	m_pThreadList->SetColumnHidden(CThreadModel::eStartAddress, false);
-#endif
 	m_pThreadList->SetColumnHidden(CThreadModel::ePriority, false);
-#ifdef WIN32
 	m_pThreadList->SetColumnHidden(CThreadModel::eService, false);
-#endif
 	m_pThreadList->SetColumnHidden(CThreadModel::eState, false);
-#ifdef WIN32
 	m_pThreadList->SetColumnHidden(CThreadModel::eType, false);
-#endif
 	m_pThreadList->SetColumnHidden(CThreadModel::eCreated, false);
 }
 
@@ -197,7 +184,10 @@ void CThreadsView::SelectThread(quint64 ThreadId)
 void CThreadsView::Refresh()
 {
 	if(!m_pCurThread.isNull() && m_CurStackTraceJob == 0)
+	{
+		m_pStackTraceSystem = m_pCurThread->GetSystem().data();
 		m_CurStackTraceJob = m_pCurThread->TraceStack();
+	}
 
 	//if (m_PendingUpdates > 0)
 	//	return;
@@ -244,7 +234,6 @@ void CThreadsView::ShowThreads(QSet<quint64> Added, QSet<quint64> Changed, QSet<
 
 void CThreadsView::OnCurrentChanged(const QModelIndex &current, const QModelIndex &previous)
 {
-#ifdef WIN32
 	//
 	// Windows only: this configures DbgHelp's symbol *server* search path, so
 	// it has no meaning on Linux - eu-stack resolves symbols out of the
@@ -259,19 +248,15 @@ void CThreadsView::OnCurrentChanged(const QModelIndex &current, const QModelInde
 		bool Ret = QMessageBox("TaskExplorer", tr("Do you want to download debug symbols of the internet?\nYou can change this option later on in the settings."), QMessageBox::Question, QMessageBox::Yes | QMessageBox::Default, QMessageBox::No | QMessageBox::Escape, QMessageBox::NoButton).exec() != QMessageBox::Yes;
 		theConf->SetValue("Options/DbgHelpSearch", Ret ? 1 : 0);
 	}
-#endif
-
 	QModelIndex ModelIndex = m_pSortProxy->mapToSource(current);
 	m_pCurThread = m_pThreadModel->GetThread(ModelIndex);
 
 	if (m_CurStackTraceJob)
 	{
-#ifdef WIN32
-		qobject_cast<CWindowsAPI*>(theAPI)->GetSymbolProvider()->CancelJob(m_CurStackTraceJob);
-#else
-        // todo
-#endif
+		// cancel on the system the job was issued to, not on the selected one
+		m_pStackTraceSystem->CancelSymbolJob(m_CurStackTraceJob);
 		m_CurStackTraceJob = 0;
+		m_pStackTraceSystem = NULL;
 	}
 
 	disconnect(m_pStackView, SLOT(ShowStack(const CStackTracePtr&)));
@@ -286,6 +271,7 @@ void CThreadsView::OnCurrentChanged(const QModelIndex &current, const QModelInde
 	{
 		connect(m_pCurThread.data(), SIGNAL(StackTraced(const CStackTracePtr&)), this, SLOT(ShowStack(const CStackTracePtr&)));
 
+		m_pStackTraceSystem = m_pCurThread->GetSystem().data();
 		m_CurStackTraceJob = m_pCurThread->TraceStack();
 	}
 }
@@ -300,6 +286,7 @@ void CThreadsView::ShowStack(const CStackTracePtr& StackTrace)
 		return;
 
 	m_CurStackTraceJob = 0;
+	m_pStackTraceSystem = NULL;
 
 	m_pStackView->ShowStack(StackTrace);
 }
@@ -324,29 +311,30 @@ void CThreadsView::OnMenu(const QPoint &point)
 	CThreadPtr pThread = m_pThreadModel->GetThread(ModelIndex);
 
 	QModelIndexList selectedRows = m_pThreadList->selectedRows();
-
-#ifdef WIN32
-	QSharedPointer<CWinThread> pWinThread = pThread.staticCast<CWinThread>();
-
 	m_pCancelIO->setEnabled(!pThread.isNull());
 
+	//
+	// Hidden rather than left to fail for a machine this viewer is not on:
+	// CWaitChainDialog asks the local Win32 wait chain API about the selected
+	// pid and tid, so pointed elsewhere it answers about a local process that
+	// happens to share the number. See the longer note in CProcessTree::OnMenu.
+	//
+	const CSystemPtr pViewed = pThread.isNull() ? CSystemPtr() : pThread->GetSystem();
+	m_pWCT->setVisible(!pViewed.isNull() && pViewed->IsLocal());
 	m_pWCT->setEnabled(selectedRows.count() == 1);
 
-	m_pCritical->setEnabled(!pWinThread.isNull());
-	m_pCritical->setChecked(pWinThread && pWinThread->IsCriticalThread());
+	m_pCritical->setEnabled(!pThread.isNull());
+	m_pCritical->setChecked(pThread && pThread->IsCriticalThread());
 
-	m_pToken->setEnabled(pWinThread && pWinThread->GetTokenState() == CWinThread::PH_THREAD_TOKEN_STATE_PRESENT);
-	m_pToken2->setVisible(pWinThread && pWinThread->HasToken2());
+	m_pToken->setEnabled(pThread && pThread->GetTokenState() == CThreadInfo::eTokenStatePresent);
+	m_pToken2->setVisible(pThread && pThread->HasToken2());
 
-	m_pPermissions->setEnabled(selectedRows.count() == 1);
-#endif
-
+	m_pPermissions->setEnabled(selectedRows.count() == 1 && theSystem->HasCapability(CSystemAPI::eCapSecurityEditor));
 	CTaskView::OnMenu(point);
 }
 
 void CThreadsView::OnThreadAction()
 {
-#ifdef WIN32
 	if (sender() == m_pCancelIO)
 	{
 		if (QMessageBox("TaskExplorer", tr("Do you want to cancel I/O for the selected thread(s)?"), QMessageBox::Question, QMessageBox::Yes, QMessageBox::No | QMessageBox::Default | QMessageBox::Escape, QMessageBox::NoButton).exec() != QMessageBox::Yes)
@@ -359,15 +347,14 @@ void CThreadsView::OnThreadAction()
 	{
 		QModelIndex ModelIndex = m_pSortProxy->mapToSource(Index);
 		CThreadPtr pThread = m_pThreadModel->GetThread(ModelIndex);
-		QSharedPointer<CWinThread> pWinThread = pThread.staticCast<CWinThread>();
-		if (!pWinThread.isNull())
+		if (!pThread.isNull())
 		{
 		retry:
 			STATUS Status = OK;
 			if (sender() == m_pCancelIO)
-				Status = pWinThread->CancelIO();
+				Status = pThread->CancelIO();
 			else if(sender() == m_pCritical)
-				Status = pWinThread->SetCriticalThread(m_pCritical->isChecked(), Force == 1);
+				Status = pThread->SetCriticalThread(m_pCritical->isChecked(), Force == 1);
 
 			if (Status.IsError())
 			{
@@ -375,7 +362,7 @@ void CThreadsView::OnThreadAction()
 				{
 					if (Force == -1)
 					{
-						switch (QMessageBox("TaskExplorer", Status.GetText(), QMessageBox::Question, QMessageBox::Yes, QMessageBox::No, QMessageBox::Cancel | QMessageBox::Default | QMessageBox::Escape).exec())
+						switch (QMessageBox("TaskExplorer", CTaskExplorer::FormatError(Status), QMessageBox::Question, QMessageBox::Yes, QMessageBox::No, QMessageBox::Cancel | QMessageBox::Default | QMessageBox::Escape).exec())
 						{
 						case QMessageBox::Yes:
 							Force = 1;
@@ -396,7 +383,6 @@ void CThreadsView::OnThreadAction()
 	}
 
 	CTaskExplorer::CheckErrors(Errors);
-#endif
 }
 
 void CThreadsView::OnUpdateHistory()
@@ -462,26 +448,20 @@ void CThreadsView::OnUpdateHistory()
 
 void CThreadsView::OnThreadToken()
 {
-#ifdef WIN32
 	QList<CTaskPtr>	Tasks = GetSelectedTasks();
 	if (Tasks.count() != 1)
 		return;
-
-	QSharedPointer<CWinThread> pWinThread = Tasks.first().staticCast<CWinThread>();
-	if (!pWinThread)
+	CThreadPtr pThread = Tasks.first().staticCast<CThreadInfo>();
+	if (pThread.isNull())
 		return;
 
-	CWinToken* pToken;
-	if (sender() == m_pToken2)
-		pToken = CWinToken::OriginalToken(pWinThread->GetProcessId(), pWinThread->GetThreadId());
-	else
-		pToken = CWinToken::TokenFromThread(pWinThread->GetThreadId());
-
+#ifdef WIN32	// this view is in TE_GUI_WIN; phase 4 gives it a portable API
+	CTokenInfoPtr pToken = (sender() == m_pToken2) ? pThread->GetOriginalToken() : pThread->GetToken();
 	if (pToken)
 	{
 		CTokenView* pTokenView = new CTokenView();
 		CTaskInfoWindow* pTaskInfoWindow = new CTaskInfoWindow(pTokenView, tr("Token"));
-		pTokenView->ShowToken(CWinTokenPtr(pToken));
+		pTokenView->ShowToken(pToken);
 		pTaskInfoWindow->show();
 	}
 #endif
@@ -489,30 +469,25 @@ void CThreadsView::OnThreadToken()
 
 void CThreadsView::OnWCT()
 {
-#ifdef WIN32
 	QList<CTaskPtr>	Tasks = GetSelectedTasks();
 	if (Tasks.count() != 1)
 		return;
-
-	QSharedPointer<CWinThread> pWinThread = Tasks.first().staticCast<CWinThread>();
-	if (!pWinThread)
+	CThreadPtr pThread = Tasks.first().staticCast<CThreadInfo>();
+	if (pThread.isNull())
 		return;
 
-	CWaitChainDialog* pWnd = new CWaitChainDialog(pWinThread);
+#ifdef WIN32	// this view is in TE_GUI_WIN; phase 4 gives it a portable API
+	CWaitChainDialog* pWnd = new CWaitChainDialog(pThread);
 	pWnd->show();
 #endif
 }
 
 void CThreadsView::OnPermissions()
 {
-#ifdef WIN32
 	QList<CTaskPtr>	Tasks = GetSelectedTasks();
 	if (Tasks.count() != 1)
 		return;
 
-	if (QSharedPointer<CWinThread> pWinThread = Tasks.first().staticCast<CWinThread>())
-	{
-		pWinThread->OpenPermissions();
-	}
-#endif
+	if (CThreadPtr pThread = Tasks.first().staticCast<CThreadInfo>())
+		CTaskExplorer::ShowSecurity(pThread->GetSecurityObject(), this);
 }

@@ -20,7 +20,6 @@ public:
 	static quint64 QueryGpuInstalledMemory(/*DEVINST*/quint32 DeviceHandle);
 	static bool QueryDeviceProperties(const wchar_t* DeviceInterface, QString* Description, QString* DriverDate, QString* DriverVersion, QString* LocationInfo, quint64* InstalledMemory);
 
-	static QString GetNodeEngineTypeString(/*D3DKMT_NODEMETADATA**/struct _D3DKMT_NODEMETADATA* NodeMetaData);
 
 	virtual bool		UpdateGpuStats();
 

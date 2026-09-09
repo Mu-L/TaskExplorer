@@ -21,14 +21,18 @@ public:
 	enum EColumns
 	{
 		eDriver = 0,
-#ifdef WIN32
 		eImageBase,
 		eImageSize,
 		eDescription,
 		eCompanyName,
 		eVersion,
-#endif
 		eBinaryPath,
+
+		// Filled by a Linux collector only; see CDriverInfo's platform surface.
+		eRefCount,
+		eUsedBy,
+		eState,
+
 		eCount
 	};
 

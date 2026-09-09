@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../mischelpers_global.h"
+#include "../guihelpers_global.h"
 
-class MISCHELPERS_EXPORT CPanelView : public QWidget
+class GUIHELPERS_EXPORT CPanelView : public QWidget
 {
 	Q_OBJECT
 public:
@@ -104,7 +104,7 @@ protected:
 #include "TreeWidgetEx.h"
 #include "Finder.h"
 
-class MISCHELPERS_EXPORT CPanelWidgetX : public CPanelWidgetTmpl<QTreeWidget>
+class GUIHELPERS_EXPORT CPanelWidgetX : public CPanelWidgetTmpl<QTreeWidget>
 {
 	Q_OBJECT
 
@@ -154,7 +154,7 @@ private:
 	CFinder*				m_pFinder;
 };
 
-class MISCHELPERS_EXPORT CPanelWidgetEx : public CPanelWidgetX
+class GUIHELPERS_EXPORT CPanelWidgetEx : public CPanelWidgetX
 {
 	Q_OBJECT
 
@@ -204,7 +204,7 @@ protected:
 
 
 
-class MISCHELPERS_EXPORT CPanelViewX : public CPanelView
+class GUIHELPERS_EXPORT CPanelViewX : public CPanelView
 {
 	Q_OBJECT
 public:

@@ -1,9 +1,11 @@
 #pragma once
 
+#include "../../taskcore_global.h"
+
 #include "../../../MiscHelpers/Common/Common.h"
 #include "../MiscStats.h"
 
-class CDiskMonitor : public QObject
+class TASKCORE_EXPORT CDiskMonitor : public QObject
 {
 	Q_OBJECT
 
@@ -44,6 +46,14 @@ public:
 		QString DevicePath;
 		QString DeviceName;
 		QString DeviceMountPoints;
+
+		//
+		// What the driver calls the device. Kept apart from the mount points so
+		// the row's label can be put together for reading rather than shipped
+		// as one string.
+		//
+		QString DeviceDescription;
+		quint32 DiskNumber = ULONG_MAX;
 
 		quint64	LastStatUpdate;
 		//SDelta64 BytesReadDelta;

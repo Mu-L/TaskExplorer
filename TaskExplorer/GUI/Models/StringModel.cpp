@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "../TaskExplorer.h"
+#include "../TaskStrings.h"
 #include "StringModel.h"
 #include "../../../MiscHelpers/Common/Common.h"
 #include "../../API/MemoryInfo.h"
@@ -52,7 +53,7 @@ void CStringModel::Sync(const QMap<quint64, CStringInfoPtr>& StringList)
 			CModulePtr pModule = pProcess ? pProcess->GetModuleInfo() : CModulePtr();
 			if (pModule)
 			{
-				QPixmap Icon = pModule->GetFileIcon();
+				QPixmap Icon = ::MakeIcon(pModule->GetFileIcon());
 				if (!Icon.isNull()) {
 					Changed = 1; // set change for first column
 					pNode->Icon = Icon;
@@ -68,7 +69,7 @@ void CStringModel::Sync(const QMap<quint64, CStringInfoPtr>& StringList)
 			QVariant Value;
 			switch(section)
 			{
-				case eProcess:		Value = pProcess ? pProcess->GetName() : ""; break;
+				case eProcess:		Value = pProcess ? ::LocalizeName(pProcess->GetName()) : QString(); break;
 				case eAddress:		Value = pString->GetAddress(); break;
 				case eBaseAddress:	Value = pString->GetBaseAddress(); break;
 				case eLength:		Value = pString->GetString().length(); break;

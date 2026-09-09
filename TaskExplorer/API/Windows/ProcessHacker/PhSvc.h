@@ -47,9 +47,9 @@ extern GUID RpcInterfaceEventGuid;
 extern GUID NamedPipeEventGuid;
 extern GUID SubTypeUnknownGuid; // dummy
 
-// todo: add count
 extern TYPE_ENTRY TypeEntries[];
 extern SUBTYPE_ENTRY SubTypeEntries[];
+extern const int SubTypeEntryCount;
 
 PPH_STRING EspLookupEtwPublisherName(
 	_In_ PGUID Guid

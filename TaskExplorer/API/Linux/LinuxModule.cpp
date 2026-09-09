@@ -63,5 +63,5 @@ bool CLinuxModule::InitStaticData(const QString& FileName, quint64 BaseAddress, 
 STATUS CLinuxModule::Unload(bool bForce)
 {
 	// Would require ptrace-injecting a dlclose() into the target.
-	return ERR(tr("Unloading a module from a running process is not supported on Linux."));
+	return ERR(TE_UnloadingModuleRunning);
 }

@@ -13,11 +13,11 @@
 #include "stdafx.h"
 #include "../../../MiscHelpers/Common/Settings.h"
 #include "../../../MiscHelpers/Common/Common.h"
-#include "../../../MiscHelpers/Common/ProgressDialog.h"
 #include "../../../MiscHelpers/Archive/Archive.h"
-#include "../GUI/TaskExplorer.h"
 #include "ProcessHacker.h"
+#include "WinHelper.h"
 #include <kphmsgdyn.h>
+#include <sistatus.h>
 extern "C" {
 #include <kphdyndata.h>
 }
@@ -170,15 +170,53 @@ typedef NTSTATUS (*P_NtMapViewOfSection)(
 
 P_NtMapViewOfSection NtMapViewOfSectionTramp = NULL;
 
-bool IsMemoryReadable(PVOID Address)
+//
+// Whether a view NtMapViewOfSection has just reported as mapped is really there.
+//
+// The question is whether the mapping still *exists*, not whether the memory can
+// be read this instant - see MyMapViewOfSection for what this guards against.
+// Three things the older test got wrong, each of which denied a legitimate map:
+//
+//  - A reserved view is legitimate, and is the common case for anything that
+//    commits as it goes. RtlCreateQueryDebugBuffer maps its buffer reserved and
+//    commits pages on demand - that is what its MaximumCommit argument means -
+//    and MEMORY_BASIC_INFORMATION::Protect is documented as meaningful only for
+//    MEM_COMMIT, reading back as zero for everything else. Calling that
+//    unreadable turned every heap query in this process into ACCESS_DENIED.
+//
+//  - Copy on write is readable. PAGE_WRITECOPY and PAGE_EXECUTE_WRITECOPY are
+//    how image sections are ordinarily mapped, and neither was in the test.
+//
+//  - The protection word carries modifier bits - PAGE_GUARD, PAGE_NOCACHE,
+//    PAGE_WRITECOMBINE - which have to come off before it is compared, and the
+//    old bitwise test would also have accepted anything that merely happened to
+//    share a bit with one of the four values it listed.
+//
+bool IsMappingPresent(PVOID Address)
 {
 	MEMORY_BASIC_INFORMATION mbi;
 	if (VirtualQuery(Address, &mbi, sizeof(mbi)) == 0)
-		return false;
+		return false;	// no such region at all
 
-	if (mbi.Protect & (PAGE_READONLY | PAGE_READWRITE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE))
+	//
+	// Free is the one that matters: it is what the address looks like after the
+	// driver has unmapped the section behind our back.
+	//
+	if (mbi.State == MEM_FREE)
+		return false;
+	if (mbi.State == MEM_RESERVE)
 		return true;
 
+	switch (mbi.Protect & ~(PAGE_GUARD | PAGE_NOCACHE | PAGE_WRITECOMBINE))
+	{
+	case PAGE_READONLY:
+	case PAGE_READWRITE:
+	case PAGE_WRITECOPY:
+	case PAGE_EXECUTE_READ:
+	case PAGE_EXECUTE_READWRITE:
+	case PAGE_EXECUTE_WRITECOPY:
+		return true;
+	}
 	return false;
 }
 
@@ -195,9 +233,16 @@ NTSTATUS NTAPI MyMapViewOfSection(
 	IN  ULONG Protect)
 {
 	NTSTATUS status = NtMapViewOfSectionTramp(SectionHandle, ProcessHandle, BaseAddress, ZeroBits, CommitSize, SectionOffset, ViewSize, InheritDisposition, AllocationType, Protect);
-	if (NT_SUCCESS(status) && !g_MyCrashHandlerExceptionFilter_Engaged)
+
+	//
+	// Only for a view mapped into *this* process. VirtualQuery answers about the
+	// caller's address space and nothing else, so for any other process it would
+	// be reading an unrelated address of our own and judging the map by it.
+	//
+	if (NT_SUCCESS(status) && !g_MyCrashHandlerExceptionFilter_Engaged
+		&& ProcessHandle == NtCurrentProcess())
 	{
-		if (BaseAddress && *BaseAddress && !IsMemoryReadable(*BaseAddress))
+		if (BaseAddress && *BaseAddress && !IsMappingPresent(*BaseAddress))
 		{
 			DbgPrint("MyMapViewOfSection: Invalid BaseAddress: %p", *BaseAddress);
 			status = STATUS_ACCESS_DENIED;
@@ -252,6 +297,11 @@ int InitPH()
 	return 0;
 }
 
+//
+// Defined in SystemAPI.cpp - see TeProcessBlockingAllowed there.
+//
+extern bool TeProcessBlockingAllowed();
+
 bool (*g_KernelProcessMonitor)(quint64 ProcessId, quint64 ParentId, const QString& FileName, const QString& CommandLine) = NULL;
 
 void (*g_KernelDebugLogger)(const QString& Output) = NULL;
@@ -299,12 +349,21 @@ static VOID NTAPI KsiCommsCallback(
 				if (NT_SUCCESS(KphMsgDynGetUnicodeString(Message, KphMsgFieldCommandLine, &commandLine)))
 					CommandLine = QString::fromWCharArray(commandLine.Buffer, commandLine.Length / sizeof(wchar_t));
 
-				msg->Reply.ProcessCreate.CreationStatus = g_KernelProcessMonitor(ProcessId, ParentId, FileName, CommandLine) ? STATUS_SUCCESS : STATUS_ACCESS_DENIED;
+				//
+				// The verdict is only asked for where this process is the gate. Where
+				// it is not, the callback still runs - it is what records the new
+				// process with its command line - and whatever it would have refused
+				// is not acted on, because nothing is waiting to hear it.
+				//
+				const bool bAllow = g_KernelProcessMonitor(ProcessId, ParentId, FileName, CommandLine);
+				msg->Reply.ProcessCreate.CreationStatus =
+					(bAllow || !TeProcessBlockingAllowed()) ? STATUS_SUCCESS : STATUS_ACCESS_DENIED;
 			}
 			else
 				msg->Reply.ProcessCreate.CreationStatus = STATUS_SUCCESS;
-			
-			KphCommsReplyMessage(ReplyToken, msg);
+
+			if (TeProcessBlockingAllowed())
+				KphCommsReplyMessage(ReplyToken, msg);
 
 			PhDereferenceObject(msg);
 
@@ -468,8 +527,25 @@ VOID PhInformerActivate(
 	// Enable process creation monitoring if requested
 	if (g_MonitorSystem)
 	{
-		settings.Options.EnableProcessCreateReply = TRUE;	// Enable process creation reply to allow blocking if needed
 		settings.Policy[KPH_INFORMER_INDEX(ProcessCreate)] = KPH_RATE_LIMIT_UNLIMITED;
+
+		//
+		// Being told, and being asked, are two settings and only one of them is
+		// ours to take for granted.
+		//
+		// The events above are an observation: the driver reports a process
+		// creation and carries the image path and command line with it, which
+		// is the earliest and most reliable place to read either - by the time
+		// a poll notices the process, both can already have been changed.
+		//
+		// EnableProcessCreateReply is the other thing. With it the driver stops
+		// the creation and waits for this process to answer, and takes a refusal
+		// as one. That makes every program start on the machine depend on this
+		// one being alive and prompt, which is a claim over the computer rather
+		// than a view of it - so it is asked for, not assumed. See
+		// CSystemAPI::ProcessBlockingAllowed and DRIVER-EXPOSURE.md.
+		//
+		settings.Options.EnableProcessCreateReply = TeProcessBlockingAllowed() ? TRUE : FALSE;
 	}
 	else
 	{
@@ -852,12 +928,12 @@ STATUS KsiActivateDynData(const QString& FileName, _In_ KPH_LEVEL Level)
 
 	status = KsiGetDynData(Split2(FileName, "\\", true).first, &dynData, &dynDataLength, &signature, &signatureLength);
 	if (!NT_SUCCESS(status))
-		Status = ERR("Unsupported windows version.", STATUS_UNKNOWN_REVISION);
+		Status = ERR(TE_UnsupportedWindowsVersion, STATUS_UNKNOWN_REVISION);
 	else
 	{
 		status = KphActivateDynData(dynData, dynDataLength, signature, signatureLength);
 		if (!NT_SUCCESS(status))
-			Status = ERR("KphActivateDynData Failed.", status);
+			Status = ERR(TE_DriverActivateFailed, status);
 		else
 			g_KsiDynDataLoaded = true;
 	}
@@ -868,6 +944,26 @@ STATUS KsiActivateDynData(const QString& FileName, _In_ KPH_LEVEL Level)
 		PhFree(dynData);
 
 	return Status;
+}
+
+//
+// Where the driver file for this machine lives. InitKSI, the driver window and
+// the DynData update all used to work this out for themselves.
+//
+QString KsiGetDriverPath(const QString& AppDir)
+{
+	QString FileName = theConf->GetString("OptionsKSI/FileName", "KTaskExplorer.sys");
+
+	// if the file name is not a full path add the application directory
+	if (!FileName.contains("\\"))
+	{
+		if (IsOnARM64())
+			FileName = AppDir + "\\ARM64\\" + FileName;
+		else
+			FileName = AppDir + "\\AMD64\\" + FileName;
+	}
+
+	return FileName.replace("/", "\\");
 }
 
 STATUS InitKSI(const QString& AppDir)
@@ -882,24 +978,15 @@ STATUS InitKSI(const QString& AppDir)
 	KsiEnableLoadNative = theConf->GetBool("OptionsKSI/EnableLoadNative", false);
 	KsiEnableLoadFilter = theConf->GetBool("OptionsKSI/EnableLoadFilter", false);
 
-	// if the file name is not a full path Add the application directory
-	if (!FileName.contains("\\")) 
-	{
-		if (IsOnARM64())
-			FileName = AppDir + "\\ARM64\\" + FileName;
-		else
-			FileName = AppDir + "\\AMD64\\" + FileName;
-	}
-
-	FileName = FileName.replace("/", "\\");
+	FileName = KsiGetDriverPath(AppDir);
 	if (!QFile::exists(FileName))
-		return ERR(QObject::tr("The kernel driver file '%1' was not found.").arg(FileName), STATUS_NOT_FOUND);
+		return ERR(TE_KernelDriverFile, QVariantList() << FileName, STATUS_NOT_FOUND);
 
 	if (!PhGetOwnTokenAttributes().Elevated)
-		return ERR("Driver required administrative privileges.", STATUS_ELEVATION_REQUIRED);
+		return ERR(TE_DriverNeedsAdmin, STATUS_ELEVATION_REQUIRED);
 
 	if(PhIsExecutingInWow64())
-		return ERR("Driver only supports 64 bit.", STATUS_IMAGE_MACHINE_TYPE_MISMATCH);
+		return ERR(TE_DriverOnly64Bit, STATUS_IMAGE_MACHINE_TYPE_MISMATCH);
 
 	NTSTATUS status;
 
@@ -1034,12 +1121,12 @@ STATUS InitKSI(const QString& AppDir)
 
 	if (status == STATUS_SI_KSIDLL_VERSION_MISMATCH || status == STATUS_PROCEDURE_NOT_FOUND)
 	{
-		Status = ERR("The last System Informer update requires a reboot.", status);
+		Status = ERR(TE_DriverNeedsReboot, status);
 		goto CleanupExit;
 	}
 
 	if (!NT_SUCCESS(status)) {
-		Status = ERR("KphConnect Failed.", status);
+		Status = ERR(TE_DriverConnectFailed, status);
 		goto CleanupExit;
 	}
 	
@@ -1072,7 +1159,7 @@ STATUS InitKSI(const QString& AppDir)
 
 	if (level != KphLevelMax)
 	{
-		Status = ERR(QString("Unable to access the kernel driver: %1.").arg(Info.join(", ")), STATUS_ACCESS_DENIED);
+		Status = ERR(TE_Generic, QVariantList() << QString("Unable to access the kernel driver: %1.").arg(Info.join(", ")), STATUS_ACCESS_DENIED);
 
 		if (config.Flags.AllowDebugging || !NtCurrentPeb()->BeingDebugged)
 		{
@@ -1089,7 +1176,7 @@ STATUS InitKSI(const QString& AppDir)
 			}
 
 			if (!NT_SUCCESS(status))
-				Status = ERR("PhRestartSelf failed.", STATUS_ACCESS_DENIED);
+				Status = ERR(TE_RestartSelfFailed, STATUS_ACCESS_DENIED);
 		}
 	}
 
@@ -1158,7 +1245,7 @@ STATUS CleanupKSI()
 		ULONG clientCount;
 
 		if (!NT_SUCCESS(status = KphGetConnectedClientCount(&clientCount)))
-			return status;
+			return CStatus::Native(status);
 
 		shouldUnload = (clientCount == 1);
 	}
@@ -1186,174 +1273,8 @@ STATUS CleanupKSI()
 	}
 
 	if(!NT_SUCCESS(status))
-		return ERR("KphServiceStop Failed.", status);
+		return ERR(TE_DriverServiceStopFailed, status);
 	return OK;
-}
-
-STATUS TryUpdateDynData(const QString& AppDir)
-{
-	STATUS Status;
-
-	CProgressDialog Progress(CTaskExplorer::tr("Updating DynData"));
-	QNetworkAccessManager Manager;
-
-	QString Folder = theConf->GetConfigDir() + "\\Temp";
-	QDir().mkpath(Folder);
-
-	auto FailWithMessage = [&](const QString& Message) {
-		Status = ERR(Message, STATUS_UNSUCCESSFUL);
-		Progress.ShowProgress(Message);
-		QTimer::singleShot(3000, [&] {Progress.close();});
-	};
-
-	auto ApplyUpdate = [&](const QString& FileName){
-
-		CArchive Archive(FileName);
-
-		if (Archive.Open() != ERR_7Z_OK) {
-			FailWithMessage(CTaskExplorer::tr("Failed to open archive."));
-			return;
-		}
-
-		bool IsBoxArchive = false;
-
-		QMap<int, QIODevice*> Files;
-
-		int bin = Archive.FindByPath(IsOnARM64() ? "arm64/ksidyn.bin" : "amd64/ksidyn.bin");
-		int sig = Archive.FindByPath(IsOnARM64() ? "arm64/ksidyn.sig" : "amd64/ksidyn.sig");
-
-		if (bin == -1 || sig == -1) {
-			FailWithMessage(CTaskExplorer::tr("DynData not found in archive."));
-//#ifndef _DEBUG
-			QFile::remove(FileName);
-//#endif
-			return;
-		}
-
-		QString DrvPath;
-		QString DrvFileName = theConf->GetString("OptionsKSI/FileName", "KTaskExplorer.sys");
-		if (DrvFileName.contains("\\")) 
-			DrvPath = Split2(DrvFileName, "\\", true).first;
-		else if (IsOnARM64())
-			DrvPath = AppDir + "\\ARM64";
-		else
-			DrvPath = AppDir + "\\AMD64";
-
-		Files.insert(bin, new QFile(DrvPath + "\\ksidyn.bin.tmp"));
-		Files.insert(sig, new QFile(DrvPath + "\\ksidyn.sig.tmp"));
-
-		if (!Archive.Extract(&Files)) {
-			FailWithMessage(CTaskExplorer::tr("Failed to extreact files."));
-//#ifndef _DEBUG
-			QFile::remove(FileName);
-//#endif
-			return;
-		}
-
-//#ifndef _DEBUG
-		QFile::remove(FileName);
-//#endif
-
-
-		QFile::remove(DrvPath + "\\ksidyn.bin.bak");
-		QFile::remove(DrvPath + "\\ksidyn.sig.bak");
-
-		QFile::rename(DrvPath + "\\ksidyn.bin", DrvPath + "\\ksidyn.bin.bak");
-		QFile::rename(DrvPath + "\\ksidyn.sig", DrvPath + "\\ksidyn.sig.bak");
-
-		QFile::rename(DrvPath + "\\ksidyn.bin.tmp", DrvPath + "\\ksidyn.bin");
-		QFile::rename(DrvPath + "\\ksidyn.sig.tmp", DrvPath + "\\ksidyn.sig");
-
-		Archive.Close(); Progress.ShowProgress(CTaskExplorer::tr("Updated DynData successfully"));
-		QTimer::singleShot(3000, [&] {Progress.close(); });
-	};
-
-	QScopedPointer<QNetworkReply> DlReply;
-	auto DownloadSI = [&](const QString& sUrl) {
-
-		QUrl DlUrl(sUrl);
-
-		QString FileName = Folder + "\\" + DlUrl.fileName();
-
-		if (QFile::exists(FileName)) {
-//#ifdef _DEBUG
-//			Progress.OnProgressMessage(CTaskExplorer::tr("Latest SI build already downloaded"));
-//			ApplyUpdate(FileName);
-//			return;
-//#else
-			QFile::remove(FileName);
-//#endif
-		}
-
-		QNetworkRequest DlRequest(DlUrl);
-		DlRequest.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
-
-		DlReply.reset(Manager.get(DlRequest));
-
-		QObject::connect(DlReply.data(), &QNetworkReply::downloadProgress, &Manager, [&](qint64 bytes, qint64 bytesTotal) {
-			if (bytesTotal != 0)
-				Progress.ShowProgress(CTaskExplorer::tr("Downloading latest SI build"), 100 * bytes / bytesTotal);
-		});
-
-		QObject::connect(DlReply.data(), &QNetworkReply::finished, &Manager, [&, FileName]() {
-
-			if (DlReply->error() != QNetworkReply::NoError) {
-				QString Error = DlReply->errorString();
-				FailWithMessage(CTaskExplorer::tr("Download Failed, Error: %1").arg(Error));
-				return;
-			}
-
-			QFile File(FileName);
-			if (!File.open(QIODevice::WriteOnly)) {
-				FailWithMessage(CTaskExplorer::tr("Failed to open file for writing."));
-				return;
-			}
-			File.write(DlReply->readAll());
-			File.close();
-
-			Progress.ShowProgress(CTaskExplorer::tr("Successfully Downloaded latest SI build"));
-			ApplyUpdate(FileName);
-		});
-	};
-
-	QScopedPointer<QNetworkReply> Reply;
-	auto GetUpdate = [&](){
-
-		QString sUrl = theConf->GetString("OptionsKSI/SIUpdateUrl", "https://systeminformer.dev/update?channel=canary");
-		
-		QUrl Url(sUrl);
-		
-		QNetworkRequest Request(Url);
-		Request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
-
-		Reply.reset(Manager.get(Request));
-
-		QObject::connect(Reply.data(), &QNetworkReply::finished, &Manager, [&]() {
-
-			if (Reply->error() != QNetworkReply::NoError) {
-				QString Error = Reply->errorString();
-				FailWithMessage(CTaskExplorer::tr("Update Check Failed, Error: %1").arg(Error));
-				return;
-			}
-			//QString Location = Reply->header(QNetworkRequest::LocationHeader).toString();
-
-			QByteArray Json = Reply->readAll();
-			QVariantMap Data = QJsonDocument::fromJson(Json).toVariant().toMap();
-			QString BinUrl = Data["bin_url"].toString();
-			if (BinUrl.isEmpty()) {
-				FailWithMessage(CTaskExplorer::tr("Update Check Failed, Error: Unrecognized Reply"));
-				return;
-			}
-
-			DownloadSI(BinUrl);
-		});
-	};
-
-	GetUpdate();
-
-	Progress.exec();
-
-	return Status;
 }
 
 static PPH_STRING KsiKernelFileName = NULL;
@@ -1432,47 +1353,7 @@ PPH_STRING KsiGetKernelVersionString(VOID)
 	return NULL;
 }
 
-void PhShowAbout(QWidget* parent)
-{
-		QString AboutCaption = QString(
-			"<h3>System Informer</h3>"
-			"<p>Licensed Under the MIT License</p>"
-			"<p>Copyright (c) 2022</p>"
-		);
-		QString AboutText = QString(
-                "<p>Thanks to:<br>"
-                "    <a href=\"https://github.com/wj32\">wj32</a> - Wen Jia Liu<br>"
-                "    <a href=\"https://github.com/dmex\">dmex</a> - Steven G<br>"
-                "    <a href=\"https://github.com/jxy-s\">jxy-s</a> - Johnny Shaw<br>"
-                "    <a href=\"https://github.com/ionescu007\">ionescu007</a> - Alex Ionescu<br>"
-                "    <a href=\"https://github.com/yardenshafir\">yardenshafir</a> - Yarden Shafir<br>"
-                "    <a href=\"https://github.com/winsiderss/systeminformer/graphs/contributors\">Contributors</a> - thank you for your additions!<br>"
-                "    Donors - thank you for your support!</p>"
-                "<p>System Informer uses the following components:<br>"
-                "    <a href=\"https://github.com/michaelrsweet/mxml\">Mini-XML</a> by Michael Sweet<br>"
-                "    <a href=\"https://www.pcre.org\">PCRE</a><br>"
-                "    <a href=\"https://github.com/json-c/json-c\">json-c</a><br>"
-                "    MD5 code by Jouni Malinen<br>"
-                "    SHA1 code by Filip Navara, based on code by Steve Reid<br>"
-                "    <a href=\"http://www.famfamfam.com/lab/icons/silk\">Silk icons</a><br>"
-                "    <a href=\"https://www.fatcow.com/free-icons\">Farm-fresh web icons</a><br></p>"
-			"<p></p>"
-			"<p>Visit <a href=\"https://github.com/winsiderss/systeminformer\">System Informer on github</a> for more information.</p>"
-		);
-		QMessageBox *msgBox = new QMessageBox(parent);
-		msgBox->setAttribute(Qt::WA_DeleteOnClose);
-		msgBox->setWindowTitle(QString("About ProcessHacker Library"));
-		msgBox->setText(AboutCaption);
-		msgBox->setInformativeText(AboutText);
 
-		QIcon ico(QLatin1String(":/ProcessHacker.png"));
-		msgBox->setIconPixmap(ico.pixmap(64, 64));
-#if defined(Q_WS_WINCE)
-		msgBox->setDefaultButton(msgBox->addButton(QMessageBox::Ok));
-#endif
-		
-		msgBox->exec();
-}
 
 extern "C" {
 	VOID NTAPI PhAddDefaultSettings()
@@ -1484,3 +1365,145 @@ extern "C" {
 	}
 }
 
+
+bool IsRunningUnderWow64()
+{
+	return PhIsExecutingInWow64() ? true : false;
+}
+
+quint32 GetWindowsVersion()
+{
+	return (quint32)WindowsVersion;
+}
+
+QString GetNtStatusMessage(quint32 Status)
+{
+	return CastPhString(PhGetNtMessage((NTSTATUS)Status));
+}
+
+QString GetKernelVersionString()
+{
+	return CastPhString(KsiGetKernelVersionString());
+}
+
+int InitNativeApi()
+{
+	return InitPH();
+}
+
+void SetKernelDriverStartup(bool Max, bool High)
+{
+	g_KphStartupMax = Max ? TRUE : FALSE;
+	g_KphStartupHigh = High ? TRUE : FALSE;
+}
+
+STATUS LoadKernelDriver(const QString& AppDir)
+{
+	return InitKSI(AppDir);
+}
+
+//
+// Asked of the service manager, not of the driver.
+//
+// KphConnect would answer too, and answering it is the thing that must not
+// happen yet: connecting is what loads the driver, and the whole point of this
+// question is to know the state *before* anything loads anything.
+//
+bool IsKernelDriverRunning()
+{
+	const QString ServiceName = theConf->GetString("OptionsKSI/DeviceName", "KTaskExplorer");
+
+	SC_HANDLE hManager = OpenSCManagerW(NULL, NULL, SC_MANAGER_CONNECT);
+	if (!hManager)
+		return false;
+
+	const std::wstring Name = ServiceName.toStdWString();
+	SC_HANDLE hService = OpenServiceW(hManager, Name.c_str(), SERVICE_QUERY_STATUS);
+	if (!hService)
+	{
+		CloseServiceHandle(hManager);
+		return false;
+	}
+
+	SERVICE_STATUS Status = {};
+	const bool bRunning = QueryServiceStatus(hService, &Status)
+		&& Status.dwCurrentState == SERVICE_RUNNING;
+
+	CloseServiceHandle(hService);
+	CloseServiceHandle(hManager);
+	return bRunning;
+}
+
+int GetKernelDriverLevel()
+{
+	//
+	// Plain numbers rather than CProcessInfo::EKphLevel, which this file cannot
+	// see: it is the phlib side of the wall and including the object model here
+	// would be the wrong direction. They are the same numbers - the header says
+	// which enum to read them as, and the static_asserts there would be the
+	// place to nail it down if the two ever drift.
+	//
+	switch (KsiLevel())
+	{
+	case KphLevelMin:	return 1;
+	case KphLevelLow:	return 2;
+	case KphLevelMed:	return 3;
+	case KphLevelHigh:	return 4;
+	case KphLevelMax:	return 5;
+	default:			return 0;
+	}
+}
+
+STATUS UnloadKernelDriver()
+{
+	return CleanupKSI();
+}
+
+bool IsUnsupportedKernel(quint32 Status)
+{
+	return Status == STATUS_SI_DYNDATA_UNSUPPORTED_KERNEL
+		|| Status == STATUS_UNKNOWN_REVISION;
+}
+
+void EnableServicePrivileges()
+{
+	HANDLE tokenHandle;
+	if (!NT_SUCCESS(PhOpenProcessToken(NtCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &tokenHandle)))
+		return;
+
+	PhSetTokenPrivilege2(tokenHandle, SE_ASSIGNPRIMARYTOKEN_PRIVILEGE, SE_PRIVILEGE_ENABLED);
+	PhSetTokenPrivilege2(tokenHandle, SE_INCREASE_QUOTA_PRIVILEGE, SE_PRIVILEGE_ENABLED);
+	PhSetTokenPrivilege2(tokenHandle, SE_BACKUP_PRIVILEGE, SE_PRIVILEGE_ENABLED);
+	PhSetTokenPrivilege2(tokenHandle, SE_RESTORE_PRIVILEGE, SE_PRIVILEGE_ENABLED);
+	PhSetTokenPrivilege2(tokenHandle, SE_IMPERSONATE_PRIVILEGE, SE_PRIVILEGE_ENABLED);
+
+	NtClose(tokenHandle);
+}
+
+void SetOwnProcessPriority()
+{
+	PhSetProcessPriorityClass(NtCurrentProcess(), PROCESS_PRIORITY_CLASS_ABOVE_NORMAL);
+	PhSetProcessPagePriority(NtCurrentProcess(), MEMORY_PRIORITY_NORMAL);
+	PhSetProcessIoPriority(NtCurrentProcess(), IoPriorityNormal);
+}
+
+void SetSystemDpiAware()
+{
+	typedef DPI_AWARENESS_CONTEXT(WINAPI* P_SetThreadDpiAwarenessContext)(DPI_AWARENESS_CONTEXT dpiContext);
+	P_SetThreadDpiAwarenessContext pSetThreadDpiAwarenessContext =
+		(P_SetThreadDpiAwarenessContext)GetProcAddress(GetModuleHandleW(L"user32.dll"), "SetThreadDpiAwarenessContext");
+
+	if (pSetThreadDpiAwarenessContext) // not present on windows 7
+		pSetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_SYSTEM_AWARE);
+	else
+		SetProcessDPIAware();
+}
+
+//
+// The wording for a native status, produced on the machine that produced the
+// status - see CStatus. Nothing else can say what an NTSTATUS means.
+//
+QString FormatNativeStatus(long Status)
+{
+	return CastPhString(PhGetStatusMessage((NTSTATUS)Status, 0));
+}

@@ -2,9 +2,6 @@
 #include "../TaskExplorer.h"
 #include "RpcModel.h"
 #include "../../../MiscHelpers/Common/Common.h"
-#ifdef WIN32
-#include "../../API/Windows/WinDriver.h"
-#endif
 
 CRpcModel::CRpcModel(QObject *parent)
 :CListItemModel(parent)

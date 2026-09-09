@@ -1,7 +1,10 @@
 #include "stdafx.h"
 #include "WindowsAPI.h"
+#include "../../SVC/WndAgents.h"
 #include "ProcessHacker.h"
+#include "ProcessHacker/appsup.h"   // PhShellExecuteUserString
 #include "ProcessHacker/pooltable.h"
+#include "ProcessHacker/RunAs.h"    // SelectedRunAsMode
 #include "ProcessHacker/syssccpu.h"
 #include "WinHandle.h"
 #include <lm.h>
@@ -156,15 +159,20 @@ CWindowsAPI::CWindowsAPI(QObject *parent) : CSystemAPI(parent)
 	m = new SWindowsAPI();
 }
 
+//
+// Driver callback, so it has no object and no this: whatever the kernel
+// reports happened on the machine this code is running on, which is what
+// theSystem means inside a core.
+//
 bool KernelProcessMonitor(quint64 ProcessId, quint64 ParentId, const QString& FileName, const QString& CommandLine)
 {
-	QSharedPointer<CWinProcess> pProcess = theAPI->GetProcessByID(ProcessId, true).staticCast<CWinProcess>();
+	QSharedPointer<CWinProcess> pProcess = theSystem->GetProcessByID(ProcessId, true).staticCast<CWinProcess>();
 	if (pProcess && !pProcess->IsFullyInitialized()) {
 		pProcess->SetParentId(ParentId);
 		pProcess->CloseHandle(); // close the handle such that we can re open it later and re scan teh process once its fully up
 	}
 
-	CPersistentPresetPtr PersistentPreset = theAPI->FindPersistentPreset(FileName, CommandLine);
+	CPersistentPresetPtr PersistentPreset = theSystem->FindPersistentPreset(FileName, CommandLine); // free callback: the kernel driver only reports the local machine
 	if (PersistentPreset) {
 		CPersistentPresetDataPtr Preset = PersistentPreset->GetData();
 		if (Preset->bTerminate)
@@ -290,12 +298,18 @@ bool CWindowsAPI::Init()
 	m_pDiskMonitor->Init();
 
 	m_pSymbolProvider = new CSymbolProvider();
+	//
+	// Relayed onto the API's own signal so the status bar does not have to know
+	// that a symbol provider exists, let alone reach through to it.
+	//
+	connect(m_pSymbolProvider, SIGNAL(StatusMessage(const QString&)), this, SIGNAL(StatusMessage(const QString&)));
 	m_pSymbolProvider->Init();
 
 	m_pSidResolver = new CSidResolver();
 	m_pSidResolver->Init();
 
 	m_pDnsResolver = new CDnsResolver();
+	m_pDnsResolver->SetSystem(sharedFromThis());
 	connect(m_pDnsResolver, SIGNAL(DnsCacheUpdated()), this, SIGNAL(DnsCacheUpdated()));
 	m_pDnsResolver->Init();
 
@@ -346,7 +360,7 @@ bool CWindowsAPI::Init()
 //			NtClose(ProcessHandle);
 //		else
 //		{
-//			Status = ERR(QObject::tr("Unable to access the kernel driver, Error: %1").arg(CastPhString(PhGetNtMessage(status))), status);
+//			Status = ERR(TE_AccessKernelDriver, QVariantList() << CastPhString(PhGetNtMessage(status)), status);
 //
 //			KphDisconnect();
 //		}
@@ -354,7 +368,7 @@ bool CWindowsAPI::Init()
 //
 //	m_uDriverStatus = Status.GetStatus();
 //	if (Status.IsError())
-//		qDebug() << Status.GetText();
+//		qDebug() << CTaskExplorer::FormatError(Status);
 //	else
 //	{
 //		ULONG Features = 0;
@@ -374,7 +388,7 @@ bool CWindowsAPI::Init()
 //
 //	ULONG Features = 0;
 //	if (Status.IsError())
-//		qDebug() << Status.GetText();
+//		qDebug() << CTaskExplorer::FormatError(Status);
 //	else
 //	{
 //		KshGetFeatures(&Features);
@@ -403,6 +417,599 @@ CWindowsAPI::~CWindowsAPI()
 	FreePoolTagDatabase(&m->PoolTableDB);
 
 	delete m;
+}
+
+void CWindowsAPI::GetSymbolFromAddress(quint64 ProcessId, quint64 Address, QObject* pReceiver, const char* pSlot)
+{
+	GetSymbolProvider()->GetSymbolFromAddress(ProcessId, Address, pReceiver, pSlot);
+}
+
+//
+// Machine-wide commands, moved down from CTaskExplorer's menu handlers.
+//
+#ifdef _DEBUG
+FORCEINLINE ULONG CWindowsAPI__ObjectTypeCount(_In_ PPH_OBJECT_TYPE ObjectType)
+{
+	PH_OBJECT_TYPE_INFORMATION info;
+	memset(&info, 0, sizeof(PH_OBJECT_TYPE_INFORMATION));
+	if (ObjectType) PhGetObjectTypeInformation(ObjectType, &info);
+	return info.NumberOfObjects;
+}
+#endif
+
+void CWindowsAPI::DumpObjectCounts() const
+{
+#ifdef _DEBUG
+	PH_STRING_BUILDER stringBuilder;
+	PhInitializeStringBuilder(&stringBuilder, 50);
+	PhAppendStringBuilder2(&stringBuilder, L"OBJECT INFORMATION\r\n");
+
+#define OBJECT_TYPE_COUNT(Type) PhAppendFormatStringBuilder(&stringBuilder, \
+    TEXT(#Type) L": %lu objects\r\n", CWindowsAPI__ObjectTypeCount(Type))
+
+	// ref
+	OBJECT_TYPE_COUNT(PhObjectTypeObject);
+
+	// basesup
+	OBJECT_TYPE_COUNT(PhStringType);
+	OBJECT_TYPE_COUNT(PhBytesType);
+	OBJECT_TYPE_COUNT(PhListType);
+	OBJECT_TYPE_COUNT(PhPointerListType);
+	OBJECT_TYPE_COUNT(PhHashtableType);
+	OBJECT_TYPE_COUNT(PhFileStreamType);
+
+	// ph
+	OBJECT_TYPE_COUNT(PhSymbolProviderType);
+
+#ifdef DEBUG
+	PhAppendStringBuilder2(&stringBuilder, L"STATISTIC INFORMATION\r\n");
+
+#define PRINT_STATISTIC(Name) PhAppendFormatStringBuilder(&stringBuilder, \
+    TEXT(#Name) L": %u\r\n", PhLibStatisticsBlock.Name)
+
+	PRINT_STATISTIC(BaseThreadsCreated);
+	PRINT_STATISTIC(BaseThreadsCreateFailed);
+	PRINT_STATISTIC(BaseStringBuildersCreated);
+	PRINT_STATISTIC(BaseStringBuildersResized);
+	PRINT_STATISTIC(RefObjectsCreated);
+	PRINT_STATISTIC(RefObjectsDestroyed);
+	PRINT_STATISTIC(RefObjectsAllocated);
+	PRINT_STATISTIC(RefObjectsFreed);
+	PRINT_STATISTIC(RefObjectsAllocatedFromSmallFreeList);
+	PRINT_STATISTIC(RefObjectsFreedToSmallFreeList);
+	PRINT_STATISTIC(RefObjectsAllocatedFromTypeFreeList);
+	PRINT_STATISTIC(RefObjectsFreedToTypeFreeList);
+	PRINT_STATISTIC(RefObjectsDeleteDeferred);
+	PRINT_STATISTIC(RefAutoPoolsCreated);
+	PRINT_STATISTIC(RefAutoPoolsDestroyed);
+	PRINT_STATISTIC(RefAutoPoolsDynamicAllocated);
+	PRINT_STATISTIC(RefAutoPoolsDynamicResized);
+	PRINT_STATISTIC(QlBlockSpins);
+	PRINT_STATISTIC(QlBlockWaits);
+	PRINT_STATISTIC(QlAcquireExclusiveBlocks);
+	PRINT_STATISTIC(QlAcquireSharedBlocks);
+	PRINT_STATISTIC(WqWorkQueueThreadsCreated);
+	PRINT_STATISTIC(WqWorkQueueThreadsCreateFailed);
+	PRINT_STATISTIC(WqWorkItemsQueued);
+#endif
+
+	DbgPrint(L"%s\n", CastPhString(PhFinalStringBuilderString(&stringBuilder)).utf16());
+#endif
+}
+
+STATUS CWindowsAPI::PowerAction(EPowerAction Action, bool bForce, int SoftForce)
+{
+	BOOL bSuccess = FALSE;
+
+	switch (Action)
+	{
+	case ePowerLock:		bSuccess = LockWorkStation(); break;
+	case ePowerLogOff:		bSuccess = ExitWindowsEx(EWX_LOGOFF, 0); break;
+	case ePowerSleep:		bSuccess = NT_SUCCESS(NtInitiatePowerAction(PowerActionSleep, PowerSystemSleeping1, 0, FALSE)); break;
+	case ePowerHibernate:	bSuccess = NT_SUCCESS(NtInitiatePowerAction(PowerActionHibernate, PowerSystemSleeping1, 0, FALSE)); break;
+	case ePowerRestartToOptions: bSuccess = ExitWindowsEx(EWX_REBOOT | EWX_BOOTOPTIONS, 0); break;
+	case ePowerHybridShutdown:	bSuccess = ExitWindowsEx(EWX_POWEROFF | EWX_HYBRID_SHUTDOWN, 0); break;
+
+	case ePowerRestart:
+		if (!bForce)
+			bSuccess = ExitWindowsEx(EWX_REBOOT, 0);
+		else switch (SoftForce)
+		{
+		// skip WM_QUERYENDSESSION - no effect when terminal services is enabled
+		case 1:  bSuccess = ExitWindowsEx(EWX_REBOOT | EWX_FORCE, 0); break;
+		// only terminate what stopped answering WM_QUERYENDSESSION / WM_ENDSESSION
+		case 2:  bSuccess = ExitWindowsEx(EWX_REBOOT | EWX_FORCEIFHUNG, 0); break;
+		default: bSuccess = NtShutdownSystem(ShutdownReboot); break;
+		}
+		break;
+
+	case ePowerShutdown:
+		// EWX_SHUTDOWN alone does not power off, so try the poweroff variant first
+		if (!bForce)
+			bSuccess = ExitWindowsEx(EWX_POWEROFF, 0) || ExitWindowsEx(EWX_SHUTDOWN, 0);
+		else switch (SoftForce)
+		{
+		case 1:  bSuccess = ExitWindowsEx(EWX_POWEROFF | EWX_FORCE, 0) || ExitWindowsEx(EWX_SHUTDOWN | EWX_FORCE, 0); break;
+		case 2:  bSuccess = ExitWindowsEx(EWX_POWEROFF | EWX_FORCEIFHUNG, 0) || ExitWindowsEx(EWX_SHUTDOWN | EWX_FORCEIFHUNG, 0); break;
+		default: bSuccess = NtShutdownSystem(ShutdownPowerOff); break;
+		}
+		break;
+	}
+
+	if (!bSuccess)
+		return ERR(TE_Generic, QVariantList() << CastPhString(PhGetWin32Message(GetLastError())), GetLastError());
+	return OK;
+}
+
+STATUS CWindowsAPI::MemoryCommand(EMemoryCommand Command)
+{
+	NTSTATUS status;
+
+	if (Command == eMemCombinePages)
+	{
+		MEMORY_COMBINE_INFORMATION_EX combineInfo = { 0 };
+		status = NtSetSystemInformation(SystemCombinePhysicalMemoryInformation, &combineInfo, sizeof(MEMORY_COMBINE_INFORMATION_EX));
+	}
+	else
+	{
+		SYSTEM_MEMORY_LIST_COMMAND command;
+		switch (Command)
+		{
+		case eMemFlushModifiedList:			command = MemoryFlushModifiedList; break;
+		case eMemPurgeStandbyList:			command = MemoryPurgeStandbyList; break;
+		case eMemPurgeLowPriorityStandby:	command = MemoryPurgeLowPriorityStandbyList; break;
+		default:							command = MemoryEmptyWorkingSets; break;
+		}
+
+		status = NtSetSystemInformation(SystemMemoryListInformation, &command, sizeof(SYSTEM_MEMORY_LIST_COMMAND));
+
+		// these need a privilege the GUI may not hold; the elevated worker does
+		if (status == STATUS_PRIVILEGE_NOT_HELD)
+		{
+			QString SocketName = CTaskService::RunWorker();
+			if (!SocketName.isEmpty())
+			{
+				QVariantMap Parameters;
+				Parameters["Command"] = (int)command;
+
+				QVariantMap Request;
+				Request["Command"] = "FreeMemory";
+				Request["Parameters"] = Parameters;
+
+				status = CTaskService::SendCommand(SocketName, Request).toInt();
+			}
+		}
+	}
+
+	if (!NT_SUCCESS(status))
+		return ERR(TE_MemoryOperation, status);
+	return OK;
+}
+
+STATUS CWindowsAPI::UserSessionAction(quint32 SessionId, EUserAction Action, const QString& Password)
+{
+	BOOLEAN bSuccess = FALSE;
+
+	switch (Action)
+	{
+	case eUserConnect:
+		bSuccess = WinStationConnectW(NULL, SessionId, LOGONID_CURRENT,
+			(wchar_t*)Password.toStdWString().c_str(), TRUE);
+		break;
+	case eUserDisconnect:
+		bSuccess = WinStationDisconnect(NULL, SessionId, FALSE);
+		break;
+	case eUserLogoff:
+		bSuccess = WinStationReset(NULL, SessionId, FALSE);
+		break;
+	}
+
+	if (!bSuccess)
+		return ERR(TE_Generic, QVariantList() << CastPhString(PhGetWin32Message(GetLastError())), GetLastError());
+	return OK;
+}
+
+bool CWindowsAPI::IsSystemMonitorOn() const
+{
+	return KphCommsIsConnected() && KphGetSystemMon();
+}
+
+STATUS CWindowsAPI::SetSystemMonitor(bool bEnable)
+{
+
+	if (!KphCommsIsConnected())
+		return ERR(TE_KernelDriverConnected);
+
+	KphSetSystemMon(bEnable);
+	return OK;
+}
+
+STATUS CWindowsAPI::ShowRunDialog(ERunDialogMode Mode)
+{
+	switch (Mode)
+	{
+	case eRunAsUser:				SelectedRunAsMode = RUNAS_MODE_ADMIN; break;
+	case eRunAsLimited:				SelectedRunAsMode = RUNAS_MODE_LIMITED; break;
+	case eRunAsTrustedInstaller:	SelectedRunAsMode = RUNAS_MODE_SYS; break;
+	default:						SelectedRunAsMode = 0; break;
+	}
+
+	PhShowRunFileDialog(PhMainWndHandle, NULL, NULL, NULL,
+		(PWSTR)L"Type the name of a program that will be opened as system with the TrustedInstaller token.", 0);
+	return OK;
+}
+
+STATUS CWindowsAPI::RestartElevated()
+{
+	//
+	// CStatus::Native is a bare platform failure: MH_Native carrying the wording
+	// produced here, because only this machine can say what an NTSTATUS means.
+	// The previous GetLastError() call read the error channel after
+	// PhShellProcessHackerEx had already made other calls on it.
+	//
+	NTSTATUS status = PhShellProcessHackerEx(NULL, NULL, (PWSTR)L"", SW_SHOW, PH_SHELL_EXECUTE_ADMIN, 0, 0, NULL);
+	if (status == STATUS_CANCELLED)
+		return ERR(TE_UserCanceled);	// the UAC prompt was refused
+	if (!NT_SUCCESS(status))
+		return CStatus::Native((long)status);
+	return OK;
+}
+
+static NTSTATUS NTAPI CWindowsAPI__OpenServiceControlManager(_Out_ PHANDLE Handle, _In_ ACCESS_MASK DesiredAccess, _In_opt_ PVOID Context)
+{
+	SC_HANDLE serviceHandle = OpenSCManager(NULL, NULL, DesiredAccess);
+	if (serviceHandle)
+	{
+		*Handle = serviceHandle;
+		return STATUS_SUCCESS;
+	}
+	return PhGetLastWin32ErrorAsNtStatus();
+}
+
+NTSTATUS NTAPI CWindowsAPI__OpenServiceControlManagerFwd(_Out_ PHANDLE Handle, _In_ ACCESS_MASK DesiredAccess, _In_opt_ PVOID Context)
+{
+	Q_UNUSED(Context);
+	return CWindowsAPI__OpenServiceControlManager(Handle, DesiredAccess, NULL);
+}
+
+bool CWindowsAPI::HandleNativeNotify(void* pHeader, qintptr* pResult)
+{
+	LRESULT ret;
+	if (!PhMwpOnNotify((NMHDR*)pHeader, &ret))
+		return false;
+	*pResult = (qintptr)ret;
+	return true;
+}
+
+CSystemAPI::EArchitecture CWindowsAPI::GetArchitecture() const
+{
+	if (IsOnARM64())
+		return eArchArm64;
+#ifdef _WIN64
+	return eArchAmd64;
+#else
+	return eArchX86;
+#endif
+}
+
+QString CWindowsAPI::GetStatusMessage(quint32 Status) const
+{
+	return CastPhString(PhGetNtMessage((NTSTATUS)Status));
+}
+
+//
+// Kernel driver status, moved down from CDriverWindow and the title bar.
+//
+CSystemAPI::SKernelDriver CWindowsAPI::GetKernelDriver() const
+{
+	SKernelDriver Info;
+
+	if (!KphCommsIsConnected())
+		return Info;
+
+	Info.Connected = true;
+	Info.DynDataLoaded = g_KsiDynDataLoaded;
+
+	switch (KphLevelEx(FALSE))
+	{
+	case KphLevelNone:	Info.Level = eKernelLevelNone; break;
+	case KphLevelMin:	Info.Level = eKernelLevelMin; break;
+	case KphLevelLow:	Info.Level = eKernelLevelLow; break;
+	case KphLevelMed:	Info.Level = eKernelLevelMed; break;
+	case KphLevelHigh:	Info.Level = eKernelLevelHigh; break;
+	case KphLevelMax:	Info.Level = eKernelLevelMax; break;
+	}
+
+	//
+	// The driver reports why it trusts us less than it could. Reported as flags;
+	// the view puts them into words.
+	//
+	KPH_PROCESS_STATE processState = KphGetCurrentProcessState();
+	if ((processState != 0) && (processState & KPH_PROCESS_STATE_MAXIMUM) != KPH_PROCESS_STATE_MAXIMUM)
+	{
+		if (!BooleanFlagOn(processState, KPH_PROCESS_SECURELY_CREATED))		Info.Weaknesses |= eKsiNotSecurelyCreated;
+		if (!BooleanFlagOn(processState, KPH_PROCESS_VERIFIED_PROCESS))		Info.Weaknesses |= eKsiUnverifiedImage;
+		if (!BooleanFlagOn(processState, KPH_PROCESS_PROTECTED_PROCESS))	Info.Weaknesses |= eKsiInactiveProtections;
+		if (!BooleanFlagOn(processState, KPH_PROCESS_NO_UNTRUSTED_IMAGES))	Info.Weaknesses |= eKsiUntrustedImages;
+		if (!BooleanFlagOn(processState, KPH_PROCESS_NOT_BEING_DEBUGGED))	Info.Weaknesses |= eKsiBeingDebugged;
+		if (!BooleanFlagOn(processState, KPH_PROCESS_NO_WRITABLE_FILE_OBJECT)) Info.Weaknesses |= eKsiWritableFileObject;
+		if (!BooleanFlagOn(processState, KPH_PROCESS_CREATE_NOTIFICATION))	Info.Weaknesses |= eKsiNoCreateNotification;
+		if ((processState & KPH_PROCESS_STATE_MINIMUM) != KPH_PROCESS_STATE_MINIMUM) Info.Weaknesses |= eKsiTamperedImage;
+	}
+
+	return Info;
+}
+
+STATUS CWindowsAPI::LoadDynData(const QString& DriverPath)
+{
+	// the caller passes the application directory; where the driver sits under it
+	// is the backend's business
+	return KsiActivateDynData(KsiGetDriverPath(DriverPath), KphLevelMax);
+}
+
+//
+// The object namespace, moved down from CNtObjectModel.
+//
+typedef struct _CWindowsAPI__DIR_ENUM_CONTEXT
+{
+	QList<CSystemAPI::SNtObject> FoundObjects;
+
+} CWindowsAPI__DIR_ENUM_CONTEXT, *PCWindowsAPI__DIR_ENUM_CONTEXT;
+
+static NTSTATUS NTAPI CWindowsAPI__EnumDirectoryObjectsCallback(_In_ HANDLE RootDirectory, _In_ PPH_STRINGREF Name, _In_ PPH_STRINGREF TypeName, _In_opt_ PVOID Context)
+{
+	PCWindowsAPI__DIR_ENUM_CONTEXT context = (PCWindowsAPI__DIR_ENUM_CONTEXT)Context;
+
+	CSystemAPI::SNtObject NtObject;
+	NtObject.Name = QString::fromWCharArray(Name->Buffer, Name->Length / sizeof(wchar_t));
+	NtObject.Type = QString::fromWCharArray(TypeName->Buffer, TypeName->Length / sizeof(wchar_t));
+	context->FoundObjects.append(NtObject);
+
+	return STATUS_SUCCESS;
+}
+
+QList<CSystemAPI::SNtObject> CWindowsAPI::EnumObjectDirectory(const QString& Path) const
+{
+	CWindowsAPI__DIR_ENUM_CONTEXT enumContext;
+
+	std::wstring Name = Path.toStdWString();
+
+	HANDLE directoryHandle;
+	OBJECT_ATTRIBUTES oa;
+	UNICODE_STRING name;
+	name.Buffer = (wchar_t*)Name.c_str();
+	name.Length = (USHORT)(Name.length() * sizeof(wchar_t));
+	name.MaximumLength = (USHORT)((Name.length() + 1) * sizeof(wchar_t));
+
+	InitializeObjectAttributes(&oa, &name, 0, NULL, NULL);
+
+	if (!NT_SUCCESS(NtOpenDirectoryObject(&directoryHandle, DIRECTORY_QUERY, &oa)))
+		return enumContext.FoundObjects;
+
+	PhEnumDirectoryObjects(directoryHandle, CWindowsAPI__EnumDirectoryObjectsCallback, &enumContext);
+
+	NtClose(directoryHandle);
+
+	return enumContext.FoundObjects;
+}
+
+//
+// The atom table, moved down from CAtomView - which read it through phlib
+// directly, so it could only ever have shown the local machine's.
+//
+static NTSTATUS CWindowsAPI__EnumAtomTable(PATOM_TABLE_INFORMATION* AtomTable)
+{
+	ULONG bufferSize = 0x1000;
+	PVOID buffer = PhAllocate(bufferSize);
+	memset(buffer, 0, bufferSize);
+
+	NTSTATUS status = NtQueryInformationAtom(RTL_ATOM_INVALID_ATOM, AtomTableInformation, buffer, bufferSize, &bufferSize);
+	if (!NT_SUCCESS(status))
+	{
+		PhFree(buffer);
+		return status;
+	}
+
+	*AtomTable = (PATOM_TABLE_INFORMATION)buffer;
+	return status;
+}
+
+static NTSTATUS CWindowsAPI__QueryAtom(RTL_ATOM Atom, PATOM_BASIC_INFORMATION* AtomInfo)
+{
+	ULONG bufferSize = 0x1000;
+	PVOID buffer = PhAllocate(bufferSize);
+	memset(buffer, 0, bufferSize);
+
+	NTSTATUS status = NtQueryInformationAtom(Atom, AtomBasicInformation, buffer, bufferSize, &bufferSize);
+	if (!NT_SUCCESS(status))
+	{
+		PhFree(buffer);
+		return status;
+	}
+
+	*AtomInfo = (PATOM_BASIC_INFORMATION)buffer;
+	return status;
+}
+
+QList<CSystemAPI::SAtom> CWindowsAPI::GetAtomTable() const
+{
+	QList<SAtom> Atoms;
+
+	PATOM_TABLE_INFORMATION atomTable = NULL;
+	if (!NT_SUCCESS(CWindowsAPI__EnumAtomTable(&atomTable)))
+		return Atoms;
+
+	for (ULONG i = 0; i < atomTable->NumberOfAtoms; i++)
+	{
+		SAtom Atom;
+		Atom.Id = atomTable->Atoms[i];
+
+		PATOM_BASIC_INFORMATION atomInfo = NULL;
+		if (!NT_SUCCESS(CWindowsAPI__QueryAtom(atomTable->Atoms[i], &atomInfo)))
+		{
+			Atom.Unreadable = true;
+		}
+		else
+		{
+			Atom.Name = QString::fromWCharArray(atomInfo->Name);
+			Atom.RefCount = atomInfo->UsageCount;
+			Atom.Pinned = (atomInfo->Flags & RTL_ATOM_PINNED) == RTL_ATOM_PINNED;
+			PhFree(atomInfo);
+		}
+
+		Atoms.append(Atom);
+	}
+
+	PhFree(atomTable);
+	return Atoms;
+}
+
+STATUS CWindowsAPI::DeleteAtom(quint32 AtomId)
+{
+	//
+	// An atom lives until its usage count reaches zero, so one delete is rarely
+	// enough - loop until the entry is gone or stops responding.
+	//
+	NTSTATUS status = STATUS_SUCCESS;
+	for (;;)
+	{
+		status = NtDeleteAtom((RTL_ATOM)AtomId);
+		if (!NT_SUCCESS(status))
+			break;
+
+		PATOM_BASIC_INFORMATION atomInfo = NULL;
+		if (!NT_SUCCESS(CWindowsAPI__QueryAtom((RTL_ATOM)AtomId, &atomInfo)))
+			return OK; // gone
+
+		const USHORT UsageCount = atomInfo->UsageCount;
+		PhFree(atomInfo);
+
+		if (UsageCount < 1)
+			return OK;
+	}
+
+	return ERR(TE_DeleteAtom, status);
+}
+
+CSystemAPI::SMemoryList CWindowsAPI::GetMemoryList() const
+{
+	SMemoryList List;
+
+	SYSTEM_MEMORY_LIST_INFORMATION Info;
+	if (!NT_SUCCESS(NtQuerySystemInformation(SystemMemoryListInformation, &Info, sizeof(SYSTEM_MEMORY_LIST_INFORMATION), NULL)))
+		return List;
+
+	List.Available = true;
+	List.Zeroed = (quint64)Info.ZeroPageCount * PAGE_SIZE;
+	List.Free = (quint64)Info.FreePageCount * PAGE_SIZE;
+	List.Modified = (quint64)Info.ModifiedPageCount * PAGE_SIZE;
+	List.ModifiedNoWrite = (quint64)Info.ModifiedNoWritePageCount * PAGE_SIZE;
+	List.Bad = (quint64)Info.BadPageCount * PAGE_SIZE;
+	for (int i = 0; i < 8; i++)
+	{
+		List.StandbyByPriority[i] = (quint64)Info.PageCountByPriority[i] * PAGE_SIZE;
+		List.RepurposedByPriority[i] = (quint64)Info.RepurposedPagesByPriority[i] * PAGE_SIZE;
+	}
+	return List;
+}
+QList<CSystemAPI::SHandleType> CWindowsAPI::GetHandleTypes() const
+{
+	QList<SHandleType> Types;
+
+	POBJECT_TYPES_INFORMATION objectTypes;
+	if (NT_SUCCESS(PhEnumObjectTypes(&objectTypes)))
+	{
+		POBJECT_TYPE_INFORMATION objectType = (POBJECT_TYPE_INFORMATION)PH_FIRST_OBJECT_TYPE(objectTypes);
+		for (ULONG i = 0; i < objectTypes->NumberOfTypes; i++)
+		{
+			SHandleType Type;
+			Type.Name = QString::fromWCharArray(objectType->TypeName.Buffer, objectType->TypeName.Length / sizeof(wchar_t));
+			//
+			// Before 8.1 the table did not carry an index, so it is the
+			// position plus the two reserved entries.
+			//
+			Type.Index = (WindowsVersion >= WINDOWS_8_1) ? objectType->TypeIndex : (int)i + 2;
+			Types.append(Type);
+
+			objectType = (POBJECT_TYPE_INFORMATION)PH_NEXT_OBJECT_TYPE(objectType);
+		}
+		PhFree(objectTypes);
+	}
+
+	return Types;
+}
+
+//
+// The abstract mode bits happen to match CWinDbgMonitor's, so these are a
+// straight pass-through; kept explicit so the two can diverge later.
+//
+int CWindowsAPI::GetDebugMonitor() const
+{
+	return (int)const_cast<CWindowsAPI*>(this)->GetDbgMonitor();
+}
+
+STATUS CWindowsAPI::SetDebugMonitor(int Modes)
+{
+	return MonitorDbg((CWinDbgMonitor::EModes)Modes);
+}
+
+quint64 CWindowsAPI::GetKernelProcessId() const
+{
+	return (quint64)SYSTEM_PROCESS_ID;
+}
+
+void CWindowsAPI::GetAddressFromSymbol(quint64 ProcessId, const QString& Symbol, QObject* pReceiver, const char* pSlot)
+{
+	if (m_pSymbolProvider)
+		m_pSymbolProvider->GetAddressFromSymbol(ProcessId, Symbol, pReceiver, pSlot);
+}
+
+void CWindowsAPI::CancelSymbolJob(quint64 JobId)
+{
+	if (m_pSymbolProvider)
+		m_pSymbolProvider->CancelJob(JobId);
+}
+
+int CWindowsAPI::GetEtwHandleTypeIndex() const
+{
+	return g_EtwRegistrationTypeIndex == ULONG_MAX ? -1 : (int)g_EtwRegistrationTypeIndex;
+}
+
+int CWindowsAPI::GetFileHandleTypeIndex() const
+{
+	return g_fileObjectTypeIndex == ULONG_MAX ? -1 : (int)g_fileObjectTypeIndex;
+}
+
+quint64 CWindowsAPI::GetCpuTimeDivider() const
+{
+	return CPU_TIME_DIVIDER;
+}
+
+bool CWindowsAPI::HasCapability(ECapability Capability) const
+{
+	CWindowsAPI* This = const_cast<CWindowsAPI*>(this);
+	switch (Capability)
+	{
+	case eCapEtw:				return This->IsMonitoringETW();
+	case eCapExtProcInfo:		return This->HasExtProcInfo();
+	case eCapProcessFreeze:		return true;
+	case eCapKernelDriver:		return KphCommsIsConnected() ? true : false;
+	case eCapFirewallLog:		return This->IsMonitoringFW();
+	case eCapPoolTable:			return KphCommsIsConnected() ? true : false;
+	case eCapSandboxie:			return m_pSandboxieAPI != NULL;
+	case eCapSymbols:			return m_pSymbolProvider != NULL;
+	case eCapMemoryWrite:		return This->RootAvaiable();
+	case eCapProcessDump:		return true;
+	case eCapSecurityEditor:	return true;
+	//
+	// Reading an audit list needs SeSecurityPrivilege, which is only held
+	// when running elevated. Without it the open falls back to the access
+	// list alone, so the tab would be permanently empty.
+	//
+	case eCapAuditEditor:		return This->RootAvaiable();
+	case eCapCGroups:			return false;
+	default:					return CSystemAPI::HasCapability(Capability);
+	}
 }
 
 bool CWindowsAPI::RootAvaiable()
@@ -884,6 +1491,32 @@ bool CWindowsAPI::UpdateProcessList()
         m->DpcsProcessInformation.KernelTime = m->CpuTotals.DpcTime;
         m->InterruptsProcessInformation.KernelTime = m->CpuTotals.InterruptTime;
     }
+	//
+	// The two invented processes have no start time of their own - they are
+	// memset structures, so they claimed the epoch, and the Start Time column
+	// read 01.01.1970 while a viewer watching through a daemon showed nothing
+	// at all.
+	//
+	// Interrupts and DPCs have been serviced since the machine came up, so the
+	// boot instant is the honest answer.
+	//
+	// Taken from the System process rather than from
+	// SystemTimeOfDayInformation.BootTime, which is an absolute time but not
+	// this one: it is adjusted for the time the machine spent asleep, so that
+	// CurrentTime minus BootTime equals the uptime GetTickCount64 reports.
+	// After a night suspended it therefore names an instant the machine was
+	// not switched on at - measured here as 19:10 against a real boot of
+	// 09:04, ten hours of sleep apart.
+	//
+	// The System process is created at the real boot, is in the same units as
+	// every other CreateTime here and comes out of the same snapshot, so it
+	// costs nothing and cannot disagree with the rest of the list. Measured:
+	// 09:04:38 against a reported boot of 09:04:29.
+	//
+	// Once. A machine does not boot twice while this object lives.
+	//
+	bool bSetFakeCreateTime = !m->InterruptsProcessInformation.CreateTime.QuadPart;
+
 	float CpuStatsDPCUsage = 0;
 
 	quint32 newTotalProcesses = 0;
@@ -917,6 +1550,18 @@ bool CWindowsAPI::UpdateProcessList()
 	{
 		quint64 ProcessID = (quint64)process->UniqueProcessId;
 
+		//
+		// Passed on to the two invented processes below - see bSetFakeCreateTime.
+		// The System process is reached long before they are: they are appended
+		// after the real list has been walked.
+		//
+		if (bSetFakeCreateTime && ProcessID == (quint64)SYSTEM_PROCESS_ID && process->CreateTime.QuadPart)
+		{
+			m->DpcsProcessInformation.CreateTime = process->CreateTime;
+			m->InterruptsProcessInformation.CreateTime = process->CreateTime;
+			bSetFakeCreateTime = false;
+		}
+
 		SProcessUID UID(ProcessID, process->CreateTime.QuadPart);
 
 		// take all running processes out of the copyed std::map
@@ -929,6 +1574,7 @@ bool CWindowsAPI::UpdateProcessList()
 			if (pProcessRef.isNull()) // sometimes the proces was added already by sys mon or etw mon so only create one if non is listed
 			{
 				pProcessRef = QSharedPointer<CWinProcess>(new CWinProcess());
+				pProcessRef->SetSystem(sharedFromThis());
 				m_ProcessByPID[ProcessID] = pProcessRef;
 			}
 			pProcess = pProcessRef.staticCast<CWinProcess>();
@@ -1199,7 +1845,8 @@ QSharedPointer<CWinProcess> CWindowsAPI::TryAddProcessByID_NoLock(quint64 Proces
 		return pProcess;
 
 	pProcess = QSharedPointer<CWinProcess>(new CWinProcess());
-	pProcess->moveToThread(theAPI->thread());
+	pProcess->SetSystem(sharedFromThis());
+	pProcess->moveToThread(this->thread());
 	pProcess->InitStaticData(ProcessId);
 	//ASSERT(!m_ProcessList.contains(ProcessId)); 
 	m_ProcessMap.insert(SProcessUID(ProcessId, pProcess->GetRawCreateTime()), pProcess);
@@ -1244,6 +1891,13 @@ void CWindowsAPI__WndEnumProc(quint64 hWnd, /*quint64 hParent,*/ void* Param)
 
 quint32 CWindowsAPI::EnumWindows()
 {
+	//
+	// The desktops this process cannot stand on. Off unless switched on, and
+	// rate limited inside - see CWndAgents, which explains why a window list
+	// needs a process in the session to be enumerated at all.
+	//
+	CWndAgents::Instance()->Update();
+
 	CWindowsAPI__WndEnumStruct Context;
 	Context.OldWindows = m_WindowRevMap;
 
@@ -1342,12 +1996,13 @@ bool CWindowsAPI::UpdateSocketList()
 		if (I == OldSockets.constEnd())
 		{
 			pSocket = QSharedPointer<CWinSocket>(new CWinSocket());
+			pSocket->SetSystem(sharedFromThis());
 			bAdd = pSocket->InitStaticData((quint64)connections[i].ProcessId, (quint64)connections[i].ProtocolType, 
 				connections[i].LocalEndpoint.Address, connections[i].LocalEndpoint.Port, connections[i].RemoteEndpoint.Address, connections[i].RemoteEndpoint.Port);
 
 			if ((quint64)connections[i].ProcessId)
 			{
-				CProcessPtr pProcess = theAPI->GetProcessByID((quint64)connections[i].ProcessId, true); // Note: this will add the process and load some basic data if it does not already exist
+				CProcessPtr pProcess = this->GetProcessByID((quint64)connections[i].ProcessId, true); // Note: this will add the process and load some basic data if it does not already exist
 				pSocket->LinkProcess(pProcess);
 				pProcess->AddSocket(pSocket);
 			}
@@ -1491,11 +2146,12 @@ void CWindowsAPI::OnNetworkEvent(int Type, quint64 ProcessId, quint64 ThreadId, 
 		//qDebug() << ProcessId  << Type << LocalAddress.toString() << LocalPort << RemoteAddress.toString() << RemotePort;
 
 		pSocket = QSharedPointer<CWinSocket>(new CWinSocket());
+		pSocket->SetSystem(sharedFromThis());
 		bAdd = pSocket->InitStaticData(ProcessId, ProtocolType, LocalAddress, LocalPort, RemoteAddress, RemotePort);
 
 		if (ProcessId)
 		{
-			CProcessPtr pProcess = theAPI->GetProcessByID(ProcessId, true); // Note: this will add the process and load some basic data if it does not already exist
+			CProcessPtr pProcess = this->GetProcessByID(ProcessId, true); // Note: this will add the process and load some basic data if it does not already exist
 			pSocket->LinkProcess(pProcess);
 			pProcess->AddSocket(pSocket);
 		}
@@ -1542,7 +2198,7 @@ void CWindowsAPI::OnDnsResEvent(quint64 ProcessId, quint64 ThreadId, const QStri
 	if (Addresses.isEmpty())
 		return;
 
-	CProcessPtr pProcess = theAPI->GetProcessByID(ProcessId, true); // Note: this will add the process and load some basic data if it does not already exist
+	CProcessPtr pProcess = this->GetProcessByID(ProcessId, true); // Note: this will add the process and load some basic data if it does not already exist
 	if (!pProcess.isNull())
 		pProcess->UpdateDns(HostName, Addresses);
 }
@@ -1574,7 +2230,7 @@ void CWindowsAPI::OnFileEvent(int Type, quint64 FileId, quint64 ProcessId, quint
 QString CWindowsAPI::GetFileNameByID(quint64 FileId) const
 {
 	QReadLocker Locker(&m_FileNameMutex);
-	return m_FileNames.value(FileId, tr("Unknown file name"));;
+	return m_FileNames.value(FileId, MakePlaceholder(TE_NAME_UNKNOWN_FILE));
 }
 #endif
 
@@ -1704,6 +2360,7 @@ bool CWindowsAPI::UpdateOpenFileList()
 		if (pWinHandle.isNull())
 		{
 			pWinHandle = QSharedPointer<CWinHandle>(new CWinHandle());
+			pWinHandle->SetSystem(sharedFromThis());
 			bAdd = true;
 		}
 		
@@ -1824,6 +2481,7 @@ bool CWindowsAPI::UpdateServiceList(bool bRefresh)
 		if (pService.isNull())
 		{
 			pService = QSharedPointer<CWinService>(new CWinService());
+			pService->SetSystem(sharedFromThis());
 			bAdd = pService->InitStaticData(service);
 			QWriteLocker Locker(&m_ServiceMutex);
 			ASSERT(!m_ServiceList.contains(Name));
@@ -1932,6 +2590,7 @@ bool CWindowsAPI::UpdateDriverList()
 		if (pWinDriver.isNull())
 		{
 			pWinDriver = QSharedPointer<CWinDriver>(new CWinDriver());
+			pWinDriver->SetSystem(sharedFromThis());
 			bAdd = pWinDriver->InitStaticData(Module);
 			QWriteLocker Locker(&m_DriverMutex);
 			ASSERT(!m_DriverList.contains(BinaryPath));
@@ -2047,7 +2706,13 @@ bool CWindowsAPI::UpdateRpcList(void* server, void* protocol, QMap<QString, CRpc
 			bool bAdd = false;
 			if (pRpcEndpoint.isNull())
 			{
-				pRpcEndpoint = CRpcEndpointPtr(new CRpcEndpoint());
+				//
+				// Built as the Windows class and kept as the portable one: the
+				// list is of CRpcEndpointInfo now, so that a view reading it
+				// does not have to know which machine answered.
+				//
+				pRpcEndpoint = QSharedPointer<CRpcEndpoint>(new CRpcEndpoint());
+				pRpcEndpoint->SetSystem(sharedFromThis());
 				pRpcEndpoint->m_IfId = sIfId;
 				pRpcEndpoint->m_Binding = sBinding;
 				QWriteLocker Locker(&m_RpcTableMutex);
@@ -2152,16 +2817,23 @@ bool CWindowsAPI::UpdatePoolTable()
 		bool bAdd = false;
 		if (pPoolEntry.isNull())
 		{
-			pPoolEntry = CPoolEntryPtr(new CWinPoolEntry());
+			//
+			// Built as the Windows class and kept as the portable one; the
+			// static data goes in through the Windows half, which is the only
+			// part that knows what a pool tag is.
+			//
+			QSharedPointer<CWinPoolEntry> pNew = QSharedPointer<CWinPoolEntry>(new CWinPoolEntry());
+			pNew->SetSystem(sharedFromThis());
 			QPair<QString, QString> Info = UpdatePoolTagBinaryName(&m->PoolTableDB, TagName);
-			bAdd = pPoolEntry->InitStaticData(TagName, Info.first, Info.second);
+			bAdd = pNew->InitStaticData(TagName, Info.first, Info.second);
+			pPoolEntry = pNew;
 			QWriteLocker Locker(&m_PoolTableMutex);
 			ASSERT(!m_PoolTableList.contains(TagName));
 			m_PoolTableList.insert(TagName, pPoolEntry);
 		}
 
 		bool bChanged = false;
-		bChanged = pPoolEntry->UpdateDynamicData(&poolTagInfo);
+		bChanged = pPoolEntry.staticCast<CWinPoolEntry>()->UpdateDynamicData(&poolTagInfo);
 		
 		PagedPoolAllocs += poolTagInfo.PagedAllocs;
 		PagedPoolFrees += poolTagInfo.PagedFrees;
@@ -2206,6 +2878,18 @@ bool CWindowsAPI::UpdatePoolTable()
 	return true; 
 }
 
+//
+// A Qt resource holds the bytes of a file. The logos are PNGs, so they are
+// handed on as they are rather than decoded into an image and encoded again.
+//
+static QByteArray CWinHelper__ReadResource(const QString& Path)
+{
+	QFile File(Path);
+	if (!File.open(QIODevice::ReadOnly))
+		return QByteArray();
+	return File.readAll();
+}
+
 bool CWindowsAPI::InitWindowsInfo()
 {
 	//bool bServer = false;
@@ -2223,45 +2907,44 @@ bool CWindowsAPI::InitWindowsInfo()
     }
 
 	if (WindowsVersion == WINDOWS_NEW)
-		m_SystemIcon = QPixmap::fromImage(QImage(":/WinLogos/WinNew"));
+		m_SystemIcon = CWinHelper__ReadResource(":/WinLogos/WinNew");
 	// Windows 2000
 	else if (PhOsVersion.MajorVersion == 5 && PhOsVersion.MinorVersion == 0)
-		m_SystemIcon = QPixmap::fromImage(QImage(":/WinLogos/Win2k"));
+		m_SystemIcon = CWinHelper__ReadResource(":/WinLogos/Win2k");
 	// Windows XP, Windows Server 2003
 	else if (PhOsVersion.MajorVersion == 5 && PhOsVersion.MinorVersion > 0)
-		m_SystemIcon = QPixmap::fromImage(QImage(":/WinLogos/WinXP"));
+		m_SystemIcon = CWinHelper__ReadResource(":/WinLogos/WinXP");
 	// Windows Vista, Windows Server 2008
 	else if (PhOsVersion.MajorVersion == 6 && PhOsVersion.MinorVersion == 0)
-		m_SystemIcon = QPixmap::fromImage(QImage(":/WinLogos/Win6"));
+		m_SystemIcon = CWinHelper__ReadResource(":/WinLogos/Win6");
     // Windows 7, Windows Server 2008 R2
 	else if (PhOsVersion.MajorVersion == 6 && PhOsVersion.MinorVersion == 1)
-		m_SystemIcon = QPixmap::fromImage(QImage(":/WinLogos/Win7"));
+		m_SystemIcon = CWinHelper__ReadResource(":/WinLogos/Win7");
     // Windows 8, Windows Server 2012
 	else if (PhOsVersion.MajorVersion == 6 && PhOsVersion.MinorVersion == 2)
-		m_SystemIcon = QPixmap::fromImage(QImage(":/WinLogos/Win8"));
+		m_SystemIcon = CWinHelper__ReadResource(":/WinLogos/Win8");
     // Windows 8.1, Windows Server 2012 R2
 	else if (PhOsVersion.MajorVersion == 6 && PhOsVersion.MinorVersion == 3)
-		m_SystemIcon = QPixmap::fromImage(QImage(":/WinLogos/Win8"));
+		m_SystemIcon = CWinHelper__ReadResource(":/WinLogos/Win8");
     // Windows 10, Windows Server 2016
 	else if (PhOsVersion.MajorVersion == 10 && PhOsVersion.MinorVersion == 0) {
 		if (PhOsVersion.BuildNumber < 22000) 
-			m_SystemIcon = QPixmap::fromImage(QImage(":/WinLogos/Win10"));
+			m_SystemIcon = CWinHelper__ReadResource(":/WinLogos/Win10");
 		else {
 			PhOsVersion.MajorVersion = 11;
-			m_SystemIcon = QPixmap::fromImage(QImage(":/WinLogos/Win11"));
+			m_SystemIcon = CWinHelper__ReadResource(":/WinLogos/Win11");
 		}
 	}
 	else
-		m_SystemIcon = QPixmap::fromImage(QImage(":/WinLogos/WinOld"));
+		m_SystemIcon = CWinHelper__ReadResource(":/WinLogos/WinOld");
 
-	if(PhOsVersion.MinorVersion)
-		m_SystemVersion = tr("Windows %1.%2").arg(PhOsVersion.MajorVersion).arg(PhOsVersion.MinorVersion);
-	else
-		m_SystemVersion = tr("Windows %1").arg(PhOsVersion.MajorVersion);
-	if(!ReleaseId.isEmpty())
-		m_SystemBuild = tr("%1 (%2)").arg(ReleaseId).arg(PhOsVersion.BuildNumber);
-	else
-		m_SystemBuild = tr("%1").arg(PhOsVersion.BuildNumber);
+	//
+	// The numbers, not a sentence made of them.
+	//
+	m_SystemMajor = PhOsVersion.MajorVersion;
+	m_SystemMinor = PhOsVersion.MinorVersion;
+	m_SystemBuildNumber = PhOsVersion.BuildNumber;
+	m_SystemReleaseId = ReleaseId;
 
 	return true;
 }
@@ -2296,19 +2979,25 @@ QList<CSystemAPI::SUser> CWindowsAPI::GetUsers() const
 			User.UserName = QString::fromWCharArray(winStationInfo.Domain) + "\\" + QString::fromWCharArray(winStationInfo.UserName);
 			User.SessionId = sessions[i].SessionId;
 
-			switch (sessions[i].State)
-			{
-				case State_Active:			User.Status = tr("Active"); break;
-				case State_Connected:		User.Status = tr("Connected"); break;
-				case State_ConnectQuery:	User.Status = tr("Connect query"); break;
-				case State_Shadow:			User.Status = tr("Shadow"); break;
-				case State_Disconnected:	User.Status = tr("Disconnected"); break;
-				case State_Idle:			User.Status = tr("Idle"); break;
-				case State_Listen:			User.Status = tr("Listen"); break;
-				case State_Reset:			User.Status = tr("Reset"); break;
-				case State_Down:			User.Status = tr("Down"); break;
-				case State_Init:			User.Status = tr("Init"); break;
-			}
+			//
+			// The same value in the form the rest of the program keys on. Windows
+			// numbers its sessions, so nothing is lost saying it twice - see
+			// SUser::SessionKey, which exists because logind does not.
+			//
+			User.SessionKey = QString::number(sessions[i].SessionId);
+
+			static_assert(eSessionActive       == State_Active,       "session active");
+			static_assert(eSessionConnected    == State_Connected,    "session connected");
+			static_assert(eSessionConnectQuery == State_ConnectQuery, "session connect query");
+			static_assert(eSessionShadow       == State_Shadow,       "session shadow");
+			static_assert(eSessionDisconnected == State_Disconnected, "session disconnected");
+			static_assert(eSessionIdle         == State_Idle,         "session idle");
+			static_assert(eSessionListen       == State_Listen,       "session listen");
+			static_assert(eSessionReset        == State_Reset,        "session reset");
+			static_assert(eSessionDown         == State_Down,         "session down");
+			static_assert(eSessionInit         == State_Init,         "session init");
+
+			User.State = (int)sessions[i].State;
 
 			List.append(User);
         }

@@ -1,10 +1,10 @@
 #pragma once
-#include "../mischelpers_global.h"
+#include "../guihelpers_global.h"
 
 #include <QProxyStyle>
 
 #include <QStyledItemDelegate>
-class MISCHELPERS_EXPORT CTreeItemDelegate : public QStyledItemDelegate
+class GUIHELPERS_EXPORT CTreeItemDelegate : public QStyledItemDelegate
 {
     void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
     {
@@ -25,7 +25,7 @@ class MISCHELPERS_EXPORT CTreeItemDelegate : public QStyledItemDelegate
 // Implements properly oriented side tabs
 //
 
-class MISCHELPERS_EXPORT CustomTabStyle : public QProxyStyle {
+class GUIHELPERS_EXPORT CustomTabStyle : public QProxyStyle {
 public:
     CustomTabStyle(QStyle* style = 0) : QProxyStyle(style) {}
 
@@ -89,7 +89,7 @@ public:
 // Keeps submenus visible when the mosue leaves
 //
 
-class MISCHELPERS_EXPORT KeepSubMenusVisibleStyle : public QProxyStyle {
+class GUIHELPERS_EXPORT KeepSubMenusVisibleStyle : public QProxyStyle {
 public:
     KeepSubMenusVisibleStyle(QStyle* style = 0) : QProxyStyle(style) {}
 
@@ -107,7 +107,7 @@ public:
 // Implements nice flat buttons
 //
 
-class MISCHELPERS_EXPORT MyButtonStyle : public QProxyStyle
+class GUIHELPERS_EXPORT MyButtonStyle : public QProxyStyle
 {
 public:
     MyButtonStyle(QStyle* pStyle) : QProxyStyle(pStyle) {}

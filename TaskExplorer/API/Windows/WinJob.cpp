@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "WinJob.h"
 #include "ProcessHacker.h"
+#include "WinSecurityEditor.h"
 #include "WindowsAPI.h"
 
 struct SWinJob
@@ -17,7 +18,7 @@ struct SWinJob
 };
 
 CWinJob::CWinJob(QObject *parent)
-	:CAbstractInfo(parent)
+	:CJobInfo(parent)
 {
 	m_ActiveProcesses = 0;
 	m_TotalProcesses = 0;
@@ -61,13 +62,14 @@ NTSTATUS NTAPI CWinJob__OpenProcessJob(_Out_ PHANDLE Handle, _In_ ACCESS_MASK De
     return status;
 }
 
-CWinJob* CWinJob::JobFromHandle(quint64 ProcessId, quint64 HandleId)
+CWinJob* CWinJob::JobFromHandle(const CSystemPtr& pSystem, quint64 ProcessId, quint64 HandleId)
 {
 	HANDLE processHandle;
     if (!NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_DUP_HANDLE, (HANDLE)ProcessId)))
         return NULL;
 
 	CWinJob* pJob = new CWinJob();
+	pJob->SetSystem(pSystem);
 	pJob->m->Type = eHandle;
 	pJob->m->QueryHandle = processHandle;
 	pJob->m->Handle = (HANDLE)HandleId;
@@ -75,9 +77,10 @@ CWinJob* CWinJob::JobFromHandle(quint64 ProcessId, quint64 HandleId)
 	return pJob;
 }
 
-CWinJob* CWinJob::JobFromProcess(void* QueryHandle)
+CWinJob* CWinJob::JobFromProcess(const CSystemPtr& pSystem, void* QueryHandle)
 {
 	CWinJob* pJob = new CWinJob();
+	pJob->SetSystem(pSystem);
 	pJob->m->Type = eProcess;
 	pJob->m->QueryHandle = QueryHandle;
 	pJob->InitStaticData();
@@ -96,7 +99,7 @@ bool CWinJob::InitStaticData()
 	PhGetHandleInformation(NtCurrentProcess(), jobHandle, ULONG_MAX, NULL, NULL, NULL, &jobObjectName);
 	m_JobName = CastPhString(jobObjectName);
 	if (m_JobName.isEmpty())
-		m_JobName = tr("Unnamed job");
+		m_JobName.clear();
 
 	NtClose(jobHandle);
 
@@ -120,45 +123,45 @@ bool CWinJob::UpdateDynamicData()
         ULONG flags = extendedLimits.BasicLimitInformation.LimitFlags;
 
         if (flags & JOB_OBJECT_LIMIT_ACTIVE_PROCESS)
-			m_Limits.append(SJobLimit(tr("Active processes"), SJobLimit::eNumber, (int)extendedLimits.BasicLimitInformation.ActiveProcessLimit));
+			m_Limits.append(SJobLimit(SJobLimit::eLimitActiveProcesses, SJobLimit::eNumber, (int)extendedLimits.BasicLimitInformation.ActiveProcessLimit));
 
         if (flags & JOB_OBJECT_LIMIT_AFFINITY)
-			m_Limits.append(SJobLimit(tr("Affinity"), SJobLimit::eAddress, (quint64)extendedLimits.BasicLimitInformation.Affinity));
+			m_Limits.append(SJobLimit(SJobLimit::eLimitAffinity, SJobLimit::eAddress, (quint64)extendedLimits.BasicLimitInformation.Affinity));
 
         if (flags & JOB_OBJECT_LIMIT_BREAKAWAY_OK)
-			m_Limits.append(SJobLimit(tr("Breakaway OK"), SJobLimit::eEnabled, true));
+			m_Limits.append(SJobLimit(SJobLimit::eLimitBreakawayOk, SJobLimit::eEnabled, true));
 
         if (flags & JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION)
-			m_Limits.append(SJobLimit(tr("Die on unhandled exception"), SJobLimit::eEnabled, true));
+			m_Limits.append(SJobLimit(SJobLimit::eLimitDieOnUnhandledException, SJobLimit::eEnabled, true));
 
         if (flags & JOB_OBJECT_LIMIT_JOB_MEMORY)
-			m_Limits.append(SJobLimit(tr("Job memory"), SJobLimit::eSize, (quint64)extendedLimits.JobMemoryLimit));
+			m_Limits.append(SJobLimit(SJobLimit::eLimitJobMemory, SJobLimit::eSize, (quint64)extendedLimits.JobMemoryLimit));
 
         if (flags & JOB_OBJECT_LIMIT_JOB_TIME)
-			m_Limits.append(SJobLimit(tr("Job time"), SJobLimit::eTimeMs, extendedLimits.BasicLimitInformation.PerJobUserTimeLimit.QuadPart / PH_TICKS_PER_MS));
+			m_Limits.append(SJobLimit(SJobLimit::eLimitJobTime, SJobLimit::eTimeMs, extendedLimits.BasicLimitInformation.PerJobUserTimeLimit.QuadPart / PH_TICKS_PER_MS));
 
         if (flags & JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE)
-			m_Limits.append(SJobLimit(tr("Kill on job close"), SJobLimit::eEnabled, true));
+			m_Limits.append(SJobLimit(SJobLimit::eLimitKillOnJobClose, SJobLimit::eEnabled, true));
 
         if (flags & JOB_OBJECT_LIMIT_PRIORITY_CLASS)
-			m_Limits.append(SJobLimit(tr("Priority class"), SJobLimit::eString, CWinProcess::GetPriorityString(extendedLimits.BasicLimitInformation.PriorityClass)));
+			m_Limits.append(SJobLimit(SJobLimit::eLimitPriorityClass, SJobLimit::ePriorityClass, (quint32)extendedLimits.BasicLimitInformation.PriorityClass));
 
         if (flags & JOB_OBJECT_LIMIT_PROCESS_MEMORY)
-			m_Limits.append(SJobLimit(tr("Process memory"), SJobLimit::eSize, (quint64)extendedLimits.ProcessMemoryLimit));
+			m_Limits.append(SJobLimit(SJobLimit::eLimitProcessMemory, SJobLimit::eSize, (quint64)extendedLimits.ProcessMemoryLimit));
 
         if (flags & JOB_OBJECT_LIMIT_PROCESS_TIME)
-			m_Limits.append(SJobLimit(tr("Process time"), SJobLimit::eTimeMs, extendedLimits.BasicLimitInformation.PerProcessUserTimeLimit.QuadPart / PH_TICKS_PER_MS));
+			m_Limits.append(SJobLimit(SJobLimit::eLimitProcessTime, SJobLimit::eTimeMs, extendedLimits.BasicLimitInformation.PerProcessUserTimeLimit.QuadPart / PH_TICKS_PER_MS));
 
         if (flags & JOB_OBJECT_LIMIT_SCHEDULING_CLASS)
-			m_Limits.append(SJobLimit(tr("Scheduling class"), SJobLimit::eNumber, (quint32)extendedLimits.BasicLimitInformation.SchedulingClass));
+			m_Limits.append(SJobLimit(SJobLimit::eLimitSchedulingClass, SJobLimit::eNumber, (quint32)extendedLimits.BasicLimitInformation.SchedulingClass));
 
         if (flags & JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK)
-			m_Limits.append(SJobLimit(tr("Silent breakaway OK"), SJobLimit::eEnabled, true));
+			m_Limits.append(SJobLimit(SJobLimit::eLimitSilentBreakawayOk, SJobLimit::eEnabled, true));
 
 		if (flags & JOB_OBJECT_LIMIT_WORKINGSET)
 		{
-			m_Limits.append(SJobLimit(tr("Working set minimum"), SJobLimit::eSize, (quint64)extendedLimits.BasicLimitInformation.MinimumWorkingSetSize));
-			m_Limits.append(SJobLimit(tr("Working set maximum"), SJobLimit::eSize, (quint64)extendedLimits.BasicLimitInformation.MaximumWorkingSetSize));
+			m_Limits.append(SJobLimit(SJobLimit::eLimitWorkingSetMinimum, SJobLimit::eSize, (quint64)extendedLimits.BasicLimitInformation.MinimumWorkingSetSize));
+			m_Limits.append(SJobLimit(SJobLimit::eLimitWorkingSetMaximum, SJobLimit::eSize, (quint64)extendedLimits.BasicLimitInformation.MaximumWorkingSetSize));
 		}
     }
 
@@ -168,28 +171,28 @@ bool CWinJob::UpdateDynamicData()
         ULONG flags = basicUiRestrictions.UIRestrictionsClass;
 
         if (flags & JOB_OBJECT_UILIMIT_DESKTOP)
-			m_Limits.append(SJobLimit(tr("Desktop limited"), SJobLimit::eLimited, true));
+			m_Limits.append(SJobLimit(SJobLimit::eLimitDesktop, SJobLimit::eLimited, true));
 
         if (flags & JOB_OBJECT_UILIMIT_DISPLAYSETTINGS)
-			m_Limits.append(SJobLimit(tr("Display settings limited"), SJobLimit::eLimited, true));
+			m_Limits.append(SJobLimit(SJobLimit::eLimitDisplaySettings, SJobLimit::eLimited, true));
 
         if (flags & JOB_OBJECT_UILIMIT_EXITWINDOWS)
-			m_Limits.append(SJobLimit(tr("Exit windows limited"), SJobLimit::eLimited, true));
+			m_Limits.append(SJobLimit(SJobLimit::eLimitExitWindows, SJobLimit::eLimited, true));
 
         if (flags & JOB_OBJECT_UILIMIT_GLOBALATOMS)
-			m_Limits.append(SJobLimit(tr("Global atoms limited"), SJobLimit::eLimited, true));
+			m_Limits.append(SJobLimit(SJobLimit::eLimitGlobalAtoms, SJobLimit::eLimited, true));
 
         if (flags & JOB_OBJECT_UILIMIT_HANDLES)
-			m_Limits.append(SJobLimit(tr("Handles limited"), SJobLimit::eLimited, true));
+			m_Limits.append(SJobLimit(SJobLimit::eLimitHandles, SJobLimit::eLimited, true));
 
         if (flags & JOB_OBJECT_UILIMIT_READCLIPBOARD)
-			m_Limits.append(SJobLimit(tr("Read clipboard limited"), SJobLimit::eLimited, true));
+			m_Limits.append(SJobLimit(SJobLimit::eLimitReadClipboard, SJobLimit::eLimited, true));
 
         if (flags & JOB_OBJECT_UILIMIT_SYSTEMPARAMETERS)
-			m_Limits.append(SJobLimit(tr("System parameters limited"), SJobLimit::eLimited, true));
+			m_Limits.append(SJobLimit(SJobLimit::eLimitSystemParameters, SJobLimit::eLimited, true));
 
         if (flags & JOB_OBJECT_UILIMIT_WRITECLIPBOARD)
-			m_Limits.append(SJobLimit(tr("Write clipboard limited"), SJobLimit::eLimited, true));
+			m_Limits.append(SJobLimit(SJobLimit::eLimitWriteClipboard, SJobLimit::eLimited, true));
     }
 	//
 
@@ -199,7 +202,7 @@ bool CWinJob::UpdateDynamicData()
     {
         for (ULONG i = 0; i < processIdList->NumberOfProcessIdsInList; i++)
         {
-			CProcessPtr pProcess = theAPI->GetProcessByID(processIdList->ProcessIdList[i], true);
+			CProcessPtr pProcess = GetSystem()->GetProcessByID(processIdList->ProcessIdList[i], true);
 			if (!pProcess.isNull())
 				m_Processes.insert(processIdList->ProcessIdList[i], pProcess);
         }
@@ -244,14 +247,14 @@ STATUS CWinJob::Terminate()
     HANDLE jobHandle;
 	NTSTATUS status = CWinJob__OpenProcessJob(&jobHandle, JOB_OBJECT_TERMINATE, m);
 	if (!NT_SUCCESS(status))
-		return ERR(tr("Failed to open job"), status);
+		return ERR(TE_OpenJob, status);
 
     status = NtTerminateJobObject(jobHandle, STATUS_SUCCESS);
 
     NtClose(jobHandle);
 
     if (!NT_SUCCESS(status))
-		return ERR(tr("Failed to terminate job"), status);
+		return ERR(TE_TerminateJob, status);
 
 	return OK;
 }
@@ -264,12 +267,12 @@ STATUS CWinJob::Terminate()
 STATUS CWinJob::Freeze(bool bFreeze)
 {
 	if (WindowsVersion < WINDOWS_8)
-		return ERR(tr("Job freezing is only available on windows 8 and later"), STATUS_NOT_IMPLEMENTED);
+		return ERR(TE_JobFreezeUnavail, STATUS_NOT_IMPLEMENTED);
 
 	HANDLE jobHandle;
 	NTSTATUS status = CWinJob__OpenProcessJob(&jobHandle, JOB_OBJECT_SET_ATTRIBUTES, m);
 	if (!NT_SUCCESS(status))
-		return ERR(tr("Failed to open job"), status);
+		return ERR(TE_OpenJob, status);
 
 	JOBOBJECT_FREEZE_INFORMATION info;
 	memset(&info, 0, sizeof(info));
@@ -281,7 +284,7 @@ STATUS CWinJob::Freeze(bool bFreeze)
     NtClose(jobHandle);
 
     if (!NT_SUCCESS(status))
-		return ERR(tr("Failed to (un)freeze job"), status);
+		return ERR(TE_UnFreezeJob, status);
 
 	return OK;
 }
@@ -304,7 +307,7 @@ STATUS CWinJob::AddProcess(quint64 ProcessId)
     }
 
 	if (!NT_SUCCESS(status))
-		return ERR(tr("Unable to add the process to the job"), status);
+		return ERR(TE_AddProcJob, status);
 	return OK;
 }
 
@@ -318,13 +321,17 @@ NTSTATUS NTAPI CWinJob__cbPermissionsClosed(_In_ HANDLE Handle, _In_ BOOLEAN Rel
 	return STATUS_SUCCESS;
 }
 
-void CWinJob::OpenPermissions()
+CSecurityEditablePtr CWinJob::GetSecurityObject() const
 {
-	QReadLocker Locker(&m_Mutex); 
-	SWinJob* context = new SWinJob();
-	context->QueryHandle = m->QueryHandle;
-	context->Handle = m->Handle;
-	context->Type = m->Type;
+	QReadLocker Locker(&m_Mutex);
+	SWinJob Context;
+	Context.QueryHandle = m->QueryHandle;
+	Context.Handle = m->Handle;
+	Context.Type = m->Type;
 	Locker.unlock();
-    PhEditSecurity(NULL, L"Job", L"Job", CWinJob__OpenProcessJob, CWinJob__cbPermissionsClosed, context);
+
+	return CSecurityEditablePtr(new CWinSecurityObject(
+		m_JobName, "Job",
+		(CWinSecurityObject::POpenObject)CWinJob__OpenProcessJob,
+		QByteArray((const char*)&Context, sizeof(Context))));
 }

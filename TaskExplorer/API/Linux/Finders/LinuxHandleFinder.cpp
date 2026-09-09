@@ -51,6 +51,7 @@ void CLinuxHandleFinder::run()
 				continue;
 
 			QSharedPointer<CLinuxHandle> pHandle = QSharedPointer<CLinuxHandle>(new CLinuxHandle());
+			pHandle->SetSystem(m_pSystem);
 			if (!pHandle->InitStaticData(Pid, Fd))
 				continue;
 
@@ -58,8 +59,8 @@ void CLinuxHandleFinder::run()
 				continue;
 
 			// The results view shows which process each hit belongs to.
-			if (theAPI)
-				pHandle->SetProcess(theAPI->GetProcessByID(Pid));
+			if (m_pSystem)
+				pHandle->SetProcess(m_pSystem->GetProcessByID(Pid));
 
 			Batch.append(pHandle);
 

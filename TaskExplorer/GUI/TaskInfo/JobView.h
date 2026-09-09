@@ -2,10 +2,6 @@
 #include <qwidget.h>
 #include "../../../MiscHelpers/Common/PanelView.h"
 #include "../StatsView.h"
-#ifdef WIN32
-#include "../../API/Windows/WinProcess.h"
-#endif
-
 class CProcessModel;
 class QSortFilterProxyModel;
 
@@ -20,7 +16,7 @@ public:
 
 public slots:
 	void					ShowProcesses(const QList<CProcessPtr>& Processes);
-	void					ShowJob(const CWinJobPtr& pJob);
+	void					ShowJob(const CJobInfoPtr& pJob);
 	void					Refresh();
 
 private slots:
@@ -40,8 +36,8 @@ protected:
 	virtual QTreeView*			GetView() 				{ return m_pProcessList; }
 	virtual QAbstractItemModel* GetModel()				{ return m_pSortProxy; }
 
-	QSharedPointer<CWinProcess>	m_pCurProcess;
-	CWinJobPtr					m_pCurJob;
+	CProcessPtr				m_pCurProcess;
+	CJobInfoPtr					m_pCurJob;
 
 	QMap<quint64, CProcessPtr>	m_ProcessList;
 

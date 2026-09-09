@@ -15,14 +15,13 @@ public:
 	virtual quint64 GetEntryPoint() const 					{ QReadLocker Locker(&m_Mutex); return m_EntryPoint; }
 	virtual QStringList GetRefServices()const				{ QReadLocker Locker(&m_Mutex); return m_Services; }
 
+	virtual qint32  GetLoadReason() const;
 	virtual quint64 GetType() const 						{ QReadLocker Locker(&m_Mutex); return m_Type; }
-	virtual QString GetTypeString() const;
 	
 	virtual quint16 GetLoadCount() const 					{ QReadLocker Locker(&m_Mutex); return m_LoadCount; }
 	virtual quint64 GetLoadTime() const 					{ QReadLocker Locker(&m_Mutex); return m_LoadTime; }
 
 	virtual quint32 GetEnclaveType() const					{ QReadLocker Locker(&m_Mutex); return m_EnclaveType; }
-	virtual QString GetEnclaveTypeString() const;
 	virtual quint64 GetEnclaveBaseAddress() const			{ QReadLocker Locker(&m_Mutex); return m_EnclaveBaseAddress; }
 	virtual quint64 GetEnclaveSize() const					{ QReadLocker Locker(&m_Mutex); return m_EnclaveSize; }
 
@@ -33,30 +32,15 @@ public:
 
 	virtual quint16 GetImageMachine() const					{ QReadLocker Locker(&m_Mutex); return m_ImageMachine; }
 	virtual quint32 GetImageCHPEVersion() const				{ QReadLocker Locker(&m_Mutex); return m_ImageCHPEVersion; }
-	virtual QString GetImageMachineString() const;
 
 	virtual void ClearControlFlowGuardEnabled();
 	virtual void SetCetEnabled();
 	virtual void ClearCetEnabled();
 
-	virtual QString GetMitigationsString() const;
+	virtual quint32 GetMitigationFlags() const;
 
-	virtual QString GetLoadReasonString() const;
-
-	enum EVerifyResult
-	{
-		VrUnknown = 0,
-		VrNoSignature,
-		VrTrusted,
-		VrExpired,
-		VrRevoked,
-		VrDistrust,
-		VrSecuritySettings,
-		VrBadSignature
-	};
 
 	virtual EVerifyResult GetVerifyResult() const 			{ QReadLocker Locker(&m_Mutex); return m_VerifyResult; }
-	virtual QString GetVerifyResultString() const;
 	virtual QString GetVerifySignerName() const 			{ QReadLocker Locker(&m_Mutex); return m_VerifySignerName; }
 
 	virtual bool IsPacked() const 							{ QReadLocker Locker(&m_Mutex); return m_IsPacked; }
@@ -64,13 +48,6 @@ public:
 	virtual quint32 GetImportModules() const 				{ QReadLocker Locker(&m_Mutex); return m_ImportModules; }
 
 	virtual float GetImageCoherency() const					{ QReadLocker Locker(&m_Mutex); return m_ImageCoherency; }
-	virtual QString GetImageCoherencyString() const;
-
-	struct SModPage
-	{
-		quint64		VirtualAddress = 0;
-		QString		Name;
-	};
 
 	virtual void SetModifiedPage(quint64 VirtualAddress);
 	virtual QMap<quint64, SModPage> GetModifiedPages() const			{ QReadLocker Locker(&m_Mutex); return m_ModifiedPages; }

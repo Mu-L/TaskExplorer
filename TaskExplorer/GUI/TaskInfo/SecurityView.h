@@ -31,16 +31,49 @@ protected:
 	virtual QTreeView*		GetView()	{ return m_pList->GetView(); }
 	virtual QAbstractItemModel* GetModel() { return nullptr; }
 
-	QSharedPointer<CLinuxProcess>	m_pCurProcess;
+	//
+	// CProcessPtr, not a backend pointer: the process may be a remote one, and
+	// everything this view needs is on the base.
+	//
+	CProcessPtr				m_pCurProcess;
 
 private:
 	void					SetValue(const QString& Group, const QString& Name, const QString& Value);
 	void					PruneStale();
 
-	QGridLayout*			m_pMainLayout;
+	//
+	// The capability list, a row per capability with a mark in each set that
+	// holds it. The Windows counterpart is the privilege list in the Token
+	// view: a name and the state it is in, rather than one line per set with
+	// forty names crammed into it.
+	//
+	void					ShowCapabilities(const SProcessSecurity& Security);
+	void					ShowNamespaces();
+	void					Clear();
+
+	QGridLayout*			m_pHeaderLayout;
+
+	//
+	// The facts worth having without opening anything, in the shape the Token
+	// view uses: who the process is, what confines it, and the two flags that
+	// decide whether that confinement survives an execve.
+	//
+	QLineEdit*				m_pUser;
+	QLineEdit*				m_pGroup;
+	QLineEdit*				m_pProfile;
+	QLineEdit*				m_pContainer;
+	QLabel*					m_pSeccomp;
+	QLabel*					m_pNoNewPrivs;
+
+	QTabWidget*				m_pTabs;
 	CPanelWidgetEx*			m_pList;
+	CPanelWidgetEx*			m_pCaps;
+	CPanelWidgetEx*			m_pNamespaces;
 
 	QSet<QString>			m_LiveKeys;
 	QMap<QString, QTreeWidgetItem*>	m_Items;
 	QMap<QString, QTreeWidgetItem*>	m_Groups;
+
+	QMap<int, QTreeWidgetItem*>	m_CapItems;
+	QMap<QString, QTreeWidgetItem*>	m_NsItems;
 };

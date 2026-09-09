@@ -4,9 +4,8 @@
 #include "../../MiscHelpers/Common/TreeWidgetEx.h"
 #include "../../MiscHelpers/Common/PanelView.h"
 #include "../API/ProcessInfo.h"
-#ifdef WIN32
-#include "../API/Windows/WinProcess.h"
-#endif
+#include "../API/ProcessInfo.h"
+#include "../API/JobInfo.h"
 
 class CStatsView : public CPanelView
 {
@@ -27,9 +26,7 @@ public slots:
 
 	void					ShowProcesses(const QList<CProcessPtr>& Processes);
 	void					ShowSystem();
-#ifdef WIN32
-	void					ShowJob(const CWinJobPtr& pCurJob);
-#endif
+	void					ShowJob(const CJobInfoPtr& pCurJob);
 
 private slots:
 	void					SetFilter(const QRegularExpression& Exp, int iOptions = 0, int Col = -1); // -1 = any
@@ -50,13 +47,9 @@ private:
 	// send/receive rows have anything to show. Fed by ETW on Windows; on Linux
 	// there is no equivalent source yet, so it stays false.
 	bool					m_MonitorsETW;
-
-#ifdef WIN32
 	/*bool					m_MmAddressesInitialized;
 	quint64					m_MmSizeOfPagedPoolInBytes;
 	quint64					m_MmMaximumNonPagedPoolInBytes;*/
-#endif
-
 	void					SetupTree();
 
 	enum EStackColumns

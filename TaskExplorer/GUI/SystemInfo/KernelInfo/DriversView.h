@@ -29,8 +29,15 @@ protected:
 
 	QMap<QString, CDriverPtr> m_DriverList;
 
-private slots:
+public slots:
+	//
+	// Public because the panel re-applies it when the viewed machine changes:
+	// which columns are worth showing depends on which kind of machine is being
+	// looked at, and a layout saved from the other kind is not it.
+	//
 	void					OnResetColumns();
+
+private slots:
 	void					OnColumnsChanged();
 
 	void					OnDriverListUpdated(QSet<QString> Added, QSet<QString> Changed, QSet<QString> Removed);

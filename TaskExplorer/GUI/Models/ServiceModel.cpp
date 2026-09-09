@@ -1,21 +1,14 @@
 #include "stdafx.h"
+#include "../TaskStrings.h"
 #include "../TaskExplorer.h"
 #include "ServiceModel.h"
 #include "../../../MiscHelpers/Common/Common.h"
-#ifdef WIN32
-#include "../../API/Windows/WinService.h"
-#include "../../API/Windows/WinModule.h"
-#include <winerror.h>
-#else
-#include "../../API/Linux/LinuxService.h"
-#endif
+#include "../../API/SystemAPI.h"
 
 CServiceModel::CServiceModel(QObject *parent)
 :CListItemModel(parent)
 {
-#ifdef WIN32
 	m_ShowDriver = true;
-#endif
 	m_bUseIcons = true;
 }
 
@@ -30,14 +23,8 @@ void CServiceModel::Sync(QMap<QString, CServicePtr> ServiceList)
 
 	foreach (const CServicePtr& pService, ServiceList)
 	{
-#ifdef WIN32
-		CWinService* pWinService = qobject_cast<CWinService*>(pService.data());
-
-		if (!m_ShowDriver && pWinService->IsDriver())
+		if (!m_ShowDriver && pService->IsDriver())
 			continue;
-#else
-		CLinuxService* pLinuxService = qobject_cast<CLinuxService*>(pService.data());
-#endif
 
 		QVariant ID = pService->GetName();
 
@@ -62,34 +49,24 @@ void CServiceModel::Sync(QMap<QString, CServicePtr> ServiceList)
 		int Changed = 0;
 
 		CModulePtr pModule = pService->GetModuleInfo();
-#ifdef WIN32
-		QSharedPointer<CWinModule> pWinModule = pModule.staticCast<CWinModule>();
-#endif
-
 		// Note: icons are loaded asynchroniusly
-#ifdef WIN32
 		if (m_bUseIcons && !pNode->Icon.isValid() && !m_ColumnsOff.contains(eService))
 		{
 			QPixmap Icon;
-			if (pWinService->IsDriver())
+			if (pService->IsDriver())
 				Icon = g_DllIcon.pixmap(16, 16);
 			else if (pModule)
-				Icon = pModule->GetFileIcon(); 
+				Icon = ::MakeIcon(pModule->GetFileIcon()); 
 
 			if (!Icon.isNull()) {
 				Changed = 1; // set change for first column
 				pNode->Icon = Icon;
 			}
 		}
-#endif
-
 		int RowColor = CTaskExplorer::eNone;
 		if (pService->IsMarkedForRemoval() && CTaskExplorer::UseListColor(CTaskExplorer::eToBeRemoved))		RowColor = CTaskExplorer::eToBeRemoved;
 		else if (pService->IsNewlyCreated() && CTaskExplorer::UseListColor(CTaskExplorer::eAdded))			RowColor = CTaskExplorer::eAdded;
-#ifdef WIN32
-		else if (pWinService->IsDriver() && CTaskExplorer::UseListColor(CTaskExplorer::eDriver))			RowColor = CTaskExplorer::eDriver;
-#endif
-
+		else if (pService->IsDriver() && CTaskExplorer::UseListColor(CTaskExplorer::eDriver))			RowColor = CTaskExplorer::eDriver;
 		if (pNode->iColor != RowColor) {
 			pNode->iColor = RowColor;
 			pNode->Color = CTaskExplorer::GetListColor(RowColor);
@@ -112,36 +89,29 @@ void CServiceModel::Sync(QMap<QString, CServicePtr> ServiceList)
 			switch(section)
 			{
 				case eService:				Value = pService->GetName().toLower(); break;
-#ifdef WIN32
-				case eDisplayName:			Value = pWinService->GetDisplayName(); break;
-				case eType:					Value = pWinService->GetTypeString(); break;
-#else
 				case eDisplayName:			Value = pService->GetDisplayName(); break;
-				case eType:					Value = pLinuxService->GetTypeString(); break;
-#endif
-				case eStatus:				Value = pService->GetStateString(); break;
-#ifdef WIN32
-				case eStartType:			Value = pWinService->GetStartTypeString(); break;
-#endif
+				case eType:					Value = ::GetServiceTypeString(pService); break;
+				case eStatus:				Value = ::GetServiceStateString(pService); break;
+				case eStartType:			Value = ::GetServiceStartTypeString(pService); break;
 				case ePID:					Value = (int)pService->GetPID(); break;
 				case eFileName:				Value = pService->GetFileName(); break;
-#ifdef WIN32
 				case eDescription:			Value = pModule ? pModule->GetFileInfo("Description") : ""; break;
 				case eCompanyName:			Value = pModule ? pModule->GetFileInfo("CompanyName") : ""; break;
 				case eVersion:				Value = pModule ? pModule->GetFileInfo("FileVersion") : ""; break;
-				case eErrorControl:			Value = pWinService->GetErrorControlString(); break;
-				case eGroupe:				Value = pWinService->GetGroupeName(); break;
-#endif
+				case eErrorControl:			Value = ::GetServiceErrorControlString(pService); break;
+				case eGroupe:				Value = pService->GetGroupeName(); break;
 				case eBinaryPath:			Value = pService->GetBinaryPath(); break;
 
 				//case eKeyModificationTime:	
+				case eVerificationStatus:	Value = ::GetVerifyResultString(pModule); break;
+				case eVerifiedSigner:		Value = pModule ? pModule->GetVerifySignerName() : ""; break;
 
-#ifdef WIN32
-				case eVerificationStatus:	Value = pWinModule ? pWinModule->GetVerifyResultString() : ""; break;
-				case eVerifiedSigner:		Value = pWinModule ? pWinModule->GetVerifySignerName() : ""; break;
-
-				case eExitCode:				Value = pWinService->GetWin32ExitCode() == ERROR_SERVICE_SPECIFIC_ERROR ? pWinService->GetServiceSpecificExitCode() : pWinService->GetWin32ExitCode(); break;
-#endif
+				//
+				// A service that failed with its own error code reports the
+				// generic "service specific error" in the Win32 field and the
+				// real one alongside; show whichever is meaningful.
+				//
+				case eExitCode:				Value = pService->GetServiceSpecificExitCode() != 0 ? pService->GetServiceSpecificExitCode() : pService->GetWin32ExitCode(); break;
 			}
 
 			SServiceNode::SValue& ColValue = pNode->Values[section];
@@ -204,18 +174,14 @@ QVariant CServiceModel::headerData(int section, Qt::Orientation orientation, int
 			case eDisplayName:			return tr("Display Name");
 			case eType:					return tr("Type");
 			case eStatus:				return tr("Status");
-#ifdef WIN32
 			case eStartType:			return tr("Start type");
-#endif
 			case ePID:					return tr("PID");
 			case eFileName:				return tr("File name");
-#ifdef WIN32
 			case eErrorControl:			return tr("Error control");
 			case eGroupe:				return tr("Groupe");
 			case eDescription:			return tr("Description");
 			case eCompanyName:			return tr("Company name");
 			case eVersion:				return tr("Version");
-#endif
 			case eBinaryPath:			return tr("Binary path");
 
 			//case eKeyModificationTime:	return tr("Modification time");

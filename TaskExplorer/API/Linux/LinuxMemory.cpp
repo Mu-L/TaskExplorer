@@ -65,41 +65,6 @@ void CLinuxMemory::SetDetail(const ProcFs::SMapDetail& Detail)
 	m_PrivateSize = m_PrivateWorkingSet;
 }
 
-QString CLinuxMemory::GetTypeString() const
-{
-	QReadLocker Locker(&m_Mutex);
-	switch (m_RegionType)
-	{
-		case eImage:	return tr("Image");
-		case eMapped:	return tr("Mapped");
-		case ePrivate:	return tr("Private");
-		case eHeap:	return tr("Heap");
-		case eStack:	return tr("Stack");
-		case eVdso:	return tr("Kernel");
-		default:	break;
-	}
-	return tr("Unknown");
-}
-
-QString CLinuxMemory::GetProtectionString() const
-{
-	QReadLocker Locker(&m_Mutex);
-
-	QString Protection;
-	Protection += m_Readable   ? "r" : "-";
-	Protection += m_Writable   ? "w" : "-";
-	Protection += m_Executable ? "x" : "-";
-	Protection += m_Shared     ? "s" : "p";
-	return Protection;
-}
-
-QString CLinuxMemory::GetAllocProtectionString() const
-{
-	// Linux does not record the protection a mapping was originally created
-	// with, only its current one.
-	return GetProtectionString();
-}
-
 bool CLinuxMemory::IsFree() const
 {
 	// /proc/<pid>/maps only lists mapped regions, so nothing enumerated here is
@@ -125,23 +90,17 @@ bool CLinuxMemory::IsPrivate() const
 	return !m_Shared;
 }
 
-QString CLinuxMemory::GetUseString() const
-{
-	QReadLocker Locker(&m_Mutex);
-	return m_Path;
-}
-
 STATUS CLinuxMemory::SetProtect(quint32 Protect)
 {
 	// mprotect only acts on the calling process; changing another process's
 	// protection needs ptrace.
-	return ERR(tr("Changing memory protection of another process is not supported on Linux."));
+	return ERR(TE_ChangingMemoryProtection);
 }
 
 STATUS CLinuxMemory::DumpMemory(QIODevice* pFile)
 {
 	if (!pFile)
-		return ERR(tr("No output file."));
+		return ERR(TE_NoOutputFile);
 
 	QReadLocker Locker(&m_Mutex);
 	const quint64 BaseAddress = m_BaseAddress;
@@ -151,7 +110,7 @@ STATUS CLinuxMemory::DumpMemory(QIODevice* pFile)
 
 	CLinuxMemIO Reader(BaseAddress, RegionSize, ProcessId);
 	if (!Reader.open(QIODevice::ReadOnly))
-		return ERR(tr("Failed to open process memory. This usually means ptrace access was denied; see /proc/sys/kernel/yama/ptrace_scope."));
+		return ERR(TE_OpenProcMemory);
 
 	// Copied in chunks so a large region does not have to be held in memory.
 	const qint64 ChunkSize = 64 * 1024;
@@ -165,20 +124,20 @@ STATUS CLinuxMemory::DumpMemory(QIODevice* pFile)
 			break; // hit an unreadable page, or the end
 
 		if (pFile->write(Chunk) != Chunk.size())
-			return ERR(tr("Failed to write the dump file."));
+			return ERR(TE_WriteDumpFile);
 
 		Total += Chunk.size();
 	}
 
 	if (Total == 0)
-		return ERR(tr("Failed to read process memory."));
+		return ERR(TE_ReadProcMemory);
 
 	return OK;
 }
 
 STATUS CLinuxMemory::FreeMemory(bool Free)
 {
-	return ERR(tr("Freeing memory of another process is not supported on Linux."));
+	return ERR(TE_FreeingMemoryProc);
 }
 
 QIODevice* CLinuxMemory::MkDevice()

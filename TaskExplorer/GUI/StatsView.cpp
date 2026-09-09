@@ -1,14 +1,9 @@
 #include "stdafx.h"
+#include "../API/Cluster.h"
 #include "TaskExplorer.h"
 #include "StatsView.h"
 #include "../../MiscHelpers/Common/Common.h"
-#ifdef WIN32
-#include "../API/Windows/WinProcess.h"
-#include "../API/Windows/WindowsAPI.h"
-#include "../API/Windows/ProcessHacker.h"
-#else
-#include "../API/Linux/LinuxAPI.h"
-#endif
+#include "../API/SystemAPI.h"
 
 
 CStatsView::CStatsView(EView eView, QWidget *parent)
@@ -35,13 +30,9 @@ CStatsView::CStatsView(EView eView, QWidget *parent)
 	// 
 
 	m_MonitorsETW = false;
-
-#ifdef WIN32
 	/*m_MmAddressesInitialized = false;
 	m_MmSizeOfPagedPoolInBytes = -1;
 	m_MmMaximumNonPagedPoolInBytes = -1;*/
-#endif
-
 	SetupTree();
 
 	/*if (eView == eProcess || eView == eSystem)
@@ -74,9 +65,7 @@ void CStatsView::SetupTree()
 		m_pCPU->addChild(m_pCycles);
 	}
 	if (m_eView == eProcess
-#ifdef WIN32
 		|| m_eView == eJob
-#endif
 	 ) {
 		m_pKernelTime = new QTreeWidgetItem(tr("Kernel time").split("|"));
 		m_pCPU->addChild(m_pKernelTime);
@@ -147,14 +136,11 @@ void CStatsView::SetupTree()
 		m_pMemory->addChild(m_pShareableWS);
 		m_pSharedWS = new QTreeWidgetItem(tr("Shared working set").split("|"));
 		m_pMemory->addChild(m_pSharedWS);
-#ifdef WIN32
 		m_pPagedPool = new QTreeWidgetItem(tr("Paged pool usage").split("|"));
 		m_pMemory->addChild(m_pPagedPool);
 		m_pNonPagedPool = new QTreeWidgetItem(tr("Non-Paged pool usage").split("|"));
 		m_pMemory->addChild(m_pNonPagedPool);
-#endif
 	}
-#ifdef WIN32
 	else if(m_eView == eJob)
 	{
 		m_pPrivateWS = new QTreeWidgetItem(tr("Peak process usage").split("|"));
@@ -162,8 +148,6 @@ void CStatsView::SetupTree()
 		m_pSharedWS = new QTreeWidgetItem(tr("Peak job usage").split("|"));
 		m_pMemory->addChild(m_pSharedWS);
 	}
-#endif
-
 	m_pIO = new QTreeWidgetItem(tr("I/O").split("|"));
 	m_pStatsList->addTopLevelItem(m_pIO);
 	m_pIOReads = new QTreeWidgetItem(tr("File I/O reads").split("|"));
@@ -206,9 +190,7 @@ void CStatsView::SetupTree()
 	}
 
 	if (m_eView == eSystem
-#ifdef WIN32
 		|| m_eView == eJob
-#endif
 	 ) {
 		m_pProcesses = new QTreeWidgetItem(tr("Processes").split("|"));
 		m_pOther->addChild(m_pProcesses);
@@ -226,7 +208,6 @@ void CStatsView::SetupTree()
 		m_pWndObjects = new QTreeWidgetItem(tr("Windows").split("|"));
 		m_pOther->addChild(m_pWndObjects);
 	}
-#ifdef WIN32
 	if (m_eView == eProcess)
 	{
 		m_pRunningTime = new QTreeWidgetItem(tr("Running time").split("|"));
@@ -238,23 +219,18 @@ void CStatsView::SetupTree()
 		m_pGhostCount = new QTreeWidgetItem(tr("Ghost count").split("|"));
 		m_pOther->addChild(m_pGhostCount);
 	}
-#endif
-
 	m_pStatsList->expandAll();
 	//
 }
 
 void CStatsView::ShowProcesses(const QList<CProcessPtr>& Processes)
 {
-#ifdef WIN32
-	if (m_MonitorsETW != ((CWindowsAPI*)theAPI)->IsMonitoringETW())
+	if (m_MonitorsETW != CCluster::GetViewSystem()->HasCapability(CSystemAPI::eCapEtw))
 	{
-		m_MonitorsETW = ((CWindowsAPI*)theAPI)->IsMonitoringETW();
+		m_MonitorsETW = CCluster::GetViewSystem()->HasCapability(CSystemAPI::eCapEtw);
 
 		SetupTree();
 	}
-#endif
-
 	if (Processes.isEmpty())
 		return;
 
@@ -297,18 +273,27 @@ void CStatsView::ShowProcesses(const QList<CProcessPtr>& Processes)
 	{
 		STaskStatsEx CpuStats = pProcess->GetCpuStats();
 
+		// the tick length differs between systems, so scale each process' times
+		// by the divider of the system it was observed on
+		//
+		// One when the machine is gone, which leaves the times as they were
+		// rather than dividing by nothing.
+		//
+		CSystemPtr pCpuSystem = pProcess->GetSystem();
+		quint64 CpuTimeDivider = pCpuSystem ? pCpuSystem->GetCpuTimeDivider() : 1;
+
 		// CPU
 		AccStats[m_pCycles].AddSumm(eCount, eFormatNumber, CpuStats.CycleDelta.Value);
 		AccStats[m_pCycles].AddSumm(eDelta, eFormatNumber, CpuStats.CycleDelta.Delta);
 
-		AccStats[m_pKernelTime].AddSumm(eCount, eFormatTime, CpuStats.CpuKernelDelta.Value / CPU_TIME_DIVIDER);
-		AccStats[m_pKernelTime].AddSumm(eDelta, eFormatTime, CpuStats.CpuKernelDelta.Delta / CPU_TIME_DIVIDER);
+		AccStats[m_pKernelTime].AddSumm(eCount, eFormatTime, CpuStats.CpuKernelDelta.Value / CpuTimeDivider);
+		AccStats[m_pKernelTime].AddSumm(eDelta, eFormatTime, CpuStats.CpuKernelDelta.Delta / CpuTimeDivider);
 
-		AccStats[m_pUserTime].AddSumm(eCount, eFormatTime, CpuStats.CpuUserDelta.Value / CPU_TIME_DIVIDER);
-		AccStats[m_pUserTime].AddSumm(eDelta, eFormatTime, CpuStats.CpuUserDelta.Delta / CPU_TIME_DIVIDER);
+		AccStats[m_pUserTime].AddSumm(eCount, eFormatTime, CpuStats.CpuUserDelta.Value / CpuTimeDivider);
+		AccStats[m_pUserTime].AddSumm(eDelta, eFormatTime, CpuStats.CpuUserDelta.Delta / CpuTimeDivider);
 
-		AccStats[m_pTotalTime].AddSumm(eCount, eFormatTime, (CpuStats.CpuKernelDelta.Value + CpuStats.CpuUserDelta.Value) / CPU_TIME_DIVIDER);
-		AccStats[m_pTotalTime].AddSumm(eDelta, eFormatTime, (CpuStats.CpuKernelDelta.Delta + CpuStats.CpuUserDelta.Delta) / CPU_TIME_DIVIDER);
+		AccStats[m_pTotalTime].AddSumm(eCount, eFormatTime, (CpuStats.CpuKernelDelta.Value + CpuStats.CpuUserDelta.Value) / CpuTimeDivider);
+		AccStats[m_pTotalTime].AddSumm(eDelta, eFormatTime, (CpuStats.CpuKernelDelta.Delta + CpuStats.CpuUserDelta.Delta) / CpuTimeDivider);
 
 		AccStats[m_pContextSwitches].AddSumm(eCount, eFormatNumber, CpuStats.ContextSwitchesDelta.Value);
 		AccStats[m_pContextSwitches].AddSumm(eDelta, eFormatNumber, CpuStats.ContextSwitchesDelta.Delta);
@@ -379,28 +364,23 @@ void CStatsView::ShowProcesses(const QList<CProcessPtr>& Processes)
 		AccStats[m_pThreads].AddSumm(ePeak, eFormatNumber, pProcess->GetPeakNumberOfThreads());
 		AccStats[m_pHandles].AddSumm(eCount, eFormatNumber, pProcess->GetNumberOfHandles());
 		AccStats[m_pHandles].AddSumm(ePeak, eFormatNumber, pProcess->GetPeakNumberOfHandles());
+		AccStats[m_pPagedPool].AddSumm(eSize, eFormatSize, pProcess->GetPagedPool());
+		AccStats[m_pPagedPool].AddSumm(ePeak, eFormatSize, pProcess->GetPeakPagedPool());
 
-#ifdef WIN32
-		CWinProcess* pWinProc = qobject_cast<CWinProcess*>(pProcess.data());
+		AccStats[m_pNonPagedPool].AddSumm(eSize, eFormatSize, pProcess->GetNonPagedPool());
+		AccStats[m_pNonPagedPool].AddSumm(ePeak, eFormatSize, pProcess->GetPeakNonPagedPool());
 
-		AccStats[m_pPagedPool].AddSumm(eSize, eFormatSize, pWinProc->GetPagedPool());
-		AccStats[m_pPagedPool].AddSumm(ePeak, eFormatSize, pWinProc->GetPeakPagedPool());
+		AccStats[m_pGdiObjects].AddSumm(eCount, eFormatNumber, pProcess->GetGdiHandles());
 
-		AccStats[m_pNonPagedPool].AddSumm(eSize, eFormatSize, pWinProc->GetNonPagedPool());
-		AccStats[m_pNonPagedPool].AddSumm(ePeak, eFormatSize, pWinProc->GetPeakNonPagedPool());
+		AccStats[m_pUserObjects].AddSumm(eCount, eFormatNumber, pProcess->GetUserHandles());
 
-		AccStats[m_pGdiObjects].AddSumm(eCount, eFormatNumber, pWinProc->GetGdiHandles());
-
-		AccStats[m_pUserObjects].AddSumm(eCount, eFormatNumber, pWinProc->GetUserHandles());
-
-		AccStats[m_pWndObjects].AddSumm(eCount, eFormatNumber, pWinProc->GetWndHandles());
+		AccStats[m_pWndObjects].AddSumm(eCount, eFormatNumber, pProcess->GetWndHandles());
 
 
-		AccStats[m_pRunningTime].AddSumm(eCount, eFormatTime, pWinProc->GetUpTime());
-		AccStats[m_pSuspendTime].AddSumm(eCount, eFormatTime, pWinProc->GetSuspendTime());
-		AccStats[m_pHangCount].AddSumm(eCount, eFormatNumber, pWinProc->GetHangCount());
-		AccStats[m_pGhostCount].AddSumm(eCount, eFormatNumber, pWinProc->GetGhostCount());
-#endif
+		AccStats[m_pRunningTime].AddSumm(eCount, eFormatTime, pProcess->GetUpTime());
+		AccStats[m_pSuspendTime].AddSumm(eCount, eFormatTime, pProcess->GetSuspendTime());
+		AccStats[m_pHangCount].AddSumm(eCount, eFormatNumber, pProcess->GetHangCount());
+		AccStats[m_pGhostCount].AddSumm(eCount, eFormatNumber, pProcess->GetGhostCount());
 	}
 	
 	for (QMap<QTreeWidgetItem*, SAccStat>::iterator I = AccStats.begin(); I != AccStats.end(); I++)
@@ -470,16 +450,13 @@ void CStatsView::ShowIoStats(const SSysStats& Stats)
 
 void CStatsView::ShowSystem()
 {
-#ifdef WIN32
 	/*if (!m_MmAddressesInitialized)
 	{
 		m_MmAddressesInitialized = true;
-		qobject_cast<CWindowsAPI*>(theAPI)->GetSymbolProvider()->GetAddressFromSymbol((quint64)SYSTEM_PROCESS_ID, "MmSizeOfPagedPoolInBytes", this, SLOT(AddressFromSymbol(quint64, const QString&, quint64)));
-		qobject_cast<CWindowsAPI*>(theAPI)->GetSymbolProvider()->GetAddressFromSymbol((quint64)SYSTEM_PROCESS_ID, "MmMaximumNonPagedPoolInBytes", this, SLOT(AddressFromSymbol(quint64, const QString&, quint64)));
+		CCluster::GetViewSystem()->GetAddressFromSymbol(CCluster::GetViewSystem()->GetKernelProcessId(), "MmSizeOfPagedPoolInBytes", this, SLOT(AddressFromSymbol(quint64, const QString&, quint64)));
+		CCluster::GetViewSystem()->GetAddressFromSymbol(CCluster::GetViewSystem()->GetKernelProcessId(), "MmMaximumNonPagedPoolInBytes", this, SLOT(AddressFromSymbol(quint64, const QString&, quint64)));
 	}*/
-#endif
-
-	SCpuStatsEx CpuStats = theAPI->GetCpuStats();
+	SCpuStatsEx CpuStats = CCluster::GetViewSystem()->GetCpuStats();
 
 	// CPU
 	m_pContextSwitches->setText(eCount, FormatNumber(CpuStats.ContextSwitchesDelta.Value));
@@ -496,26 +473,24 @@ void CStatsView::ShowSystem()
 
 
 	// Memory
-	m_pCommitCharge->setText(eSize, FormatSize(theAPI->GetCommitedMemory()));
-	m_pCommitCharge->setText(ePeak, FormatSize(theAPI->GetCommitedMemoryPeak()));
-	//m_pCommitCharge->setText(eLimit, FormatSize(theAPI->GetMemoryLimit()));
+	m_pCommitCharge->setText(eSize, FormatSize(CCluster::GetViewSystem()->GetCommitedMemory()));
+	m_pCommitCharge->setText(ePeak, FormatSize(CCluster::GetViewSystem()->GetCommitedMemoryPeak()));
+	//m_pCommitCharge->setText(eLimit, FormatSize(CCluster::GetViewSystem()->GetMemoryLimit()));
 
-	m_pWorkingSet->setText(eSize, FormatSize(theAPI->GetPersistentPagedPool()));
+	m_pWorkingSet->setText(eSize, FormatSize(CCluster::GetViewSystem()->GetPersistentPagedPool()));
 	//m_pWorkingSet->setText(eLimit
-	m_pVirtualSize->setText(eSize, FormatSize(theAPI->GetPagedPool()));
+	m_pVirtualSize->setText(eSize, FormatSize(CCluster::GetViewSystem()->GetPagedPool()));
 	m_pPagedPoolAllocs->setText(eCount, FormatNumber(CpuStats.PagedAllocsDelta.Value));
 	m_pPagedPoolAllocs->setText(eDelta, FormatNumber(CpuStats.PagedAllocsDelta.Delta));
 	m_pPagedPoolFrees->setText(eCount, FormatNumber(CpuStats.PagedFreesDelta.Value));
 	m_pPagedPoolFrees->setText(eDelta, FormatNumber(CpuStats.PagedFreesDelta.Delta));
 
-	m_pNonPagedPool->setText(eSize, FormatSize(theAPI->GetNonPagedPool()));
+	m_pNonPagedPool->setText(eSize, FormatSize(CCluster::GetViewSystem()->GetNonPagedPool()));
 	//m_pNonPagedPool->setText(eLimit
 	m_pNonPagedPoolAllocs->setText(eCount, FormatNumber(CpuStats.NonPagedAllocsDelta.Value));
 	m_pNonPagedPoolAllocs->setText(eDelta, FormatNumber(CpuStats.NonPagedAllocsDelta.Delta));
 	m_pNonPagedPoolFrees->setText(eCount, FormatNumber(CpuStats.NonPagedFreesDelta.Value));
 	m_pNonPagedPoolFrees->setText(eDelta, FormatNumber(CpuStats.NonPagedFreesDelta.Delta));
-
-#ifdef WIN32
     /*QString pagedLimit;
     QString nonPagedLimit;
 	if (!KphCommsIsConnected())
@@ -552,13 +527,11 @@ void CStatsView::ShowSystem()
     }
 	m_pWorkingSet->setText(eLimit, pagedLimit);
 	m_pNonPagedPool->setText(eLimit, nonPagedLimit);*/
-#endif
-
 	m_pPageFaults->setText(eCount, FormatNumber(CpuStats.PageFaultsDelta.Value));
 	m_pPageFaults->setText(eDelta, FormatNumber(CpuStats.PageFaultsDelta.Delta));
 
 	// IO
-	SSysStats SysStats = theAPI->GetStats();
+	SSysStats SysStats = CCluster::GetViewSystem()->GetStats();
 	ShowIoStats(SysStats);
 
 	m_pMMapIOReads->setText(eCount, FormatNumber(SysStats.MMapIo.ReadDelta.Value));
@@ -572,26 +545,21 @@ void CStatsView::ShowSystem()
 	m_pMMapIOWrites->setText(eDelta, FormatNumber(SysStats.MMapIo.WriteDelta.Delta));
 
 	// other
-	m_pUpTime->setText(eCount, FormatTime(theAPI->GetUpTime()));
+	m_pUpTime->setText(eCount, FormatTime(CCluster::GetViewSystem()->GetUpTime()));
 
-	m_pProcesses->setText(eCount, FormatNumber(theAPI->GetTotalProcesses()));
+	m_pProcesses->setText(eCount, FormatNumber(CCluster::GetViewSystem()->GetTotalProcesses()));
 
-	m_pThreads->setText(eCount, FormatNumber(theAPI->GetTotalThreads()));
+	m_pThreads->setText(eCount, FormatNumber(CCluster::GetViewSystem()->GetTotalThreads()));
 
-	m_pHandles->setText(eCount, FormatNumber(theAPI->GetTotalHandles()));
+	m_pHandles->setText(eCount, FormatNumber(CCluster::GetViewSystem()->GetTotalHandles()));
 	//m_pHandles->setText(ePeak, FormatNumber(pProcess->GetpeakNumberOfHandles()));
+	m_pGdiObjects->setText(eCount, FormatNumber(CCluster::GetViewSystem()->GetTotalGuiObjects()));
 
-#ifdef WIN32
-	m_pGdiObjects->setText(eCount, FormatNumber(((CWindowsAPI*)theAPI)->GetTotalGuiObjects()));
+	m_pUserObjects->setText(eCount, FormatNumber(CCluster::GetViewSystem()->GetTotalUserObjects()));
 
-	m_pUserObjects->setText(eCount, FormatNumber(((CWindowsAPI*)theAPI)->GetTotalUserObjects()));
-
-	m_pWndObjects->setText(eCount, FormatNumber(((CWindowsAPI*)theAPI)->GetTotalWndObjects()));
-#endif
+	m_pWndObjects->setText(eCount, FormatNumber(CCluster::GetViewSystem()->GetTotalWndObjects()));
 }
-
-#ifdef WIN32
-void CStatsView::ShowJob(const CWinJobPtr& pCurJob)
+void CStatsView::ShowJob(const CJobInfoPtr& pCurJob)
 {
 	m_pProcesses->setText(eCount, FormatNumber(pCurJob->GetActiveProcesses()));
 	m_pProcesses->setText(ePeak, FormatNumber(pCurJob->GetTotalProcesses())); // not quite peak but close enough ;)
@@ -599,12 +567,22 @@ void CStatsView::ShowJob(const CWinJobPtr& pCurJob)
 	
 	SJobStats Stats = pCurJob->GetStats();
 
-	// CPU
-	m_pKernelTime->setText(eCount, FormatTime(Stats.KernelDelta.Value/CPU_TIME_DIVIDER));
-	m_pKernelTime->setText(eDelta, FormatTime(Stats.KernelDelta.Delta/CPU_TIME_DIVIDER));
+	//
+	// A job whose machine is unknown divides by one rather than crashing.
+	//
+	// Every job should know its system and one that does not is a fault
+	// somewhere else - but a null dereference here takes the window down, and a
+	// panel that shows raw ticks is a far smaller wrong than that.
+	//
+	CSystemPtr pSystem = pCurJob->GetSystem();
+	const quint64 CpuTimeDivider = pSystem ? qMax((quint64)1, pSystem->GetCpuTimeDivider()) : 1;
 
-	m_pUserTime->setText(eCount, FormatTime(Stats.UserDelta.Value/CPU_TIME_DIVIDER));
-	m_pUserTime->setText(eDelta, FormatTime(Stats.UserDelta.Delta/CPU_TIME_DIVIDER));
+	// CPU
+	m_pKernelTime->setText(eCount, FormatTime(Stats.KernelDelta.Value/CpuTimeDivider));
+	m_pKernelTime->setText(eDelta, FormatTime(Stats.KernelDelta.Delta/CpuTimeDivider));
+
+	m_pUserTime->setText(eCount, FormatTime(Stats.UserDelta.Value/CpuTimeDivider));
+	m_pUserTime->setText(eDelta, FormatTime(Stats.UserDelta.Delta/CpuTimeDivider));
 
 	// memory
 	m_pPageFaults->setText(eCount, FormatNumber(Stats.PageFaultsDelta.Value));
@@ -630,8 +608,6 @@ void CStatsView::ShowJob(const CWinJobPtr& pCurJob)
 	m_pIOOther->setText(eRate, FormatRate(Stats.Io.OtherRate.Get()));
 	m_pIOOther->setText(eDelta, FormatNumber(Stats.Io.OtherDelta.Delta));
 }
-#endif
-
 void CStatsView::SetFilter(const QRegularExpression& Exp, int iOptions, int Col)
 {
 	CPanelWidgetEx::ApplyFilter(m_pStatsList, &Exp/*, iOptions, Col*/);

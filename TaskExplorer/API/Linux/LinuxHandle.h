@@ -46,9 +46,8 @@ public:
 
 	virtual quint32			GetTypeIndex() const;
 	virtual QString			GetTypeName() const;
-	virtual QString			GetTypeString() const;
 	virtual quint32			GetGrantedAccess() const;
-	virtual QString			GetGrantedAccessString() const;
+	virtual quint32			GetOpenFlags() const			{ QReadLocker Locker(&m_Mutex); return m_Flags; }
 
 	virtual STATUS			Close(bool bForce = false);
 

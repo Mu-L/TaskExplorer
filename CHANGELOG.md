@@ -10,12 +10,21 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-## [2.0.0] - 2026-08-??
+## [2.0.0] - 2026-09-09
 
 ### Added
-- added linux support, ther is now a x64 and aarch64 linux build available
+- added native Linux support with x64 and ARM64 builds
+- added remote system monitoring using TaskServer and TaskRemote, including cross-platform Windows/Linux connections and monitoring of multiple machines
+  - note: remote monitoring requires a supporter certificate available in our store at xanasoft.com
+- added secure remote authentication, credential storage and local network server discovery
+- added Wine integration on Linux, including Windows process names, handles, windows, tokens and Windows PIDs
+- added optional Window Agents for enumerating and controlling windows in other Windows user sessions
+- added machine selection and cluster mode controls to the toolbar
+- added windows mini dump helper
 
 ### Changed
+- significantly reworked the internal architecture to support multiple local and remote systems through a common interface
+- added a custom permissions editor replacing the Windows securable object editor
 - updated PHlib to version 4.0.26241
 
 

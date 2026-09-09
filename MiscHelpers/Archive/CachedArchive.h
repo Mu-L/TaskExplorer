@@ -1,12 +1,12 @@
 #pragma once
 
-#include "../mischelpers_global.h"
+#include "../corehelpers_global.h"
 
 #include "Archive.h"
 
 #ifdef USE_7Z
 
-class MISCHELPERS_EXPORT CCachedArchive: public CArchive
+class COREHELPERS_EXPORT CCachedArchive: public CArchive
 {
 public:
 	CCachedArchive(const QString &ArchivePath);

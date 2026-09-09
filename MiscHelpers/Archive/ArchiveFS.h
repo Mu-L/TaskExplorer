@@ -2,13 +2,13 @@
 #include <private/qabstractfileengine_p.h>
 #include "Archive.h"
 
-#include "../mischelpers_global.h"
+#include "../corehelpers_global.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // C7zFileEngine
 // 
 
-class MISCHELPERS_EXPORT C7zFileEngine : public QAbstractFileEngine
+class COREHELPERS_EXPORT C7zFileEngine : public QAbstractFileEngine
 {
 protected:
     friend class C7zFileEngineHandler;
@@ -74,7 +74,7 @@ private:
 // C7zFileEngineHandler
 // 
 
-class MISCHELPERS_EXPORT C7zFileEngineHandler : public QObject, public QAbstractFileEngineHandler
+class COREHELPERS_EXPORT C7zFileEngineHandler : public QObject, public QAbstractFileEngineHandler
 {
 public:
     C7zFileEngineHandler(const QString& Scheme, QObject* parent = NULL);

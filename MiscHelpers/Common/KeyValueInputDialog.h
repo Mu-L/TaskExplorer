@@ -6,9 +6,9 @@
 
 class CKeyValueInputDialogPrivate;
 
-#include "../mischelpers_global.h"
+#include "../guihelpers_global.h"
 
-class MISCHELPERS_EXPORT CKeyValueInputDialog : public QDialog
+class GUIHELPERS_EXPORT CKeyValueInputDialog : public QDialog
 {
     Q_OBJECT
     Q_PROPERTY(QString text READ text WRITE setText)

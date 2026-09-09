@@ -3,10 +3,10 @@
 
 #include "Common.h"
 
-#include "../mischelpers_global.h"
+#include "../guihelpers_global.h"
 
 
-class MISCHELPERS_EXPORT CTreeItemModel : public QAbstractItemModelEx
+class GUIHELPERS_EXPORT CTreeItemModel : public QAbstractItemModelEx
 {
     Q_OBJECT
 
@@ -107,6 +107,20 @@ protected:
 	}
 	virtual STreeNode*	MkVirtualNode(const QVariant& Id, STreeNode* pParent);
 
+	//
+	// Whether a branch survives having nothing in it.
+	//
+	// A virtual node exists to hold things, so one that has ended up empty is
+	// normally finished - that is what stops an account branch outliving its
+	// last process. Some branches stand for something that is there whether or
+	// not it currently has rows: a machine that has gone quiet still has to keep
+	// the row you would disconnect it from.
+	//
+	// Asked of the id rather than tracked as state, so there is nothing to keep
+	// in step with the model.
+	//
+	virtual bool		IsBranchPinned(const QVariant& Id) const { Q_UNUSED(Id); return false; }
+
 	void			Sync(QMap<QList<QVariant>, QList<STreeNode*> >& New, QHash<QVariant, STreeNode*>& Old, QList<QModelIndex>* pNewBranches = NULL);
 	void			Purge(STreeNode* pParent, const QModelIndex &parent, QHash<QVariant, STreeNode*>& Old);
 	void			Fill(STreeNode* pParent, /*const QModelIndex &parent,*/ const QList<QVariant>& Paths, int PathsIndex, const QList<STreeNode*>& New, QList<QModelIndex>* pNewBranches);
@@ -123,7 +137,7 @@ protected:
 	static bool							m_DarkMode;
 };
 
-class MISCHELPERS_EXPORT CSimpleTreeModel : public CTreeItemModel
+class GUIHELPERS_EXPORT CSimpleTreeModel : public CTreeItemModel
 {
 	Q_OBJECT
 

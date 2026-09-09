@@ -1,0 +1,1046 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{D9D6E242-F8AF-46E4-B9FD-80ECBC20BA3E}</UniqueIdentifier>
+      <Extensions>qrc;*</Extensions>
+      <ParseFiles>false</ParseFiles>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{D9D6E242-F8AF-46E4-B9FD-80ECBC20BA3E}</UniqueIdentifier>
+      <Extensions>qrc;*</Extensions>
+      <ParseFiles>false</ParseFiles>
+    </Filter>
+    <Filter Include="Generated Files">
+      <UniqueIdentifier>{71ED8ED8-ACB9-4CE9-BBE1-E00B30144E11}</UniqueIdentifier>
+      <Extensions>moc;h;cpp</Extensions>
+      <SourceControlFiles>False</SourceControlFiles>
+    </Filter>
+    <Filter Include="TaskExplorer">
+      <UniqueIdentifier>{9281d09d-2ea9-4fd9-9f5b-3641b4950edb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="API">
+      <UniqueIdentifier>{cb9977b3-aced-4563-8332-f3745213d3bb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="API\Windows">
+      <UniqueIdentifier>{2db0add2-87fa-494d-a6b9-eedf94b80984}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common">
+      <UniqueIdentifier>{21b99ddb-37fd-49c1-9470-f459c5dff027}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="API\Windows\ProcessHacker">
+      <UniqueIdentifier>{682b726a-795d-48fb-9df6-947490a4059d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="TaskExplorer\TaskInfo">
+      <UniqueIdentifier>{04372b0f-1fa5-4294-a9a5-6a947ea3c5a6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="TaskExplorer\SystemInfo">
+      <UniqueIdentifier>{ba7af562-4fa1-4d9a-9e1f-aa9ccfb0be34}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="TaskExplorer\Models">
+      <UniqueIdentifier>{4a0bd8cb-5aae-4453-8d1d-af5ccee27686}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SVC">
+      <UniqueIdentifier>{7b001913-6098-46fb-9e4e-e5f4c3d2f1d7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="API\Finders">
+      <UniqueIdentifier>{6ef269c7-c699-47e7-9e3f-d6b1791a7fad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="API\Windows\Finders">
+      <UniqueIdentifier>{92d3809e-b8e3-4eb4-9470-b188ab162722}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="TaskExplorer\Search">
+      <UniqueIdentifier>{231e956e-a3d1-428d-8dc0-8fe2686f57d3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Forms">
+      <UniqueIdentifier>{99349809-55BA-4b9d-BF79-8FDBB0286EB3}</UniqueIdentifier>
+      <Extensions>ui</Extensions>
+    </Filter>
+    <Filter Include="Translation Files">
+      <UniqueIdentifier>{639EADAA-A684-42e4-A9AD-28FC9BCB8F7C}</UniqueIdentifier>
+      <Extensions>ts</Extensions>
+      <ParseFiles>false</ParseFiles>
+    </Filter>
+    <Filter Include="API\Windows\Monitors">
+      <UniqueIdentifier>{1f73c8d8-9f81-409c-adbe-bec566d7a2bc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="API\Monitors">
+      <UniqueIdentifier>{74c948b0-3d3a-4256-9035-eccf45401174}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="TaskExplorer\SystemInfo\KernelInfo">
+      <UniqueIdentifier>{e7b5f9f5-6348-4501-af57-cba7740d091d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="API\Windows\Monitors\Etw">
+      <UniqueIdentifier>{1c4c7a65-beb5-40d2-90ad-cb9c50fb562c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="API\Windows\Monitors\Etw\krabs">
+      <UniqueIdentifier>{0b952ebb-9b5c-4aae-949d-5cd605279462}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="API\Windows\Monitors\Etw\krabs\filtering">
+      <UniqueIdentifier>{50af5051-6b8e-4ed2-926c-0b57d7e362ce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="API\Windows\WinHelpers">
+      <UniqueIdentifier>{3c45ec8c-8f01-4144-b235-3d8ef72624a1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="API\Windows\WinHelpers\InjectDll">
+      <UniqueIdentifier>{99af3be8-d19a-4e8e-a574-639195d5250d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="TaskExplorer\Filters">
+      <UniqueIdentifier>{d048a725-d5a4-4ff2-84a2-f9f8da01c68b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="API\Windows\Monitors\d3dkmt">
+      <UniqueIdentifier>{0dff98b8-f098-42cc-9ce2-ed62f2caa31c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="API\Windows\SystemHacker">
+      <UniqueIdentifier>{128cb3e9-a9b4-40b1-92cd-9fa7f9eb29bd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="API\Windows\WinHelpers\FuncHook">
+      <UniqueIdentifier>{15e10620-4193-427e-ae2f-15b892dad844}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="API\Windows\WinHelpers\FuncHook\Detours">
+      <UniqueIdentifier>{2a689bdf-52b9-4bd1-a07f-60ea8699e800}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="API\Windows\ProcessHacker\clr">
+      <UniqueIdentifier>{bf717e83-96b4-4171-8e48-9c6526b41603}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="API\Remote">
+      <UniqueIdentifier>{b2d1ef02-2fd1-4c32-ad42-1a2f3e4d5c6b}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="API\Cluster.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\SystemAPI.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WindowsAPI.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\ProcessHacker.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinProcess.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="API\SocketInfo.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinSocket.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="API\ProcessInfo.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\HandleInfo.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinAccessRights.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHandle.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinThread.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="API\StackTrace.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinRun.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinSecurity.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinServiceConfig.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinService.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="API\ServiceInfo.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\ThreadInfo.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\ModuleInfo.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinModule.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="API\WndInfo.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinWnd.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinJob.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="API\AbstractTask.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\AbstractInfo.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\DriverInfo.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinDriver.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="SVC\CredentialStore.cpp">
+      <Filter>SVC</Filter>
+    </ClCompile>
+    <ClCompile Include="SVC\ServerSetup.cpp">
+      <Filter>SVC</Filter>
+    </ClCompile>
+    <ClCompile Include="SVC\WndAgents.cpp">
+      <Filter>SVC</Filter>
+    </ClCompile>
+    <ClCompile Include="SVC\TaskService.cpp">
+      <Filter>SVC</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\ProcessHacker\RunAs.cpp">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\RunAsTI.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\ProcessHacker\PhSvc.cpp">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\ProcessHacker\ProcMtgn.cpp">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinAdmin.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="API\MemDumper.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinDumper.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="API\MemoryInfo.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinMemory.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\ProcessHacker\memprv.cpp">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinMemIO.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinToken.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Finders\AbstractFinder.cpp">
+      <Filter>API\Finders</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\Finders\WinHandleFinder.cpp">
+      <Filter>API\Windows\Finders</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\Finders\WinModuleFinder.cpp">
+      <Filter>API\Windows\Finders</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\Finders\WinStringFinder.cpp">
+      <Filter>API\Windows\Finders</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\ProcessHacker\clrsup.c">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\ProcessHacker\AssemblyEnum.cpp">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </ClCompile>
+    <ClCompile Include="API\AssemblyList.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\ProcessHacker\DotNet.cpp">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\ProcessHacker\ndis.cpp">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\ProcessHacker\storage.cpp">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinGDI.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\SymbolProvider.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\Monitors\WinDiskMonitor.cpp">
+      <Filter>API\Windows\Monitors</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\Monitors\WinGpuMonitor.cpp">
+      <Filter>API\Windows\Monitors</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\Monitors\WinNetMonitor.cpp">
+      <Filter>API\Windows\Monitors</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Monitors\DiskMonitor.cpp">
+      <Filter>API\Monitors</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Monitors\GpuMonitor.cpp">
+      <Filter>API\Monitors</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Monitors\NetMonitor.cpp">
+      <Filter>API\Monitors</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\SidResolver.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\DnsResolver.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="API\DnsEntry.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\ProcessHacker\fw.cpp">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\Monitors\FwEventMonitor.cpp">
+      <Filter>API\Windows\Monitors</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinPoolEntry.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\ProcessHacker\db.cpp">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\ProcessHacker\pool.cpp">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\ProcessHacker\appsup.cpp">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\ProcessHacker\syssccpu.cpp">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\Monitors\EtwEventMonitor.cpp">
+      <Filter>API\Windows\Monitors</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WindowsHelpers.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\SandboxieAPI.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="API\PersistentPreset.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\ProcessHacker\GpuCounters.c">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\Monitors\WinDbgMonitor.cpp">
+      <Filter>API\Windows\Monitors</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\InjectDll\injdll32.c">
+      <Filter>API\Windows\WinHelpers\InjectDll</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\InjectDll\injdll32_32.c">
+      <Filter>API\Windows\WinHelpers\InjectDll</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\InjectDll\injdll32_64.c">
+      <Filter>API\Windows\WinHelpers\InjectDll</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\InjectDll\injdll64.c">
+      <Filter>API\Windows\WinHelpers\InjectDll</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\Monitors\EventMonitor.cpp">
+      <Filter>API\Windows\Monitors</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\Monitors\FirewallMonitor.cpp">
+      <Filter>API\Windows\Monitors</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\RpcEndpoint.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\ProcessHacker\DotNetCounters.c">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\ProcessHacker\ksyscall.c">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </ClCompile>
+    <ClCompile Include="API\HeapInfo.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHeap.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\SystemHacker\xph.c">
+      <Filter>API\Windows\SystemHacker</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\SystemHacker\xphdata.c">
+      <Filter>API\Windows\SystemHacker</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\SystemHacker\SystemHacker.cpp">
+      <Filter>API\Windows\SystemHacker</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\FuncHook\HookUtils.cpp">
+      <Filter>API\Windows\WinHelpers\FuncHook</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\FuncHook\Detours\creatwth.cpp">
+      <Filter>API\Windows\WinHelpers\FuncHook\Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\FuncHook\Detours\detours.cpp">
+      <Filter>API\Windows\WinHelpers\FuncHook\Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\FuncHook\Detours\disasm.cpp">
+      <Filter>API\Windows\WinHelpers\FuncHook\Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\FuncHook\Detours\disolarm.cpp">
+      <Filter>API\Windows\WinHelpers\FuncHook\Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\FuncHook\Detours\disolarm64.cpp">
+      <Filter>API\Windows\WinHelpers\FuncHook\Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\FuncHook\Detours\disolia64.cpp">
+      <Filter>API\Windows\WinHelpers\FuncHook\Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\FuncHook\Detours\disolx64.cpp">
+      <Filter>API\Windows\WinHelpers\FuncHook\Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\FuncHook\Detours\disolx86.cpp">
+      <Filter>API\Windows\WinHelpers\FuncHook\Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\FuncHook\Detours\image.cpp">
+      <Filter>API\Windows\WinHelpers\FuncHook\Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\FuncHook\Detours\modules.cpp">
+      <Filter>API\Windows\WinHelpers\FuncHook\Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\FuncHook\Detours\uimports.cpp">
+      <Filter>API\Windows\WinHelpers\FuncHook\Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\FindTool.cpp">
+      <Filter>API\Windows\WinHelpers</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelpers\WindowFromPointEx.cpp">
+      <Filter>API\Windows\WinHelpers</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Windows\WinHelper.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="API\Windows\ProcessHacker.h">
+      <Filter>API\Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="API\AccessRights.h">
+      <Filter>API</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\WinAccessRights.h">
+      <Filter>API</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Placeholders.h">
+      <Filter>API</Filter>
+    </ClInclude>
+    <ClInclude Include="API\StackTrace.h">
+      <Filter>API</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\ProcessHacker\RunAs.h">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\ProcessHacker\PhSvc.h">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\ProcessHacker\ProcMtgn.h">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\WinAdmin.h">
+      <Filter>API\Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\ProcessHacker\memprv.h">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </ClInclude>
+    <ClInclude Include="API\MiscStats.h">
+      <Filter>API</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\ProcessHacker\clrsup.h">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\ProcessHacker\clretw.h">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </ClInclude>
+    <QtMoc Include="API\AssemblyList.h">
+      <Filter>API</Filter>
+    </QtMoc>
+    <ClInclude Include="API\Windows\ProcessHacker\DotNet.h">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\ProcessHacker\devices.h">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\ProcessHacker\wf.h">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\ProcessHacker\pooltable.h">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\ProcessHacker\appsup.h">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\ProcessHacker\syssccpu.h">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\client.hpp">
+      <Filter>API\Windows\Monitors\Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\collection_view.hpp">
+      <Filter>API\Windows\Monitors\Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\compiler_check.hpp">
+      <Filter>API\Windows\Monitors\Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\errors.hpp">
+      <Filter>API\Windows\Monitors\Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\guid.hpp">
+      <Filter>API\Windows\Monitors\Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\kernel_guids.hpp">
+      <Filter>API\Windows\Monitors\Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\kernel_providers.hpp">
+      <Filter>API\Windows\Monitors\Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\kt.hpp">
+      <Filter>API\Windows\Monitors\Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\parse_types.hpp">
+      <Filter>API\Windows\Monitors\Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\parser.hpp">
+      <Filter>API\Windows\Monitors\Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\property.hpp">
+      <Filter>API\Windows\Monitors\Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\provider.hpp">
+      <Filter>API\Windows\Monitors\Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\schema.hpp">
+      <Filter>API\Windows\Monitors\Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\schema_locator.hpp">
+      <Filter>API\Windows\Monitors\Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\size_provider.hpp">
+      <Filter>API\Windows\Monitors\Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\tdh_helpers.hpp">
+      <Filter>API\Windows\Monitors\Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\trace.hpp">
+      <Filter>API\Windows\Monitors\Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\ut.hpp">
+      <Filter>API\Windows\Monitors\Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\version_helpers.hpp">
+      <Filter>API\Windows\Monitors\Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\filtering\comparers.hpp">
+      <Filter>API\Windows\Monitors\Etw\krabs\filtering</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\filtering\event_filter.hpp">
+      <Filter>API\Windows\Monitors\Etw\krabs\filtering</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\filtering\predicates.hpp">
+      <Filter>API\Windows\Monitors\Etw\krabs\filtering</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\filtering\view_adapters.hpp">
+      <Filter>API\Windows\Monitors\Etw\krabs\filtering</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs.hpp">
+      <Filter>API\Windows\Monitors\Etw</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\ProcessHacker\GpuCounters.h">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\WinHelpers\InjectDll\injdll.h">
+      <Filter>API\Windows\WinHelpers\InjectDll</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\Monitors\d3dkmt\d3dkmdt.h">
+      <Filter>API\Windows\Monitors\d3dkmt</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\Monitors\d3dkmt\d3dkmthk.h">
+      <Filter>API\Windows\Monitors\d3dkmt</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\Monitors\d3dkmt\d3dukmdt.h">
+      <Filter>API\Windows\Monitors\d3dkmt</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\ProcessHacker\heapstruct.h">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\etw.hpp">
+      <Filter>API\Windows\Monitors\Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\perfinfo_groupmask.hpp">
+      <Filter>API\Windows\Monitors\Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\trace_context.hpp">
+      <Filter>API\Windows\Monitors\Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\Monitors\Etw\krabs\wstring_convert.hpp">
+      <Filter>API\Windows\Monitors\Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\SystemHacker\xphuser.h">
+      <Filter>API\Windows\SystemHacker</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\SystemHacker\xphuserp.h">
+      <Filter>API\Windows\SystemHacker</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\SystemHacker\SystemHacker.h">
+      <Filter>API\Windows\SystemHacker</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\WinHelpers\FuncHook\HookUtils.h">
+      <Filter>API\Windows\WinHelpers\FuncHook</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\WinHelpers\FuncHook\Detours\detours.h">
+      <Filter>API\Windows\WinHelpers\FuncHook\Detours</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\WinHelpers\FuncHook\Detours\detver.h">
+      <Filter>API\Windows\WinHelpers\FuncHook\Detours</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\WinHelpers\FindTool.h">
+      <Filter>API\Windows\WinHelpers</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\WinHelper.h">
+      <Filter>API\Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\ProcessHacker\clr\clrdata.h">
+      <Filter>API\Windows\ProcessHacker\clr</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\ProcessHacker\clr\cor.h">
+      <Filter>API\Windows\ProcessHacker\clr</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\ProcessHacker\clr\corsym.h">
+      <Filter>API\Windows\ProcessHacker\clr</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\ProcessHacker\clr\dacprivate.h">
+      <Filter>API\Windows\ProcessHacker\clr</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\ProcessHacker\clr\dbgappdomain.h">
+      <Filter>API\Windows\ProcessHacker\clr</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\ProcessHacker\clr\ipcenums.h">
+      <Filter>API\Windows\ProcessHacker\clr</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\ProcessHacker\clr\ipcheader.h">
+      <Filter>API\Windows\ProcessHacker\clr</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\ProcessHacker\clr\ipcshared.h">
+      <Filter>API\Windows\ProcessHacker\clr</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\ProcessHacker\clr\perfcounterdefs.h">
+      <Filter>API\Windows\ProcessHacker\clr</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\ProcessHacker\clr\sospriv.h">
+      <Filter>API\Windows\ProcessHacker\clr</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\ProcessHacker\clr\xclrdata.h">
+      <Filter>API\Windows\ProcessHacker\clr</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="API\Cluster.h">
+      <Filter>API</Filter>
+    </QtMoc>
+    <QtMoc Include="API\SystemAPI.h">
+      <Filter>API</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\WindowsAPI.h">
+      <Filter>API\Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\WinProcess.h">
+      <Filter>API\Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="API\SocketInfo.h">
+      <Filter>API</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\WinSocket.h">
+      <Filter>API\Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="API\ProcessInfo.h">
+      <Filter>API</Filter>
+    </QtMoc>
+    <QtMoc Include="API\GdiInfo.h">
+      <Filter>API</Filter>
+    </QtMoc>
+    <QtMoc Include="API\HandleInfo.h">
+      <Filter>API</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\WinHandle.h">
+      <Filter>API\Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\WinThread.h">
+      <Filter>API\Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="API\ThreadInfo.h">
+      <Filter>API</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\WinService.h">
+      <Filter>API\Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="API\ServiceInfo.h">
+      <Filter>API</Filter>
+    </QtMoc>
+    <QtMoc Include="API\ModuleInfo.h">
+      <Filter>API</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\WinModule.h">
+      <Filter>API\Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="API\WndInfo.h">
+      <Filter>API</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\WinWnd.h">
+      <Filter>API\Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="API\AbstractTask.h">
+      <Filter>API</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\WinJob.h">
+      <Filter>API\Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="API\AbstractInfo.h">
+      <Filter>API</Filter>
+    </QtMoc>
+    <QtMoc Include="API\DriverInfo.h">
+      <Filter>API</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\WinDriver.h">
+      <Filter>API\Windows</Filter>
+    </QtMoc>
+    <ClInclude Include="SVC\CredentialStore.h">
+      <Filter>SVC</Filter>
+    </ClInclude>
+    <ClInclude Include="SVC\ServerSetup.h">
+      <Filter>SVC</Filter>
+    </ClInclude>
+    <QtMoc Include="SVC\WndAgents.h">
+      <Filter>SVC</Filter>
+    </QtMoc>
+    <QtMoc Include="SVC\TaskService.h">
+      <Filter>SVC</Filter>
+    </QtMoc>
+    <QtMoc Include="API\MemDumper.h">
+      <Filter>API</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\WinDumper.h">
+      <Filter>API\Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="API\MemoryInfo.h">
+      <Filter>API</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\WinMemory.h">
+      <Filter>API\Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\WinMemIO.h">
+      <Filter>API\Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\WinToken.h">
+      <Filter>API\Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Finders\AbstractFinder.h">
+      <Filter>API\Finders</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\Finders\WinHandleFinder.h">
+      <Filter>API\Windows\Finders</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\Finders\WinModuleFinder.h">
+      <Filter>API\Windows\Finders</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\Finders\WinStringFinder.h">
+      <Filter>API\Windows\Finders</Filter>
+    </QtMoc>
+    <QtMoc Include="API\StringInfo.h">
+      <Filter>API</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\ProcessHacker\AssemblyEnum.h">
+      <Filter>API\Windows\ProcessHacker</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\WinGDI.h">
+      <Filter>API\Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\SymbolProvider.h">
+      <Filter>API\Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\Monitors\WinDiskMonitor.h">
+      <Filter>API\Windows\Monitors</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\Monitors\WinGpuMonitor.h">
+      <Filter>API\Windows\Monitors</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\Monitors\WinNetMonitor.h">
+      <Filter>API\Windows\Monitors</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Monitors\DiskMonitor.h">
+      <Filter>API\Monitors</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Monitors\GpuMonitor.h">
+      <Filter>API\Monitors</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Monitors\NetMonitor.h">
+      <Filter>API\Monitors</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\SidResolver.h">
+      <Filter>API\Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\DnsResolver.h">
+      <Filter>API\Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="API\DnsEntry.h">
+      <Filter>API</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\Monitors\FwEventMonitor.h">
+      <Filter>API\Windows\Monitors</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\WinPoolEntry.h">
+      <Filter>API\Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\Monitors\EtwEventMonitor.h">
+      <Filter>API\Windows\Monitors</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\SandboxieAPI.h">
+      <Filter>API\Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="API\PersistentPreset.h">
+      <Filter>API</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\Monitors\WinDbgMonitor.h">
+      <Filter>API\Windows\Monitors</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\Monitors\EventMonitor.h">
+      <Filter>API\Windows\Monitors</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\Monitors\FirewallMonitor.h">
+      <Filter>API\Windows\Monitors</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\RpcEndpoint.h">
+      <Filter>API\Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="API\HeapInfo.h">
+      <Filter>API</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Windows\WinHeap.h">
+      <Filter>API\Windows</Filter>
+    </QtMoc>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Resources\exe16.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Resources\exe32.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Resources\exe48.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Resources\exe64.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Resources\TaskExplorer.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Resources\finder-empty.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Resources\finder-full.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resources\TaskExplorer.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="API\Windows\WinHelpers\FuncHook\Detours\Makefile">
+      <Filter>API\Windows\WinHelpers\FuncHook\Detours</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="Resources\TaskExplorer.manifest">
+      <Filter>Resource Files</Filter>
+    </Manifest>
+  </ItemGroup>
+  <ItemGroup>
+    <QtTranslation Include="taskexplorer_zh_CN.ts">
+      <Filter>Translation Files</Filter>
+    </QtTranslation>
+    <QtTranslation Include="taskexplorer_pl.ts">
+      <Filter>Translation Files</Filter>
+    </QtTranslation>
+    <QtTranslation Include="taskexplorer_de.ts">
+      <Filter>Translation Files</Filter>
+    </QtTranslation>
+    <QtTranslation Include="taskexplorer_en.ts">
+      <Filter>Translation Files</Filter>
+    </QtTranslation>
+    <QtTranslation Include="taskexplorer_it.ts">
+      <Filter>Translation Files</Filter>
+    </QtTranslation>
+    <QtTranslation Include="taskexplorer_tr.ts">
+      <Filter>Translation Files</Filter>
+    </QtTranslation>
+    <QtTranslation Include="taskexplorer_pt.ts">
+      <Filter>Translation Files</Filter>
+    </QtTranslation>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="API\Windows\ProcessHacker\clr\LICENSE.TXT">
+      <Filter>API\Windows\ProcessHacker\clr</Filter>
+    </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="stdafx.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="stdafx.h" />
+    <ClInclude Include="version.h" />
+    <ClInclude Include="taskcore_global.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="API\DotNetPerf.h">
+      <Filter>API</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="API\Windows\WinSecurityEditor.cpp">
+      <Filter>API\Windows</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="API\SecurityInfo.h">
+      <Filter>API</Filter>
+    </ClInclude>
+    <ClInclude Include="API\Windows\WinSecurityEditor.h">
+      <Filter>API\Windows</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="API\TaskStatus.h">
+      <Filter>API</Filter>
+    </ClInclude>
+    <ClInclude Include="API\CGroupInfo.h">
+      <Filter>API</Filter>
+    </ClInclude>
+    <ClInclude Include="API\ProcessSecurity.h">
+      <Filter>API</Filter>
+    </ClInclude>
+    <ClCompile Include="API\Remote\RemoteProcess.cpp">
+      <Filter>API\Remote</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Remote\RemoteSystem.cpp">
+      <Filter>API\Remote</Filter>
+    </ClCompile>
+    <QtMoc Include="API\Remote\RemoteProcess.h">
+      <Filter>API\Remote</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Remote\RemoteSystem.h">
+      <Filter>API\Remote</Filter>
+    </QtMoc>
+    <ClCompile Include="API\Remote\RemoteThread.cpp">
+      <Filter>API\Remote</Filter>
+    </ClCompile>
+    <QtMoc Include="API\Remote\RemoteThread.h">
+      <Filter>API\Remote</Filter>
+    </QtMoc>
+    <ClCompile Include="API\Remote\RemoteAction.cpp">
+      <Filter>API\Remote</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Remote\RemoteAssemblyEnum.cpp">
+      <Filter>API\Remote</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Remote\RemoteJob.cpp">
+      <Filter>API\Remote</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Remote\RemoteToken.cpp">
+      <Filter>API\Remote</Filter>
+    </ClCompile>
+    <ClCompile Include="API\Remote\RemoteModule.cpp">
+      <Filter>API\Remote</Filter>
+    </ClCompile>
+    <QtMoc Include="API\Remote\RemoteAssemblyEnum.h">
+      <Filter>API\Remote</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Remote\RemoteJob.h">
+      <Filter>API\Remote</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Remote\RemoteToken.h">
+      <Filter>API\Remote</Filter>
+    </QtMoc>
+    <QtMoc Include="API\Remote\RemoteModule.h">
+      <Filter>API\Remote</Filter>
+    </QtMoc>
+    <ClCompile Include="API\Remote\RemoteHandle.cpp">
+      <Filter>API\Remote</Filter>
+    </ClCompile>
+    <QtMoc Include="API\Remote\RemoteHandle.h">
+      <Filter>API\Remote</Filter>
+    </QtMoc>
+    <ClCompile Include="API\Remote\RemoteSocket.cpp">
+      <Filter>API\Remote</Filter>
+    </ClCompile>
+    <QtMoc Include="API\Remote\RemoteSocket.h">
+      <Filter>API\Remote</Filter>
+    </QtMoc>
+    <ClCompile Include="API\Remote\RemoteHeap.cpp">
+      <Filter>API\Remote</Filter>
+    </ClCompile>
+    <QtMoc Include="API\Remote\RemoteHeap.h">
+      <Filter>API\Remote</Filter>
+    </QtMoc>
+    <ClCompile Include="API\Remote\RemoteMemory.cpp">
+      <Filter>API\Remote</Filter>
+    </ClCompile>
+    <QtMoc Include="API\Remote\RemoteMemory.h">
+      <Filter>API\Remote</Filter>
+    </QtMoc>
+    <ClCompile Include="API\Remote\RemoteService.cpp">
+      <Filter>API\Remote</Filter>
+    </ClCompile>
+    <QtMoc Include="API\Remote\RemoteService.h">
+      <Filter>API\Remote</Filter>
+    </QtMoc>
+    <ClCompile Include="API\Remote\RemoteWnd.cpp">
+      <Filter>API\Remote</Filter>
+    </ClCompile>
+    <QtMoc Include="API\Remote\RemoteWnd.h">
+      <Filter>API\Remote</Filter>
+    </QtMoc>
+    <ClCompile Include="API\Remote\RemoteDriver.cpp">
+      <Filter>API\Remote</Filter>
+    </ClCompile>
+    <QtMoc Include="API\Remote\RemoteDriver.h">
+      <Filter>API\Remote</Filter>
+    </QtMoc>
+  </ItemGroup>
+  <ItemGroup>
+    <QtRcc Include="Resources\TaskCore.qrc">
+      <Filter>Resource Files</Filter>
+    </QtRcc>
+  </ItemGroup>
+</Project>

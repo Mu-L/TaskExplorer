@@ -180,6 +180,15 @@ QVariant CListItemModel::data(const QModelIndex &index, int role) const
     return Data(index, role, index.column());
 }
 
+QVariant CListItemModel::GetItemID(const QModelIndex& index) const
+{
+	if (!index.isValid())
+		return QVariant();
+
+	SListNode* pNode = static_cast<SListNode*>(index.internalPointer());
+	return pNode->ID;
+}
+
 QVariant CListItemModel::Data(const QModelIndex &index, int role, int section) const
 {
 	if (!index.isValid())

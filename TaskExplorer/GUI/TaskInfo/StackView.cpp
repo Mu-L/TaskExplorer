@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "../TaskExplorer.h"
+#include "../TaskStrings.h"
 #include "StackView.h"
 #include "../../../MiscHelpers/Common/Common.h"
 #include "../../../MiscHelpers/Common/Finder.h"
@@ -54,6 +55,23 @@ void CStackView::Invalidate()
 
 void CStackView::ShowStack(const CStackTracePtr& StackTrace)
 {
+	//
+	// A trace that failed carries the reason rather than any frames. The symbol
+	// column is the one the eye goes to, so the explanation goes there instead
+	// of leaving a blank list the user cannot interpret.
+	//
+	if (StackTrace->GetFailure().IsError())
+	{
+		m_pStackList->clear();
+
+		QTreeWidgetItem* pItem = new QTreeWidgetItem();
+		pItem->setText(eSymbol, CTaskExplorer::FormatError(StackTrace->GetFailure()));
+		m_pStackList->addTopLevelItem(pItem);
+
+		m_bIsInvalid = false;
+		return;
+	}
+
 	int i = 0;
 	for (; i < StackTrace->GetCount(); i++)
 	{
@@ -76,13 +94,13 @@ void CStackView::ShowStack(const CStackTracePtr& StackTrace)
 				pItem->setForeground(j, Qt::black);
 		}
 
-		pItem->setText(eSymbol, StackFrame.Symbol);
+		pItem->setText(eSymbol, ::GetStackSymbolString(StackFrame));
 		pItem->setText(eStackAddress, FormatAddress(StackFrame.StackAddress));
 		pItem->setText(eFrameAddress, FormatAddress(StackFrame.FrameAddress));
 		pItem->setText(eControlAddress, FormatAddress(StackFrame.PcAddress));
 		pItem->setText(eReturnAddress, FormatAddress(StackFrame.ReturnAddress));
 		pItem->setText(eStackParameter, tr("0x%1 0x%2 0x%3 0x%4").arg(StackFrame.Params[0], 0, 16).arg(StackFrame.Params[1], 0, 16).arg(StackFrame.Params[2], 0, 16).arg(StackFrame.Params[3], 0, 16));
-		pItem->setText(eFileInfo, StackFrame.FileInfo);
+		pItem->setText(eFileInfo, ::GetStackFileInfoString(StackFrame));
 	}
 
 	for (; i < m_pStackList->topLevelItemCount(); )

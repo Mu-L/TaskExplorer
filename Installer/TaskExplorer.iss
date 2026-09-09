@@ -47,6 +47,7 @@ AlwaysRestart=no
 LicenseFile=.\Resources\license.txt
 UsedUserAreasWarning=no
 SetupIconFile=TaskExplorerInstall.ico
+;SignTool=sha256
 
 ; Handled in code section as always want DirPage for portable mode.
 DisableDirPage=no
@@ -73,7 +74,7 @@ Source: ".\TaskExplorer.ini"; DestDir: "{app}\x64"; Flags: ignoreversion onlyifd
 [Icons]
 Name: "{group}\TaskExplorer"; Filename: "{app}\TaskExplorer.exe"; MinVersion: 0.0,5.0; 
 ;Name: "{group}\{cm:License}"; Filename: "{app}\license.txt"; MinVersion: 0.0,5.0; 
-Name: "{group}\{cm:UninstallProgram}"; Filename: "{uninstallexe}"; MinVersion: 0.0,5.0; 
+Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"; MinVersion: 0.0,5.0; 
 Name: "{userdesktop}\TaskExplorer"; Filename: "{app}\TaskExplorer.exe"; Tasks: desktopicon; MinVersion: 0.0,5.0; 
 
 
@@ -115,6 +116,10 @@ var
   
   IsInstalled: Boolean;
   Portable: Boolean;
+
+  // The server service, if it was running when setup started and has been
+  // stopped so its files could be replaced. Only then is it started again.
+  StoppedService: String;
 
 
 function IsPortable(): Boolean;
@@ -227,6 +232,242 @@ begin
   // todo
 
   Result := True;
+end;
+
+
+//////////////////////////////////////////////////////
+// The server service
+//
+// TaskServer runs as a service, and for as long as it does it holds
+// TaskServer.exe open - along with the driver library it loaded. Replacing
+// those under a running daemon either fails outright or leaves the machine
+// needing a reboot, so it is stopped before the files are copied and started
+// again once they are in place.
+//
+// Which service, from the daemon's own configuration file. The instance name is
+// configurable and *is* the service name, so it cannot be a constant here - but
+// the daemon writes that name into the same file it reads it back from, and
+// asking that file is one line.
+//
+
+const
+  SC_MANAGER_CONNECT    = $0001;
+  SERVICE_QUERY_STATUS  = $0004;
+  SERVICE_START         = $0010;
+  SERVICE_STOP          = $0020;
+
+  SERVICE_CONTROL_STOP  = $00000001;
+
+  SERVICE_STOPPED       = $00000001;
+  SERVICE_STOP_PENDING  = $00000003;
+  SERVICE_RUNNING       = $00000004;
+
+  SERVICE_WAIT_MS       = 30000;
+
+type
+  TServiceStatus = record
+    dwServiceType: Cardinal;
+    dwCurrentState: Cardinal;
+    dwControlsAccepted: Cardinal;
+    dwWin32ExitCode: Cardinal;
+    dwServiceSpecificExitCode: Cardinal;
+    dwCheckPoint: Cardinal;
+    dwWaitHint: Cardinal;
+  end;
+
+function OpenSCManager(lpMachineName, lpDatabaseName: String; dwDesiredAccess: Cardinal): THandle;
+  external 'OpenSCManagerW@advapi32.dll stdcall';
+
+function OpenService(hSCManager: THandle; lpServiceName: String; dwDesiredAccess: Cardinal): THandle;
+  external 'OpenServiceW@advapi32.dll stdcall';
+
+function CloseServiceHandle(hSCObject: THandle): Boolean;
+  external 'CloseServiceHandle@advapi32.dll stdcall';
+
+function QueryServiceStatus(hService: THandle; var lpServiceStatus: TServiceStatus): Boolean;
+  external 'QueryServiceStatus@advapi32.dll stdcall';
+
+function ControlService(hService: THandle; dwControl: Cardinal; var lpServiceStatus: TServiceStatus): Boolean;
+  external 'ControlService@advapi32.dll stdcall';
+
+function StartService(hService: THandle; dwNumServiceArgs: Cardinal; lpServiceArgVectors: Cardinal): Boolean;
+  external 'StartServiceW@advapi32.dll stdcall';
+
+
+function ServerServiceName(): String;
+begin
+  Result := GetIniString('Server', 'Name', '',
+    ExpandConstant('{commonappdata}\Xanasoft\TaskExplorer\TaskServer.ini'));
+
+  // A blank field is somebody leaving it alone rather than asking for a service
+  // with no name, which is the same reading CServerSetup::ServiceNameFor gives
+  // it. No file at all says the same thing.
+  if Result = '' then
+    Result := 'TaskExplorerServer';
+
+  Log('Service: the configured server instance is "' + Result + '".');
+end;
+
+// Kept for reference: finding the daemon by what it runs rather than by what the
+// configuration says it is called. It reads every service's ImagePath and takes
+// the ones naming the TaskServer.exe in this directory, which also catches
+// several instances at once and ignores a daemon installed somewhere else. That
+// is more than this needs.
+//
+// function FindServerServices(): TArrayOfString;
+// var
+//   Names: TArrayOfString;
+//   ImagePath, Binary: String;
+//   I, Count: Integer;
+// begin
+//   SetArrayLength(Result, 0);
+//
+//   Binary := Lowercase(AddBackslash(ExpandConstant('{app}')) + 'TaskServer.exe');
+//
+//   if not RegGetSubkeyNames(HKLM, 'SYSTEM\CurrentControlSet\Services', Names) then
+//   begin
+//     Log('Service: could not enumerate the service list.');
+//     exit;
+//   end;
+//
+//   for I := 0 to GetArrayLength(Names) - 1 do
+//   begin
+//     if RegQueryStringValue(HKLM, 'SYSTEM\CurrentControlSet\Services\' + Names[I], 'ImagePath', ImagePath) then
+//     begin
+//       if Pos(Binary, Lowercase(ImagePath)) > 0 then
+//       begin
+//         Count := GetArrayLength(Result);
+//         SetArrayLength(Result, Count + 1);
+//         Result[Count] := Names[I];
+//       end;
+//     end;
+//   end;
+// end;
+
+
+function StopServerService(const Name: String; var WasRunning: Boolean): Boolean;
+var
+  hSCM, hSvc: THandle;
+  Status: TServiceStatus;
+  Waited: Integer;
+begin
+  Result := False;
+  WasRunning := False;
+
+  hSCM := OpenSCManager('', 'ServicesActive', SC_MANAGER_CONNECT);
+  if hSCM = 0 then
+  begin
+    Log('Service: could not open the service manager.');
+    exit;
+  end;
+
+  hSvc := OpenService(hSCM, Name, SERVICE_QUERY_STATUS or SERVICE_STOP);
+  if hSvc = 0 then
+  begin
+    // Gone between the enumeration and here, or not ours to stop. Either way
+    // there is nothing holding a file.
+    Log('Service: "' + Name + '" could not be opened, skipping.');
+    CloseServiceHandle(hSCM);
+    Result := True;
+    exit;
+  end;
+
+  if QueryServiceStatus(hSvc, Status) then
+  begin
+    if Status.dwCurrentState = SERVICE_STOPPED then
+    begin
+      // Already stopped, and deliberately so as far as this setup knows. It
+      // will not be started again afterwards.
+      Result := True;
+    end
+    else
+    begin
+      WasRunning := True;
+      Log('Service: stopping "' + Name + '".');
+
+      if Status.dwCurrentState <> SERVICE_STOP_PENDING then
+        ControlService(hSvc, SERVICE_CONTROL_STOP, Status);
+
+      // The request only asks; the process still has to come down and release
+      // what it had open, and only then is the file free to be replaced.
+      Waited := 0;
+      while Waited < SERVICE_WAIT_MS do
+      begin
+        if not QueryServiceStatus(hSvc, Status) then
+          break;
+        if Status.dwCurrentState = SERVICE_STOPPED then
+          break;
+        Sleep(250);
+        Waited := Waited + 250;
+      end;
+
+      Result := (Status.dwCurrentState = SERVICE_STOPPED);
+      if Result then
+        Log('Service: "' + Name + '" stopped.')
+      else
+        Log('Service: "' + Name + '" did not stop within ' + IntToStr(SERVICE_WAIT_MS div 1000) + ' seconds.');
+    end;
+  end
+  else
+    Log('Service: could not query "' + Name + '".');
+
+  CloseServiceHandle(hSvc);
+  CloseServiceHandle(hSCM);
+end;
+
+
+function StartServerService(const Name: String): Boolean;
+var
+  hSCM, hSvc: THandle;
+begin
+  Result := False;
+
+  hSCM := OpenSCManager('', 'ServicesActive', SC_MANAGER_CONNECT);
+  if hSCM = 0 then
+    exit;
+
+  hSvc := OpenService(hSCM, Name, SERVICE_START);
+  if hSvc <> 0 then
+  begin
+    Result := StartService(hSvc, 0, 0);
+    if Result then
+      Log('Service: "' + Name + '" started again.')
+    else
+      Log('Service: could not start "' + Name + '" again.');
+    CloseServiceHandle(hSvc);
+  end;
+
+  CloseServiceHandle(hSCM);
+end;
+
+
+function StopServerDaemon(var Message: String): Boolean;
+var
+  Name: String;
+  WasRunning: Boolean;
+begin
+  Message := '';
+  StoppedService := '';
+
+  Name := ServerServiceName();
+  Result := StopServerService(Name, WasRunning);
+
+  if not Result then
+    // Carrying on from here would mean copying over files the daemon still has
+    // open, which fails or defers to a reboot. Better to say so.
+    Message := 'The TaskExplorer server service "' + Name + '" could not be stopped.' + #13#10 +
+               'Stop it manually and run setup again.'
+  else if WasRunning then
+    StoppedService := Name;
+end;
+
+
+procedure StartServerDaemon();
+begin
+  if StoppedService <> '' then
+    StartServerService(StoppedService);
+
+  StoppedService := '';
 end;
 
 
@@ -364,6 +605,11 @@ end;
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
 
+  // The files are in place: start what was stopped to put them there. Only what
+  // was actually running - a daemon somebody had deliberately stopped stays
+  // stopped.
+  if CurStep = ssPostInstall then
+    StartServerDaemon();
 
 end;
 
@@ -376,6 +622,7 @@ end;
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
   ExecRet: Integer;
+  Message: String;
 begin
 
   // Before the uninstallation.
@@ -388,6 +635,12 @@ begin
     Abort();
     exit;
   end;
+
+  // The server service, if one is running out of this directory. Not started
+  // again afterwards, for obvious reasons - this is the same call the install
+  // makes, and what it stops here is what would otherwise keep the files it is
+  // about to remove open.
+  StopServerDaemon(Message);
 
 end;
 
@@ -457,7 +710,12 @@ end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
-  Result := '';
+  { The daemon first: it is holding TaskServer.exe, and the driver library the
+    step below is about to move out of the way with it. Returning a message here
+    stops the install before a single file has been touched. }
+  if not StopServerDaemon(Result) then
+    exit;
+
   { Handle both DLLs before file copy }
   PrepareOneDllForUpdate('AMD64\kte.dll');
   PrepareOneDllForUpdate('ARM64\kte.dll');

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../mischelpers_global.h"
+#include "../corehelpers_global.h"
 
 // *Note* no archiver specific includes here
 
@@ -23,7 +23,7 @@ struct SCompressParams
 	bool b7z = false;
 };
 
-class MISCHELPERS_EXPORT CArchive
+class COREHELPERS_EXPORT CArchive
 {
 public:
 	CArchive(const QString &ArchivePath, QIODevice* pDevice = NULL);
@@ -118,7 +118,7 @@ protected:
 
 #endif
 
-struct MISCHELPERS_EXPORT SArcInfo
+struct COREHELPERS_EXPORT SArcInfo
 {
 	SArcInfo() 
 	{
@@ -133,7 +133,7 @@ struct MISCHELPERS_EXPORT SArcInfo
 	bool		FixRar;
 };
 
-SArcInfo MISCHELPERS_EXPORT GetArcInfo(const QString &FileName);
+SArcInfo COREHELPERS_EXPORT GetArcInfo(const QString &FileName);
 
 class CArchiveInterface;
 extern CArchiveInterface theArc;

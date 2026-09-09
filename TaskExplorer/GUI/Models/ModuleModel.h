@@ -2,10 +2,6 @@
 #include <qwidget.h>
 #include "../../API/ModuleInfo.h"
 #include "../../../MiscHelpers/Common/TreeItemModel.h"
-#ifdef WIN32
-#include "../../API/Windows/WinModule.h"
-#endif
-
 class CModuleModel : public CTreeItemModel
 {
     Q_OBJECT
@@ -27,13 +23,10 @@ public:
 		eModuleFile,
 		eBaseAddress,
 		eSize,
-#ifdef WIN32
 		eDescription,
 		eCompanyName,
 		eVersion,
-#endif
 		eFileName,
-#ifdef WIN32
 		eType,
 		eLoadCount,
 		eVerificationStatus,
@@ -43,22 +36,16 @@ public:
 		eTimeStamp,
 		eLoadTime,
 		eLoadReason,
-#endif
 		eFileModifiedTime,
 		eFileSize,
-#ifdef WIN32
 		eEntryPoint,
 		eService,
-#endif
 		eParentBaseAddress,
-#ifdef WIN32
 		eOriginalName,
 		eArchitecture,
 		eEnclaveType,
 		eEnclaveBaseAddress,
 		eEnclaveSize,
-#endif
-
 		eCount
 	};
 
@@ -75,12 +62,6 @@ protected:
 
 	QList<QVariant>			MakeModPath(const CModulePtr& pModule, const QMap<quint64, CModulePtr>& ModuleList);
 	bool					TestModPath(const QList<QVariant>& Path, const CModulePtr& pModule, const QMap<quint64, CModulePtr>& ModuleList, int Index = 0);
-
-#ifdef WIN32
-	void					Sync(const CWinModule* pModule, QList<QVariant> Path, QSet<quint64> &Added, QMap<QList<QVariant>, QList<STreeNode*> > &New, QHash<QVariant, STreeNode*> &Old);
-#endif
-
-
-
+	void					Sync(const CModuleInfo* pModule, QList<QVariant> Path, QSet<quint64> &Added, QMap<QList<QVariant>, QList<STreeNode*> > &New, QHash<QVariant, STreeNode*> &Old);
 	virtual QVariant		GetDefaultIcon() const;
 };

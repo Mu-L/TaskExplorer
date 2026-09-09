@@ -1,7 +1,8 @@
 #pragma once
+#include "../taskcore_global.h"
 #include <qobject.h>
 #include "../../MiscHelpers/Common/Common.h"
-#include "../../MiscHelpers/Common/FlexError.h"
+#include "../../MiscHelpers/Common/Status.h"
 #include "AbstractInfo.h"
 #include "MiscStats.h"
 
@@ -27,7 +28,7 @@ struct STimeUsage
 	float			Usage; 
 };
 
-struct STaskStats
+struct TASKCORE_EXPORT STaskStats
 {
 	STaskStats()
 	{
@@ -48,11 +49,38 @@ struct STaskStats
 	float			CpuUserUsage;
 };
 
-class CAbstractTask : public CAbstractInfoEx
+class TASKCORE_EXPORT CAbstractTask : public CAbstractInfoEx
 {
 	Q_OBJECT
 
 public:
+	//
+	// The kernel's own numbering, repeated here so a viewer on any platform can
+	// read a value collected on another. These are protocol, not local detail.
+	//
+	enum ESchedPolicy
+	{
+		eSchedOther		= 0,
+		eSchedFifo		= 1,
+		eSchedRr		= 2,
+		eSchedBatch		= 3,
+		eSchedIdle		= 5,
+		eSchedDeadline	= 6,
+	};
+
+	//
+	// A Linux I/O priority packs a class and a level into one value.
+	//
+	enum EIoPrioClass
+	{
+		eIoPrioNone			= 0,
+		eIoPrioRealtime		= 1,
+		eIoPrioBestEffort	= 2,
+		eIoPrioIdle			= 3,
+	};
+	static const int eIoPrioClassShift = 13;
+	static const int eIoPrioLevelMask = (1 << eIoPrioClassShift) - 1;
+
 	CAbstractTask(QObject *parent = nullptr);
 	virtual ~CAbstractTask();
 	
@@ -62,21 +90,29 @@ public:
 	virtual QString GetName() const = 0;
 	virtual bool HasPriorityBoost() const = 0;
 	virtual STATUS SetPriorityBoost(bool Value) = 0;
+	//
+	// Priority is reported as the target numbers it, not as a word. The two
+	// platforms do not mean the same things by these - Windows has priority
+	// classes and page priorities, Linux has nice values and no page priority
+	// at all - so the value travels with the target's meaning intact and
+	// GUI/TaskStrings.cpp picks the reading to match. See ESchedPolicy below.
+	//
 	virtual qint32 GetPriority()	const				{ QReadLocker Locker(&m_Mutex); return m_Priority; }
-	virtual QString GetPriorityString() const = 0;
 	virtual STATUS SetPriority(qint32 Value) = 0;
 	virtual qint32 GetBasePriority()	const			{ QReadLocker Locker(&m_Mutex); return m_BasePriority; }
-	virtual QString GetBasePriorityString() const = 0;
 	virtual STATUS SetBasePriority(qint32 Value) = 0;
 	virtual qint32 GetPagePriority() const			{ QReadLocker Locker(&m_Mutex); return m_PagePriority; }
-	virtual QString GetPagePriorityString() const = 0;
 	virtual STATUS SetPagePriority(qint32 Value) = 0;
 	virtual qint32 GetIOPriority() const				{ QReadLocker Locker(&m_Mutex); return m_IOPriority; }
-	virtual QString GetIOPriorityString() const = 0;
 	virtual STATUS SetIOPriority(qint32 Value) = 0;
 
+	//
+	// The scheduling policy, which only Linux has; -1 where the target has no
+	// such notion. It is what a Linux target shows as its base priority.
+	//
+	virtual qint32 GetSchedPolicy() const				{ return -1; }
+
 	virtual quint64 GetAffinityMask() const				{ QReadLocker Locker(&m_Mutex); return m_AffinityMask; }
-	virtual QString GetAffinityMaskString() const;
 	virtual STATUS SetAffinityMask(quint64 Value) = 0;
 
 	virtual STATUS Terminate(bool bForce) = 0;

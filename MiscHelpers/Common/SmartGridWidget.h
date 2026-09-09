@@ -1,9 +1,9 @@
 #pragma once
 #include <qwidget.h>
 
-#include "../mischelpers_global.h"
+#include "../guihelpers_global.h"
 
-class MISCHELPERS_EXPORT CSmartGridWidget : public QWidget
+class GUIHELPERS_EXPORT CSmartGridWidget : public QWidget
 {
 	Q_OBJECT
 
@@ -14,6 +14,13 @@ public:
 	virtual void			SetBackground(const QColor& BackColor);
 
 	virtual void			AddWidget(QWidget* pWidget);
+
+	//
+	// Deletes what is in the grid. For a grid whose size is a property of
+	// something outside it - one plot per CPU, say - and that something
+	// changed.
+	//
+	virtual void			Clear();
 
 	virtual int				GetCount()				{ return m_Widgets.count(); }
 	virtual QWidget*		GetWidget(int Index)	{ return m_Widgets.at(Index); }

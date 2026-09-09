@@ -12,9 +12,45 @@
 
 #include "stdafx.h"
 #include "WinHandle.h"
+#include "WinAccessRights.h"
+#include "WinMemIO.h"
+#include "WinJob.h"
+#include "WinToken.h"
 #include "ProcessHacker.h"
+#include "WinSecurityEditor.h"
 #include "WindowsAPI.h"
+#include "ProcessHacker/appsup.h"   // PhShellExecuteUserString, PhShellOpenKey2
 #include "../../../MiscHelpers/Common/Settings.h"
+
+//
+// The values CHandleInfo names are the object manager's own; a typo has to
+// break the build rather than quietly read a handle wrong.
+//
+static_assert(CHandleInfo::eObjProtectClose == OBJ_PROTECT_CLOSE, "obj protect close");
+static_assert(CHandleInfo::eObjInherit      == OBJ_INHERIT,       "obj inherit");
+
+static_assert(CHandleInfo::eShareRead   == PH_HANDLE_FILE_SHARED_READ,   "share read");
+static_assert(CHandleInfo::eShareWrite  == PH_HANDLE_FILE_SHARED_WRITE,  "share write");
+static_assert(CHandleInfo::eShareDelete == PH_HANDLE_FILE_SHARED_DELETE, "share delete");
+static_assert(CHandleInfo::eShareMask   == PH_HANDLE_FILE_SHARED_MASK,   "share mask");
+
+static_assert(CHandleInfo::eSecFile    == SEC_FILE,    "sec file");
+static_assert(CHandleInfo::eSecImage   == SEC_IMAGE,   "sec image");
+static_assert(CHandleInfo::eSecReserve == SEC_RESERVE, "sec reserve");
+static_assert(CHandleInfo::eSecCommit  == SEC_COMMIT,  "sec commit");
+
+static_assert(CHandleInfo::eAlpcLpcMode              == ALPC_PORFLG_LPC_MODE,                    "alpc lpc mode");
+static_assert(CHandleInfo::eAlpcAllowImpersonation   == ALPC_PORFLG_ALLOW_IMPERSONATION,         "alpc allow impersonation");
+static_assert(CHandleInfo::eAlpcAllowLpcRequests     == ALPC_PORFLG_ALLOW_LPC_REQUESTS,          "alpc allow lpc requests");
+static_assert(CHandleInfo::eAlpcWaitablePort         == ALPC_PORFLG_WAITABLE_PORT,               "alpc waitable port");
+static_assert(CHandleInfo::eAlpcAllowDupObject       == ALPC_PORFLG_ALLOW_DUP_OBJECT,            "alpc allow dup object");
+static_assert(CHandleInfo::eAlpcSystemProcess        == ALPC_PORFLG_SYSTEM_PROCESS,              "alpc system process");
+static_assert(CHandleInfo::eAlpcWakePolicy1          == ALPC_PORFLG_WAKE_POLICY1,                "alpc wake policy 1");
+static_assert(CHandleInfo::eAlpcWakePolicy2          == ALPC_PORFLG_WAKE_POLICY2,                "alpc wake policy 2");
+static_assert(CHandleInfo::eAlpcWakePolicy3          == ALPC_PORFLG_WAKE_POLICY3,                "alpc wake policy 3");
+static_assert(CHandleInfo::eAlpcDirectMessage        == ALPC_PORFLG_DIRECT_MESSAGE,              "alpc direct message");
+static_assert(CHandleInfo::eAlpcAllowMultiHandleAttr == ALPC_PORFLG_ALLOW_MULTIHANDLE_ATTRIBUTE, "alpc allow multi-handle attributes");
+
 
 CWinHandle::CWinHandle(QObject *parent) 
 	: CHandleInfo(parent) 
@@ -398,26 +434,12 @@ NTSTATUS PhEnumHandlesGeneric(
 
 	return status;
 }
-
-QString CWinHandle::GetAttributesString() const
-{
-	QReadLocker Locker(&m_Mutex);
-
-    switch (m_Attributes & (OBJ_PROTECT_CLOSE | OBJ_INHERIT))
-    {
-	case OBJ_PROTECT_CLOSE:					return tr("Protected");
-    case OBJ_INHERIT:						return tr("Inherit");
-    case OBJ_PROTECT_CLOSE | OBJ_INHERIT:	return tr("Protected, Inherit");
-    }
-	return "";
-}
-
 STATUS CWinHandle::SetAttribute(quint32 Attribute, bool bSet)
 {
 	QWriteLocker Locker(&m_Mutex);
 
     if (!KphCommsIsConnected())
-		return ERR(tr("KProcessHacker is not available"));
+		return ERR(TE_KProcessHackerUnavail);
 
 	if(bSet)
 		m_Attributes |= Attribute;
@@ -440,7 +462,7 @@ STATUS CWinHandle::SetAttribute(quint32 Attribute, bool bSet)
 
     if (!NT_SUCCESS(status))
     {
-		return ERR(tr("Failed to set handle attribute"));
+		return ERR(TE_SetHandleAttribute);
     }
 
     return OK;
@@ -465,89 +487,45 @@ STATUS CWinHandle::SetInherited(bool bSet)
 {
 	return SetAttribute(OBJ_INHERIT, bSet);
 }
+QList<int> CWinHandle::GetGrantedAccessRights() const
+{
+	QReadLocker Locker(&m_Mutex);
+	return WinAccess__GetGrantedRights(m_GrantedAccess, m_TypeName);
+}
 
-QString CWinHandle::GetFileShareAccessString() const
+QList<int> CWinHandle::GetFileAccessModeRights(quint32 Mode) const
+{
+	return WinAccess__GetFileModeRights(Mode);
+}
+
+//
+// The granted-access mask through the type's generic mapping. Applying the
+// mapping needs the object type, so it is done here; which four words come out
+// of the four bits is the viewer's business.
+//
+quint32 CWinHandle::GetGenericAccess() const
 {
 	QReadLocker Locker(&m_Mutex);
 
-	QString Str = "---";
-    if (m_FileFlags & PH_HANDLE_FILE_SHARED_MASK)
-    {
-		if (m_FileFlags & PH_HANDLE_FILE_SHARED_READ)
-			Str[0] = 'R';
-        if (m_FileFlags & PH_HANDLE_FILE_SHARED_WRITE)
-            Str[1] = 'W';
-        if (m_FileFlags & PH_HANDLE_FILE_SHARED_DELETE)
-            Str[2] = 'D';
-    }
-	return Str;
-}
-
-QString CWinHandle::GetTypeString() const
-{ 
-	QReadLocker Locker(&m_Mutex); 
-	if (m_SubTypeName.isEmpty())
-		return m_TypeName;
-	return m_TypeName + " (" + m_SubTypeName + ")"; 
-}
-
-QString CWinHandle::GetGrantedAccessString() const
-{
-	QReadLocker Locker(&m_Mutex);
-
-	PPH_STRING GrantedAccessSymbolicText = NULL;
-	PPH_ACCESS_ENTRY accessEntries;
-	ULONG numberOfAccessEntries;
-	PPH_STRING TypeName = CastQString(m_TypeName);
-	if (PhGetAccessEntries(PhGetStringOrEmpty(TypeName), &accessEntries, &numberOfAccessEntries))
-	{
-		GrantedAccessSymbolicText = PhGetAccessString(m_GrantedAccess, accessEntries, numberOfAccessEntries);
-		PhFree(accessEntries);
-	}
-	if(TypeName)
-		PhDereferenceObject(TypeName);
-
-	return CastPhString(GrantedAccessSymbolicText);
-}
-
-QString CWinHandle::GetGenericAccessString() const
-{
-	QReadLocker Locker(&m_Mutex);
-
-	PPH_STRING GenericAccessSymbolicText = NULL;
 	GENERIC_MAPPING genericMapping;
 	PPH_STRING TypeName = CastQString(m_TypeName);
 
-	if (TypeName && NT_SUCCESS(PhGetObjectTypeMask(
-		&TypeName->sr,
-		&genericMapping
-	)))
+	quint32 Access = 0;
+	if (TypeName && NT_SUCCESS(PhGetObjectTypeMask(&TypeName->sr, &genericMapping)))
 	{
-		PH_STRING_BUILDER stringBuilder;
-		PhInitializeStringBuilder(&stringBuilder, 64);
-		if (FlagOn(m_GrantedAccess, genericMapping.GenericRead))
-			PhAppendStringBuilder2(&stringBuilder, L"Read, ");
-		if (FlagOn(m_GrantedAccess, genericMapping.GenericWrite))
-			PhAppendStringBuilder2(&stringBuilder, L"Write, ");
-		if (FlagOn(m_GrantedAccess, genericMapping.GenericExecute))
-			PhAppendStringBuilder2(&stringBuilder, L"Execute, ");
-		if (FlagOn(m_GrantedAccess, genericMapping.GenericAll))
-			PhAppendStringBuilder2(&stringBuilder, L"All, ");
-		if (PhEndsWithStringRef2(&stringBuilder.String->sr, L", ", FALSE))
-			PhRemoveEndStringBuilder(&stringBuilder, 2);
-		GenericAccessSymbolicText = PhFinalStringBuilderString(&stringBuilder);
+		if (FlagOn(m_GrantedAccess, genericMapping.GenericRead))		Access |= eGenericRead;
+		if (FlagOn(m_GrantedAccess, genericMapping.GenericWrite))		Access |= eGenericWrite;
+		if (FlagOn(m_GrantedAccess, genericMapping.GenericExecute))		Access |= eGenericExecute;
+		if (FlagOn(m_GrantedAccess, genericMapping.GenericAll))			Access |= eGenericAll;
 	}
 
-	if(TypeName)
+	if (TypeName)
 		PhDereferenceObject(TypeName);
 
-	if (!PhIsNullOrEmptyString(GenericAccessSymbolicText))
-		return CastPhString(GenericAccessSymbolicText);
-	else
-		return tr("N/A");
+	return Access;
 }
 
-QString CWinHandle::GetObjectSecurityDescriptorString() const
+QString CWinHandle::GetSecurityDescriptorSddl() const
 {
 	QReadLocker Locker(&m_Mutex);
 
@@ -576,46 +554,39 @@ QString CWinHandle::GetObjectSecurityDescriptorString() const
 		PhFree(securityDescriptor);
 	}
 
-	if (NT_SUCCESS(status))
-		return CastPhString(securityDescriptorString);
-	else
-		return tr("0x%1").arg((quint32)status, 0, 16);
+	//
+	// An empty descriptor is the honest answer for "could not be read"; the
+	// viewer says so rather than showing a status code in a text field.
+	//
+	return NT_SUCCESS(status) ? CastPhString(securityDescriptorString) : QString();
 }
 
-#define PH_FILEMODE_ASYNC 0x01000000
-#define PhFileModeUpdAsyncFlag(mode) (mode & (FILE_SYNCHRONOUS_IO_ALERT | FILE_SYNCHRONOUS_IO_NONALERT) ? mode &~ PH_FILEMODE_ASYNC: mode | PH_FILEMODE_ASYNC)
 
-PH_ACCESS_ENTRY FileModeAccessEntries[6] = 
+//
+// Turning a handle into the object it refers to. The factories live on the
+// Windows classes because opening the object needs a handle duplicate from
+// the owning process; the view only ever sees the abstract result.
+//
+//
+// Decodes an ALPC port's flag word.
+//
+// Lives here rather than in the handle view because the flag constants are
+// Windows kernel definitions; the view only receives the resulting list.
+//
+CTokenInfoPtr CWinHandle::GetToken() const
 {
-    { (PWSTR)L"FILE_FLAG_OVERLAPPED", PH_FILEMODE_ASYNC, FALSE, FALSE, (PWSTR)L"Asynchronous" },
-    { (PWSTR)L"FILE_FLAG_WRITE_THROUGH", FILE_WRITE_THROUGH, FALSE, FALSE, (PWSTR)L"Write through" },
-    { (PWSTR)L"FILE_FLAG_SEQUENTIAL_SCAN", FILE_SEQUENTIAL_ONLY, FALSE, FALSE, (PWSTR)L"Sequental" },
-    { (PWSTR)L"FILE_FLAG_NO_BUFFERING", FILE_NO_INTERMEDIATE_BUFFERING, FALSE, FALSE, (PWSTR)L"No buffering" },
-    { (PWSTR)L"FILE_SYNCHRONOUS_IO_ALERT", FILE_SYNCHRONOUS_IO_ALERT, FALSE, FALSE, (PWSTR)L"Synchronous alert" },
-    { (PWSTR)L"FILE_SYNCHRONOUS_IO_NONALERT", FILE_SYNCHRONOUS_IO_NONALERT, FALSE, FALSE, (PWSTR)L"Synchronous non-alert" },
-};
-
-QString CWinHandle::GetFileAccessMode(quint32 Mode)
-{
-	// Since FILE_MODE_INFORMATION has no flag for asynchronous I/O we should use our own flag and set
-	// it only if none of synchronous flags are present. That's why we need PhFileModeUpdAsyncFlag.
-	PPH_STRING fileModeAccessStr = PhGetAccessString(PhFileModeUpdAsyncFlag(Mode), FileModeAccessEntries, RTL_NUMBER_OF(FileModeAccessEntries) );
-
-	return QString("0x%1 (%2)").arg(Mode, 0, 16).arg(CastPhString(fileModeAccessStr));
+	return CTokenInfoPtr(CWinToken::TokenFromHandle(GetSystem(), GetProcessId(), GetHandleId()));
 }
 
-QString CWinHandle::GetSectionType(quint32 Attribs)
+CJobInfoPtr CWinHandle::GetJob() const
 {
-    if (Attribs & SEC_COMMIT)
-        return tr("Commit");
-    else if (Attribs & SEC_FILE)
-        return tr("File");
-    else if (Attribs & SEC_IMAGE)
-        return tr("Module");
-    else if (Attribs & SEC_RESERVE)
-        return tr("Reserve");
-	return tr("Unknown");
-};
+	return CJobInfoPtr(CWinJob::JobFromHandle(GetSystem(), GetProcessId(), GetHandleId()));
+}
+
+QIODevice* CWinHandle::OpenDevice() const
+{
+	return CWinMemIO::FromHandle(GetProcessId(), GetHandleId());
+}
 
 VOID PhLoadSymbolProviderOptions(_Inout_ PPH_SYMBOL_PROVIDER SymbolProvider);
 
@@ -998,7 +969,7 @@ STATUS CWinHandle::Close(bool bForce)
 			if (critical && strict)
 			{
 				NtClose(processHandle);
-				return ERR(tr("You are about to close one or more handles for a critical process with strict handle checks enabled. This will shut down the operating system immediately!"), ERROR_CONFIRM);
+				return ERR(TE_ConfirmCloseCriticalHandle, ERROR_CONFIRM);
 			}
 		}
 
@@ -1008,12 +979,12 @@ STATUS CWinHandle::Close(bool bForce)
 
         if (!NT_SUCCESS(status))
         {
-			return ERR(tr("Failed To close Handle"), status);
+			return ERR(TE_CloseHandle, status);
         }
     }
     else
     {
-        return ERR(tr("Unable to open the process"), status);
+        return ERR(TE_OpenProc2, status);
     }
 
 	return OK;
@@ -1056,7 +1027,7 @@ STATUS CWinHandle::DoHandleAction(EHandleAction Action)
 
 	HANDLE processHandle;
 	if (!NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_DUP_HANDLE, (HANDLE)m_ProcessId )))
-        return ERR(tr("Unable to open process handle"), status);
+        return ERR(TE_OpenProcHandle, status);
 
 	HANDLE dupDandle;
 	status = NtDuplicateObject(processHandle, (HANDLE)m_HandleId, NtCurrentProcess(), &dupDandle, DesiredAccess, 0, 0 );
@@ -1064,7 +1035,7 @@ STATUS CWinHandle::DoHandleAction(EHandleAction Action)
     NtClose(processHandle);
 
 	if (!NT_SUCCESS(status))
-		return ERR(tr("Unable to open duplicate handle"), status);
+		return ERR(TE_OpenDuplicateHandle, status);
 
 
     switch (Action)
@@ -1108,10 +1079,20 @@ STATUS CWinHandle::DoHandleAction(EHandleAction Action)
 	return OK;
 }
 
-NTSTATUS NTAPI CWinHandle__DuplicateHandle(_Out_ PHANDLE Handle, _In_ ACCESS_MASK DesiredAccess,_In_opt_ PVOID Context)
+//
+// Which handle, in which process. Plain layout so the context can travel as a
+// byte copy owned by the security object.
+//
+struct SHandleRef
 {
-	QPair<HANDLE, HANDLE>* pPair = (QPair<HANDLE, HANDLE>*)Context;
-	return PhpDuplicateHandleFromProcess(Handle, DesiredAccess, pPair->first, pPair->second);
+	HANDLE	ProcessId;
+	HANDLE	HandleId;
+};
+
+NTSTATUS NTAPI CWinHandle__DuplicateHandle(_Out_ PHANDLE Handle, _In_ ACCESS_MASK DesiredAccess, _In_opt_ PVOID Context)
+{
+	SHandleRef* pRef = (SHandleRef*)Context;
+	return PhpDuplicateHandleFromProcess(Handle, DesiredAccess, pRef->ProcessId, pRef->HandleId);
 }
 
 NTSTATUS NTAPI CWinHandle__cbPermissionsClosed(_In_ HANDLE Handle, _In_ BOOLEAN Release, _In_opt_ PVOID Context)
@@ -1124,10 +1105,17 @@ NTSTATUS NTAPI CWinHandle__cbPermissionsClosed(_In_ HANDLE Handle, _In_ BOOLEAN 
 	return STATUS_SUCCESS;
 }
 
-void CWinHandle::OpenPermissions()
+CSecurityEditablePtr CWinHandle::GetSecurityObject() const
 {
-	QReadLocker Locker(&m_Mutex); 
-	QPair<HANDLE, HANDLE>* pPair = new QPair<HANDLE, HANDLE>((HANDLE)m_ProcessId, (HANDLE)m_HandleId);
+	QReadLocker Locker(&m_Mutex);
+	SHandleRef Context;
+	Context.ProcessId = (HANDLE)m_ProcessId;
+	Context.HandleId = (HANDLE)m_HandleId;
+	QString Name = m_FileName;
 	Locker.unlock();
-    PhEditSecurity(NULL, (wchar_t*)m_FileName.toStdWString().c_str(), L"Handle", CWinHandle__DuplicateHandle, CWinHandle__cbPermissionsClosed, pPair);
+
+	return CSecurityEditablePtr(new CWinSecurityObject(
+		Name, "Handle",
+		(CWinSecurityObject::POpenObject)CWinHandle__DuplicateHandle,
+		QByteArray((const char*)&Context, sizeof(Context))));
 }

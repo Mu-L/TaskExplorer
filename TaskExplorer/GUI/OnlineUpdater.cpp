@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "OnlineUpdater.h"
+#include "../API/RemoteApi.h"
 #include "version.h"
 #include "../MiscHelpers/Common/Common.h"
 #include "../MiscHelpers/Common/OtherFunctions.h"
@@ -87,6 +88,105 @@ void COnlineUpdater::StartNetworkJob(CNetworkJob* pJob, const QUrl& Url)
 	Request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
 	//Request.setRawHeader("Accept-Encoding", "gzip");
 	pJob->SetReply(m_RequestManager->get(Request));
+}
+
+quint64 COnlineUpdater::GetRandID()
+{
+	quint64 RandID = theConf->GetUInt64("Options/RandID", 0);
+	if (!RandID)
+	{
+		RandID = QRandomGenerator64::global()->generate();
+		theConf->SetValue("Options/RandID", RandID);
+	}
+	return RandID;
+}
+
+//
+// ---- the supporter certificate ----
+//
+// The same request MajorPrivacy makes, to the same place, because it is the
+// same issuer and the same certificates - what changes is the Software name,
+// which is what a certificate has to carry for this program to accept it.
+//
+void COnlineUpdater::GetSupportCert(const QString& Serial, QObject* receiver, const char* member,
+                                    const QVariantMap& Params, const CProgressDialogPtr& pDialog)
+{
+	QUrlQuery Query;
+
+	bool bHwId = false;
+	if (!Serial.isEmpty())
+	{
+		Query.addQueryItem("SN", Serial);
+
+		//
+		// A serial whose fifth character is N is node-locked, and the issuer
+		// needs the machine to lock it to. Nothing else here does.
+		//
+		if (Serial.length() > 5 && Serial.at(4).toUpper() == 'N')
+			bHwId = true;
+	}
+	else
+		Query.addQueryItem("Software", "TaskExplorer");
+
+	const QString UpdateKey = Params["key"].toString();
+	if (!UpdateKey.isEmpty())
+		Query.addQueryItem("UpdateKey", UpdateKey);
+
+	//
+	// A random per-installation number, so that two requests from the same
+	// machine can be recognised as such without anything about the machine
+	// being sent. The left half is zero where MajorPrivacy hashes a user name;
+	// there is no name to hash here.
+	//
+	const QString HashKey = QString("00000000-%1")
+		.arg(GetRandID(), 16, 16, QChar('0')).toUpper();
+	Query.addQueryItem("HashKey", HashKey);
+
+	if (Serial.isEmpty() && Params.contains("Name"))
+	{
+		// an evaluation certificate, which is issued to a person and a machine
+		Query.addQueryItem("Name", Params["Name"].toString());
+		Query.addQueryItem("eMail", Params["eMail"].toString());
+		bHwId = true;
+	}
+
+	if (bHwId)
+		Query.addQueryItem("HwId", CRemoteLoader::CertificateHwid());
+
+	QUrl Url("https://xanasoft.com/get_cert.php?");
+	Url.setQuery(Query);
+
+	CNetworkJob* pJob = new CGetCertJob(Params, this);
+	pJob->SetProgressDialog(pDialog);
+	StartNetworkJob(pJob, Url);
+	QObject::connect(pJob, SIGNAL(Certificate(const QByteArray&, const QVariantMap&)), receiver, member, Qt::QueuedConnection);
+}
+
+//
+// Either the certificate or the reason there is not one.
+//
+// The issuer answers 200 in both cases: a certificate is plain text beginning
+// with its first tag, and a refusal is a JSON object. So the first character is
+// what tells them apart, which is what MajorPrivacy does with the same service.
+//
+void CGetCertJob::Finish(QNetworkReply* pReply)
+{
+	QByteArray Reply = pReply->readAll();
+
+	if (m_pProgress)
+		m_pProgress->OnFinished();
+
+	const auto Error = pReply->error();
+	if (Error != QNetworkReply::NoError)
+		m_Params["error"] = tr("the issuer could not be reached (%1)").arg(pReply->errorString());
+	else if (Reply.left(1) == "{")
+	{
+		const QVariantMap Data = QJsonDocument::fromJson(Reply).toVariant().toMap();
+		Reply.clear();
+		m_Params["error"] = Data["errorMsg"].toString();
+	}
+
+	emit Certificate(Reply, m_Params);
 }
 
 void COnlineUpdater::GetUpdates(QObject* receiver, const char* member, const QVariantMap& Params, const CProgressDialogPtr& pDialog)
@@ -995,7 +1095,7 @@ bool COnlineUpdater::ApplyUpdate(const QStringList& Files, bool bSilent)
 	}
 
 	//if(bIsMetaOnly)
-	//	theAPI->TerminateAll();
+	//	theSystem->TerminateAll();
 
 	QStringList Params;
 	Params.append("update");

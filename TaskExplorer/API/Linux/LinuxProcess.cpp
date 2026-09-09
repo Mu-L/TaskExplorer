@@ -2,6 +2,11 @@
 #include "LinuxProcess.h"
 #include "LinuxHandle.h"
 #include "LinuxHelper.h"
+#include "LinuxWine.h"
+#include "LinuxWineHandle.h"
+#include "LinuxWineWnd.h"
+#include "LinuxWineHelper.h"
+#include "../../../MiscHelpers/Common/Variant.h"
 #include "LinuxMemory.h"
 #include "LinuxModule.h"
 #include "LinuxThread.h"
@@ -12,6 +17,7 @@
 #include "../../../MiscHelpers/Common/Settings.h"
 
 #include <QFileInfo>
+#include <QRegularExpression>
 #include <QStandardPaths>
 
 #include <errno.h>
@@ -67,6 +73,15 @@ bool CLinuxProcess::InitStaticData(quint64 Pid)
 	// profile after it has started, and all three would otherwise cost extra
 	// reads on every refresh of every process.
 	//
+	//
+	// Wine, and what the process really is when it is running under it.
+	//
+	// Read here with the rest of the once-only data: a process does not change
+	// prefix or image, and this costs a maps read, which is not worth doing per
+	// refresh for every process on the machine.
+	//
+	const SWineInfo Wine = LinuxDetectWine(Pid, ExePath, CmdLine);
+
 	const QString CGroupPath = ProcFs::ReadCGroupPath(Pid);
 	const ProcFs::SNamespaces Namespaces = ProcFs::ReadNamespaces(Pid);
 	const QString Confinement = ProcFs::ReadProcSecurity(Pid).Confinement;
@@ -87,48 +102,137 @@ bool CLinuxProcess::InitStaticData(quint64 Pid)
 
 	const quint64 StartTimeMs = ProcFs::StartTimeToEpochMs(Stat.StartTime);
 
+	//
+	// The display this process is attached to, from its environment.
+	//
+	// Read here with the rest of the once-only data because an environment does
+	// not change: /proc/<pid>/environ is what the process was started with, and
+	// nothing outside it can alter that. Doing it per refresh would be a file
+	// read per process for a value that cannot have moved.
+	//
+	// Wayland first. A session running Wayland with Xwayland beside it sets both
+	// - WAYLAND_DISPLAY for native clients and DISPLAY for the X11 ones - and a
+	// native client that reports ":0" would be naming the compatibility layer it
+	// is not using.
+	//
+	// Readable only for our own processes unless privileged, like the working
+	// directory and the environment tab. Empty is then the honest answer rather
+	// than a guess, and it is indistinguishable from a daemon that genuinely has
+	// no display - which is a limitation worth knowing rather than papering over.
+	//
+	QString UsedDesktop;
+	{
+		QString X11;
+		foreach(const QString& Entry, ProcFs::ReadNulList(ProcFs::ProcPath(Pid, "environ")))
+		{
+			if (Entry.startsWith("WAYLAND_DISPLAY="))
+			{
+				UsedDesktop = Entry.mid(16);
+				break;
+			}
+			if (X11.isEmpty() && Entry.startsWith("DISPLAY="))
+				X11 = Entry.mid(8);
+		}
+		if (UsedDesktop.isEmpty())
+			UsedDesktop = X11;
+	}
+
 	QWriteLocker Locker(&m_Mutex);
 
 	m_ProcessId = Pid;
 	m_ParentProcessId = Stat.PPid;
 	m_ProcessUId = SProcessUID(Pid, StartTimeMs);
 
-	m_FileName = ExePath;
+	//
+	// The image, and for a Wine process that is not what /proc/<pid>/exe says.
+	//
+	// exe names the loader - every process in the prefix reports
+	// wine-preloader - so the file this process actually *is* comes from its
+	// memory map instead. It is a real path to a real file, so everything that
+	// opens the image goes on working; what Windows calls it is in m_Wine.
+	//
+	m_Wine = Wine;
+	m_FileName = (Wine.Valid && !Wine.UnixImagePath.isEmpty()) ? Wine.UnixImagePath : ExePath;
+
+	m_UsedDesktop = UsedDesktop;
 
 	m_IsKernelThread = Stat.IsKernelThread;
 
 	//
-	// Naming. Neither source is right on its own:
+	// Naming. There are two names here and Windows has the same two.
 	//
-	//   comm is what the process calls itself and what ps/top/ss display, but
-	//   the kernel truncates it to 15 characters ("systemd-journald" arrives as
-	//   "systemd-journal").
+	//   The image name - what file is running. That is the exe basename, and it
+	//   is never truncated.
 	//
-	//   The exe basename is never truncated, but it is the file name rather
-	//   than the program name, and those diverge for version-directory layouts
-	//   - Claude Code installs as ".../claude/versions/2.1.220", so the exe
-	//   basename is "2.1.220" where comm correctly says "claude".
+	//   comm, which is what the process calls itself and what ps and top show.
+	//   The kernel truncates it to 15 characters ("systemd-journald" arrives as
+	//   "systemd-journal"), and a program may set it to something that is not a
+	//   file name at all: every one of Firefox's children runs the firefox
+	//   binary and calls itself "Web Content", "Utility Process", "WebExtensions".
 	//
-	// So: use the exe basename only when comm looks like a truncation of it
-	// (i.e. comm is a prefix), which recovers the untruncated name. When the
-	// two genuinely disagree, comm is the program's own idea of its name and
-	// wins.
+	// So the name column gets the image, as it does on Windows, and comm goes
+	// where Windows puts the image's description - see GetDescription. Which of
+	// the two is shown, and in which order, is then the same setting on both
+	// platforms rather than a separate rule here.
+	//
+	// Two exceptions to "the name is the exe basename":
+	//
+	//   A Wine process's exe link points at the Wine loader, so the image is
+	//   taken from the Windows image the prefix reports - otherwise every
+	//   program in a prefix is called "wine-preloader", and the one thing that
+	//   tells them apart is the comm the loader never sets.
+	//
+	//   A version-directory layout puts the version where the name should be:
+	//   Claude Code installs as ".../claude/versions/2.1.220", so the basename
+	//   is "2.1.220" and says nothing. A basename of digits and dots is not a
+	//   program name, and comm is used instead.
 	//
 	// Kernel threads get the conventional [brackets]. Note that an unreadable
 	// exe link does NOT mean kernel thread - see ProcFs::SStat::IsKernelThread.
 	//
+	m_Comm = Stat.Comm;
+
 	if (Stat.IsKernelThread)
 	{
 		m_ProcessName = "[" + Stat.Comm + "]";
 	}
-	else if (!ExePath.isEmpty())
-	{
-		const QString ExeName = QFileInfo(ExePath).fileName();
-		m_ProcessName = ExeName.startsWith(Stat.Comm) ? ExeName : Stat.Comm;
-	}
 	else
 	{
-		m_ProcessName = Stat.Comm;
+		QString ImageName;
+		if (Wine.Valid)
+		{
+			//
+			// A Windows path, so it is split on the separator that path uses.
+			//
+			// And nothing at all rather than the exe link when the prefix has
+			// not said: a Wine process's exe is the loader, so that link names
+			// "wine-preloader" for every program in the prefix. comm is the
+			// better answer there - Wine sets it to the image name, which is
+			// how "TaskHelper.exe" is known before the prefix has been asked
+			// anything.
+			//
+			if (!Wine.ImagePath.isEmpty())
+				ImageName = Wine.ImagePath.mid(Wine.ImagePath.lastIndexOf(QLatin1Char('\\')) + 1);
+		}
+		else if (!ExePath.isEmpty())
+		{
+			//
+			// A running program whose file has been replaced or removed - an
+			// upgrade while it runs - has " (deleted)" appended to the exe link
+			// by the kernel. That belongs on the path, where it says something,
+			// and not in the name column.
+			//
+			QString Path = ExePath;
+			if (Path.endsWith(QLatin1String(" (deleted)")))
+				Path.chop(10);
+			ImageName = QFileInfo(Path).fileName();
+		}
+
+		static const QRegularExpression VersionOnly("^[0-9][0-9.]*$");
+		if (ImageName.isEmpty() || VersionOnly.match(ImageName).hasMatch())
+			m_ProcessName = Stat.Comm;
+		else
+			m_ProcessName = ImageName;
 	}
 
 	// argv is NUL separated; joining with spaces matches what the Windows
@@ -139,6 +243,12 @@ bool CLinuxProcess::InitStaticData(quint64 Pid)
 	m_Uid = Uid;
 	m_Gid = Gid;
 	m_UserName = ProcFs::UserNameFromUid(Uid);
+
+	//
+	// The numeric uid, which is what the account actually is here - the name is
+	// whatever /etc/passwd maps it to today and differs between machines.
+	//
+	m_UserKey = QString::number(Uid);
 
 	// Read once: a process does not normally migrate between cgroups, and this
 	// would otherwise be an extra file read per process per refresh.
@@ -318,29 +428,42 @@ bool CLinuxProcess::ValidateParent(CProcessInfo* pParent) const
 	return pParent->GetCreateTimeStamp() <= GetCreateTimeStamp();
 }
 
-QString CLinuxProcess::GetArchString() const
+//
+// e_machine, from the ELF header. Reported in the same numbering CModuleInfo
+// uses for PE images so that one column reads for either kind of target; the
+// values do not overlap, so nothing has to be said about which is which.
+//
+quint16 CLinuxProcess::GetArchitecture() const
 {
 	QString FileName = GetFileName();
 	if (FileName.isEmpty())
-		return QString(); // kernel thread
+		return 0; // kernel thread
 
-	//
-	// EI_CLASS, the fifth byte of the ELF header: 1 = 32 bit, 2 = 64 bit.
-	//
 	QFile File(FileName);
 	if (!File.open(QIODevice::ReadOnly))
-		return QString();
+		return 0;
 
-	const QByteArray Header = File.read(5);
-	if (Header.size() < 5 || !Header.startsWith("\x7f" "ELF"))
-		return QString();
+	const QByteArray Header = File.read(20);
+	if (Header.size() < 20 || !Header.startsWith("\x7f" "ELF"))
+		return 0;
 
-	switch (Header[4])
+	//
+	// EI_DATA, the sixth byte, says which end the rest of the header is written
+	// from. Only little-endian machines are read here; the big-endian ones this
+	// could run on are not among the four architectures named below.
+	//
+	if (Header[5] != 1)
+		return 0;
+
+	const quint16 Machine = (quint8)Header[18] | ((quint16)(quint8)Header[19] << 8);
+	switch (Machine)
 	{
-		case 1: return "32-bit";
-		case 2: return "64-bit";
+		case 3:		return CModuleInfo::eMachineI386;	// EM_386
+		case 40:	return CModuleInfo::eMachineArmNt;	// EM_ARM
+		case 62:	return CModuleInfo::eMachineAmd64;	// EM_X86_64
+		case 183:	return CModuleInfo::eMachineArm64;	// EM_AARCH64
 	}
-	return QString();
+	return 0;
 }
 
 quint64 CLinuxProcess::GetSessionID() const
@@ -355,11 +478,6 @@ quint16 CLinuxProcess::GetSubsystem() const
 {
 	// linux-todo: distinguish native / Wine / WSL-style processes.
 	return 0;
-}
-
-QString CLinuxProcess::GetSubsystemString() const
-{
-	return QString();
 }
 
 QString CLinuxProcess::GetWorkingDirectory() const
@@ -450,10 +568,79 @@ quint64 CLinuxProcess::GetMaximumWS() const
 	return 0;
 }
 
-QString CLinuxProcess::GetStatusString() const
+//
+// /proc reports the run state as a letter; it crosses as one of EProcessState
+// so a viewer on any platform can read it without knowing the letters.
+//
+int CLinuxProcess::GetRunState() const
 {
 	QReadLocker Locker(&m_Mutex);
-	return LinuxStateToString(m_State);
+	switch (m_State)
+	{
+	case 'R':	return eStateRunning;
+	case 'S':	return eStateSleeping;
+	case 'D':	return eStateDiskSleep;
+	case 'Z':	return eStateZombie;
+	case 'T':	return eStateStopped;
+	case 't':	return eStateTracingStop;
+	case 'I':	return eStateIdle;
+	case 'X':
+	case 'x':	return eStateDead;
+	case 'W':	return eStateWaking;
+	case 'P':	return eStateParked;
+	}
+	return eStateUnknown;
+}
+
+quint32 CLinuxProcess::GetStatusFlags() const
+{
+	QReadLocker Locker(&m_Mutex);
+
+	quint32 Flags = 0;
+
+	//
+	// A kernel thread has no user space at all; root owns the machine. Both are
+	// "not somebody's program", which is what this flag means on Windows too.
+	//
+	if (m_IsKernelThread || m_Uid == 0)
+		Flags |= eStatusSystemProcess;
+
+	if (m_bSystemService)
+		Flags |= eStatusService;
+
+	//
+	// Root, or holding capabilities an ordinary user does not - the same test
+	// IsElevated makes, inline because that one takes the lock this holds.
+	//
+	if (m_Uid == 0 || m_CapEff != 0)
+		Flags |= eStatusElevated;
+
+	//
+	// A container is the nearest thing here to what Windows calls a sandbox: a
+	// process that cannot see the same machine the rest of them can.
+	//
+	// Only a named one. LinuxDescribeContainer falls back to "namespaced (mnt)"
+	// for anything whose namespaces merely differ from pid 1's, and that is true
+	// of every systemd unit with PrivateTmp=yes - polkit, rsyslog and logind
+	// among them. Those are hardened daemons, not sandboxes, and calling them
+	// sandboxed took the daemon colour away from half the machine.
+	//
+	if (!m_Container.isEmpty() && !m_Container.startsWith("namespaced"))
+		Flags |= eStatusSandboxed;
+
+	//
+	// A zombie has exited and is being kept only until its parent reads its
+	// status. "Terminated" is exactly what Windows means by the same flag.
+	//
+	// 'Z' is what /proc/<pid>/stat reports for it; GetRunState translates the
+	// same letter, but that one takes the lock this already holds.
+	if (m_State == 'Z')
+		Flags |= eStatusTerminated;
+
+	if (m_Wine.Valid)
+		Flags |= eStatusWine;
+
+	return Flags;
 }
 
 bool CLinuxProcess::IsSystemProcess() const
@@ -512,10 +699,10 @@ STATUS CLinuxProcess::AttachDebugger()
 	const quint64 Pid = GetProcessId();
 
 	if (Pid == (quint64)getpid())
-		return ERR(tr("TaskExplorer cannot debug itself."));
+		return ERR(TE_CannotDebugSelf);
 
 	if (HasDebugger())
-		return ERR(tr("This process is already being traced."));
+		return ERR(TE_ProcAlreadyTraced);
 
 	//
 	// Windows looks up the system's postmortem debugger in the AeDebug registry
@@ -526,7 +713,7 @@ STATUS CLinuxProcess::AttachDebugger()
 	if (Debugger.isEmpty())
 		Debugger = QStandardPaths::findExecutable("lldb");
 	if (Debugger.isEmpty())
-		return ERR(tr("No debugger is installed. Install gdb or lldb."));
+		return ERR(TE_NoDebuggerInstalled);
 
 	//
 	// A debugger is an interactive program, so it needs a terminal of its own;
@@ -557,13 +744,12 @@ STATUS CLinuxProcess::DetachDebugger()
 	//
 	const quint64 TracerPid = ProcFs::ReadStatus(GetProcessId()).value("TracerPid").toULongLong();
 	if (!TracerPid)
-		return ERR(tr("This process is not being traced."));
+		return ERR(TE_ProcTraced);
 
 	const ProcFs::SStat Tracer = ProcFs::ReadStat(TracerPid);
-	const QString Name = Tracer.Valid ? Tracer.Comm : tr("unknown");
+	const QString Name = Tracer.Valid ? Tracer.Comm : MakePlaceholder(TE_NAME_UNKNOWN_TRACER);
 
-	return ERR(tr("Only the debugger itself can detach. This process is being traced by %1 (pid %2); "
-	              "quit it there, or terminate it.").arg(Name).arg(TracerPid));
+	return ERR(TE_DebuggerItselfDetach, QVariantList() << Name << TracerPid);
 }
 
 bool CLinuxProcess::HasPriorityBoost() const
@@ -574,13 +760,7 @@ bool CLinuxProcess::HasPriorityBoost() const
 
 STATUS CLinuxProcess::SetPriorityBoost(bool Value)
 {
-	return ERR(tr("Priority boost is not supported on Linux."));
-}
-
-QString CLinuxProcess::GetPriorityString() const
-{
-	QReadLocker Locker(&m_Mutex);
-	return LinuxNiceToPriorityString(m_Nice);
+	return ERR(TE_PriorityBoostUnsupported);
 }
 
 STATUS CLinuxProcess::SetPriority(qint32 Value)
@@ -589,18 +769,12 @@ STATUS CLinuxProcess::SetPriority(qint32 Value)
 	// is expected to fail for unprivileged callers going below 0.
 	errno = 0;
 	if (setpriority(PRIO_PROCESS, (id_t)GetProcessId(), Value) != 0 && errno != 0)
-		return ErrnoToStatus(tr("Failed to set process priority"));
+		return ErrnoToStatus(TE_SetProcessPriorityFailed);
 
 	QWriteLocker Locker(&m_Mutex);
 	m_Nice = Value;
 	m_Priority = Value;
 	return OK;
-}
-
-QString CLinuxProcess::GetBasePriorityString() const
-{
-	QReadLocker Locker(&m_Mutex);
-	return LinuxSchedPolicyToString(m_SchedPolicy);
 }
 
 STATUS CLinuxProcess::SetBasePriority(qint32 Value)
@@ -611,27 +785,12 @@ STATUS CLinuxProcess::SetBasePriority(qint32 Value)
 	// no menu is wired to it. Left as an explicit refusal rather than an
 	// unreachable implementation.
 	//
-	return ERR(tr("Setting the scheduling policy is not supported; use chrt(1)."));
-}
-
-QString CLinuxProcess::GetPagePriorityString() const
-{
-	// Linux exposes no page priority; oom_score_adj is the nearest analogue and
-	// is reported separately.
-	return QString();
+	return ERR(TE_SettingSchedulingPolicy);
 }
 
 STATUS CLinuxProcess::SetPagePriority(qint32 Value)
 {
-	return ERR(tr("Page priority is not supported on Linux."));
-}
-
-QString CLinuxProcess::GetIOPriorityString() const
-{
-	// Sampled in UpdateDynamicData rather than queried here, so that repainting
-	// the process list does not issue a syscall per visible row.
-	QReadLocker Locker(&m_Mutex);
-	return LinuxIoPrioToString(m_IoPrio);
+	return ERR(TE_PagePriorityUnsupported);
 }
 
 STATUS CLinuxProcess::SetIOPriority(qint32 Value)
@@ -642,7 +801,7 @@ STATUS CLinuxProcess::SetIOPriority(qint32 Value)
 	// to fail unprivileged.
 	//
 	if (LinuxSetIoPrio(GetProcessId(), Value) != 0)
-		return ErrnoToStatus(tr("Failed to set the I/O priority"));
+		return ErrnoToStatus(TE_SetIoPriorityFailed);
 
 	QWriteLocker Locker(&m_Mutex);
 	m_IoPrio = Value;
@@ -653,7 +812,7 @@ STATUS CLinuxProcess::SetIOPriority(qint32 Value)
 STATUS CLinuxProcess::SetOomScoreAdj(int Value)
 {
 	if (Value < -1000 || Value > 1000)
-		return ERR(tr("The OOM adjustment must be between -1000 and 1000."));
+		return ERR(TE_OomAdjustmentRange);
 
 	if (!ProcFs::WriteOomScoreAdj(GetProcessId(), Value))
 	{
@@ -663,8 +822,8 @@ STATUS CLinuxProcess::SetOomScoreAdj(int Value)
 		// process from the OOM killer at everyone else's expense.
 		//
 		if (errno == EACCES || errno == EPERM)
-			return ERR(tr("Lowering the OOM adjustment requires root (CAP_SYS_RESOURCE)."), errno);
-		return ErrnoToStatus(tr("Failed to set the OOM adjustment"));
+			return ERR(TE_LoweringOomAdjustment, errno);
+		return ErrnoToStatus(TE_SetOomAdjustFailed);
 	}
 
 	QWriteLocker Locker(&m_Mutex);
@@ -675,10 +834,10 @@ STATUS CLinuxProcess::SetOomScoreAdj(int Value)
 STATUS CLinuxProcess::SetAffinityMask(quint64 Value)
 {
 	if (Value == 0)
-		return ERR(tr("The affinity mask must select at least one CPU."));
+		return ERR(TE_AffinityMaskEmpty);
 
 	if (!LinuxSetAffinity(GetProcessId(), Value))
-		return ErrnoToStatus(tr("Failed to set the affinity mask"));
+		return ErrnoToStatus(TE_SetAffinityFailed);
 
 	QWriteLocker Locker(&m_Mutex);
 	m_AffinityMask = Value;
@@ -690,7 +849,7 @@ STATUS CLinuxProcess::Terminate(bool bForce)
 	// SIGTERM asks politely and can be caught or ignored; SIGKILL cannot be,
 	// which matches what "force" means on the Windows side.
 	if (kill((pid_t)GetProcessId(), bForce ? SIGKILL : SIGTERM) != 0)
-		return ErrnoToStatus(tr("Failed to terminate process"));
+		return ErrnoToStatus(TE_TerminateProcessFailed);
 	return OK;
 }
 
@@ -703,14 +862,14 @@ bool CLinuxProcess::IsSuspended() const
 STATUS CLinuxProcess::Suspend()
 {
 	if (kill((pid_t)GetProcessId(), SIGSTOP) != 0)
-		return ErrnoToStatus(tr("Failed to suspend process"));
+		return ErrnoToStatus(TE_SuspendProcessFailed);
 	return OK;
 }
 
 STATUS CLinuxProcess::Resume()
 {
 	if (kill((pid_t)GetProcessId(), SIGCONT) != 0)
-		return ErrnoToStatus(tr("Failed to resume process"));
+		return ErrnoToStatus(TE_ResumeProcessFailed);
 	return OK;
 }
 
@@ -781,12 +940,12 @@ STATUS CLinuxProcess::DeleteEnvVariable(const QString& Name)
 {
 	// The environment of a running process cannot be edited from outside on
 	// Linux without ptrace-injecting code; this is likely to stay unsupported.
-	return ERR(tr("Editing the environment of a running process is not supported on Linux."));
+	return ERR(TE_EditingEnvironmentRunning);
 }
 
 STATUS CLinuxProcess::EditEnvVariable(const QString& Name, const QString& Value)
 {
-	return ERR(tr("Editing the environment of a running process is not supported on Linux."));
+	return ERR(TE_EditingEnvironmentRunning);
 }
 
 QMap<quint64, CMemoryPtr> CLinuxProcess::GetMemoryMap() const
@@ -807,6 +966,7 @@ QMap<quint64, CMemoryPtr> CLinuxProcess::GetMemoryMap() const
 	for (const ProcFs::SMapEntry& Entry : ProcFs::ReadMaps(Pid))
 	{
 		QSharedPointer<CLinuxMemory> pMemory = QSharedPointer<CLinuxMemory>(new CLinuxMemory());
+		pMemory->SetSystem(GetSystem());
 		pMemory->InitStaticData(Pid, Entry);
 
 		auto Detail = Details.constFind(Entry.Start);
@@ -828,7 +988,7 @@ QMap<quint64, CHeapPtr> CLinuxProcess::GetHeapList() const
 
 STATUS CLinuxProcess::FlushHeaps()
 {
-	return ERR(tr("Flushing heaps is not supported on Linux."));
+	return ERR(TE_FlushingHeapsUnsupported);
 }
 
 QList<CWndPtr> CLinuxProcess::GetWindows() const
@@ -853,11 +1013,10 @@ CWndPtr CLinuxProcess::GetMainWindow() const
 	}
 	return m_WindowList.isEmpty() ? CWndPtr() : m_WindowList.first();
 }
-
 STATUS CLinuxProcess::LoadModule(const QString& Path)
 {
 	// linux-todo: inject via ptrace + dlopen, mirroring the Windows InjectDll.
-	return ERR(tr("Loading a module into a running process is not yet implemented on Linux."));
+	return ERR(TE_LoadingModuleRunning);
 }
 
 bool CLinuxProcess::UpdateThreads()
@@ -884,10 +1043,11 @@ bool CLinuxProcess::UpdateThreads()
 		if (pThread.isNull())
 		{
 			pThread = QSharedPointer<CLinuxThread>(new CLinuxThread());
+			pThread->SetSystem(GetSystem());
 			if (!pThread->InitStaticData(Pid, Tid))
 				continue; // exited between the readdir and the stat read
 
-			theAPI->AddThread(pThread);
+			GetSystem()->AddThread(pThread);
 
 			QWriteLocker Locker(&m_ThreadMutex);
 			m_ThreadList.insert(Tid, pThread);
@@ -914,7 +1074,7 @@ bool CLinuxProcess::UpdateThreads()
 		if (pThread->CanBeRemoved())
 		{
 			m_ThreadList.remove(Tid);
-			theAPI->ClearThread(Tid);
+			GetSystem()->ClearThread(Tid);
 			Removed.insert(Tid);
 		}
 		else if (!pThread->IsMarkedForRemoval())
@@ -968,6 +1128,7 @@ bool CLinuxProcess::UpdateHandles()
 			if (pHandle.isNull())
 			{
 				pHandle = QSharedPointer<CLinuxHandle>(new CLinuxHandle());
+				pHandle->SetSystem(GetSystem());
 				if (!pHandle->InitStaticData(Pid, Fd, Target, FdInfo))
 					continue;
 
@@ -994,6 +1155,7 @@ bool CLinuxProcess::UpdateHandles()
 		if (pHandle.isNull())
 		{
 			pHandle = QSharedPointer<CLinuxHandle>(new CLinuxHandle());
+			pHandle->SetSystem(GetSystem());
 			if (!pHandle->InitStaticData(Pid, Fd))
 				continue; // closed between the readdir and the readlink
 
@@ -1010,6 +1172,84 @@ bool CLinuxProcess::UpdateHandles()
 			Added.insert(Fd);
 		else if (bChanged)
 			Changed.insert(Fd);
+	}
+
+	//
+	// And the other half, for a process inside a Wine prefix.
+	//
+	// The descriptors above are what the kernel gave it; these are the events,
+	// mutexes, keys and sections it opened through Wine, which live in
+	// wineserver and which /proc cannot see at all. One process, two tables, one
+	// list - kept apart by the key here and by the type numbering, so a filter
+	// set to one kind can never match the other. See CWineHandle.
+	//
+	const SWineInfo Wine = GetWineInfo();
+	if (Wine.Valid && Wine.WinPid && CWineHelpers::IsAvailable())
+	{
+		const int Bits = CWineHelpers::PrefixBits(Wine.Prefix);
+		if (Bits && CWineHelpers::IsAvailable(Bits))
+		{
+			CWineHelper* pHelper = CWineHelpers::Instance()->Get(Wine.Prefix, Bits, GetUid());
+
+			CVariant Handles;
+			if (pHelper->ListHandles(Wine.WinPid, Handles, 5000))
+			{
+				try {
+					Handles.ReadRawList([&](const CVariant& Entry)
+					{
+						CVariant Value;
+						if (!Entry.Find("Handle", Value))
+							return;
+
+						//
+						// Above every descriptor number there can be. A Windows
+						// handle value and a small fd would otherwise collide in
+						// this map, and the two would take turns overwriting
+						// each other every round.
+						//
+						const quint64 Key = c_WineHandleKey | Value.To<quint64>();
+
+						QSharedPointer<CWineHandle> pHandle = OldHandles.take(Key).staticCast<CWineHandle>();
+						if (pHandle.isNull())
+						{
+							pHandle = QSharedPointer<CWineHandle>(new CWineHandle());
+							pHandle->SetSystem(GetSystem());
+							if (!pHandle->Apply(Pid, Entry))
+								return;
+
+							QWriteLocker Locker(&m_HandleMutex);
+							m_HandleList.insert(Key, pHandle);
+							Locker.unlock();
+
+							Added.insert(Key);
+							return;
+						}
+
+						//
+						// A handle value is reused the moment it is closed, so
+						// what is at one is not necessarily what was there last
+						// round. Compared rather than assumed unchanged.
+						//
+						const quint32 WasType = pHandle->GetTypeIndex();
+						const quint32 WasAccess = pHandle->GetGrantedAccess();
+						const quint64 WasObject = pHandle->GetObjectAddress();
+						const QString WasName = pHandle->GetFileName();
+
+						if (!pHandle->Apply(Pid, Entry))
+							return;
+
+						if (WasType != pHandle->GetTypeIndex() || WasAccess != pHandle->GetGrantedAccess()
+						 || WasObject != pHandle->GetObjectAddress() || WasName != pHandle->GetFileName())
+							Changed.insert(Key);
+					});
+				} catch (...) {
+					//
+					// A malformed reply costs this round's wineserver objects
+					// and nothing else; the descriptors above are already in.
+					//
+				}
+			}
+		}
 	}
 
 	QWriteLocker Locker(&m_HandleMutex);
@@ -1041,9 +1281,22 @@ bool CLinuxProcess::UpdateModules()
 {
 	const quint64 Pid = GetProcessId();
 
-	const QList<ProcFs::SMapEntry> Maps = ProcFs::ReadMaps(Pid);
+	//
+	// Directly where the file can be read, through the elevated helper where it
+	// cannot - which for an unprivileged viewer is every process but its own.
+	//
+	// The same fallback the working directory, the environment and the file
+	// descriptors already use. Without it the Modules tab of another user's
+	// process was simply never filled, and - because a failed update emits
+	// nothing - the panel went on showing the modules of whatever was selected
+	// before it.
+	//
+	QList<ProcFs::SMapEntry> Maps = ProcFs::ReadMaps(Pid);
+	if (Maps.isEmpty() && LinuxHelperNeeded() && theConf->GetBool("Options/UseTaskHelper", false))
+		Maps = ProcFs::ParseMaps(LinuxHelperReadProcFile(Pid, "maps"));
+
 	if (Maps.isEmpty())
-		return false; // gone, or /proc/<pid>/maps not readable for us
+		return false; // gone, or not readable even with help
 
 	//
 	// A single shared object contributes several consecutive mappings (text,
@@ -1117,6 +1370,7 @@ bool CLinuxProcess::UpdateModules()
 		if (pModule.isNull())
 		{
 			pModule = QSharedPointer<CLinuxModule>(new CLinuxModule());
+			pModule->SetSystem(GetSystem());
 			pModule->InitStaticData(Path, Range.Start, Range.End - Range.Start);
 			pModule->SetLoaded(true);
 
@@ -1169,27 +1423,151 @@ bool CLinuxProcess::UpdateModules()
 	return true;
 }
 
+QString CLinuxProcess::GetDescription() const
+{
+	QReadLocker Locker(&m_Mutex);
+
+	//
+	// Only when it is a name of its own. A comm equal to the image name, or a
+	// prefix of it - which is what the kernel's truncation looks like - repeats
+	// the name column and crowds out the image's description.
+	//
+	if (!m_Comm.isEmpty() && !m_ProcessName.startsWith(m_Comm))
+		return m_Comm;
+
+	Locker.unlock();
+	return CProcessInfo::GetDescription();
+}
+
 bool CLinuxProcess::UpdateWindows()
 {
-	if (!X11Helper::IsAvailable())
-		return false; // built without X11, or a Wayland session with no XWayland
-
-	//
-	// The list is refreshed for every process by CLinuxAPI::UpdateProcessList
-	// via SetWindows(), so an explicit refresh only has to re-read the ones we
-	// already know about. Enumerating the whole display again here would repeat
-	// work that was just done.
-	//
+	QSet<quint64> Added;
 	QSet<quint64> Changed;
+	QSet<quint64> Removed;
 
-	QReadLocker ReadLocker(&m_WindowMutex);
-	const QList<CWndPtr> Windows = m_WindowList.values();
-	ReadLocker.unlock();
-
-	for (const CWndPtr& pWnd : Windows)
+	if (X11Helper::IsAvailable())
 	{
-		if (pWnd.staticCast<CLinuxWnd>()->UpdateDynamicData())
-			Changed.insert(pWnd->GetHWnd());
+		//
+		// The list is refreshed for every process by CLinuxAPI::UpdateProcessList
+		// via SetWindows(), so an explicit refresh only has to re-read the ones we
+		// already know about. Enumerating the whole display again here would repeat
+		// work that was just done.
+		//
+		QReadLocker ReadLocker(&m_WindowMutex);
+		const QList<quint64> Keys = m_WindowList.keys();
+		const QList<CWndPtr> Windows = m_WindowList.values();
+		ReadLocker.unlock();
+
+		for (int i = 0; i < Windows.count(); i++)
+		{
+			//
+			// The Wine ones are not X11 windows and have no such data to re-read;
+			// they are refreshed below, from the prefix.
+			//
+			if (Keys[i] & c_WineWindowKey)
+				continue;
+
+			if (Windows[i].staticCast<CLinuxWnd>()->UpdateDynamicData())
+				Changed.insert(Windows[i]->GetHWnd());
+		}
+	}
+
+	//
+	// And the same process's windows as user32 sees them.
+	//
+	// A Wine top-level window is an X11 window too, so the loop above may well
+	// have one for it already - but what X11 has is the X11 window. The HWND,
+	// the class the program registered, the styles it was created with are
+	// user32's, and only something running inside the prefix can ask. Both are
+	// listed; see CWineWnd for why neither replaces the other.
+	//
+	const SWineInfo Wine = GetWineInfo();
+	if (Wine.Valid && Wine.WinPid && CWineHelpers::IsAvailable())
+	{
+		const int Bits = CWineHelpers::PrefixBits(Wine.Prefix);
+		if (Bits && CWineHelpers::IsAvailable(Bits))
+		{
+			CWineHelper* pHelper = CWineHelpers::Instance()->Get(Wine.Prefix, Bits, GetUid());
+
+			CVariant Windows;
+			if (pHelper->ListWindows(Wine.WinPid, Windows, 5000))
+			{
+				QMap<quint64, CWndPtr> OldWine;
+				{
+					QReadLocker Locker(&m_WindowMutex);
+					for (QMap<quint64, CWndPtr>::const_iterator I = m_WindowList.begin(); I != m_WindowList.end(); ++I)
+						if (I.key() & c_WineWindowKey)
+							OldWine.insert(I.key(), I.value());
+				}
+
+				try {
+					Windows.ReadRawList([&](const CVariant& Entry)
+					{
+						CVariant Value;
+						if (!Entry.Find("Wnd", Value))
+							return;
+
+						const quint64 Key = c_WineWindowKey | Value.To<quint64>();
+
+						QSharedPointer<CWineWnd> pWnd = OldWine.take(Key).staticCast<CWineWnd>();
+						if (pWnd.isNull())
+						{
+							pWnd = QSharedPointer<CWineWnd>(new CWineWnd());
+							pWnd->SetSystem(GetSystem());
+							//
+							// Which prefix to go back to when something is done
+							// to this window, so that acting on it does not have
+							// to find its way to a process first.
+							//
+							pWnd->SetTarget(Wine.Prefix, Bits, GetUid());
+							if (!pWnd->Apply(GetProcessId(), Entry))
+								return;
+
+							QWriteLocker Locker(&m_WindowMutex);
+							m_WindowList.insert(Key, pWnd);
+							Locker.unlock();
+
+							Added.insert(Key);
+							return;
+						}
+
+						//
+						// Compared rather than assumed unchanged: a title changes
+						// while a program runs, and so does whether a window is
+						// visible or iconic.
+						//
+						const QString WasTitle = pWnd->GetWindowTitle();
+						const bool bWasVisible = pWnd->IsVisible();
+						const bool bWasMinimized = pWnd->IsMinimized();
+						const bool bWasMaximized = pWnd->IsMaximized();
+
+						if (!pWnd->Apply(GetProcessId(), Entry))
+							return;
+
+						if (WasTitle != pWnd->GetWindowTitle() || bWasVisible != pWnd->IsVisible()
+						 || bWasMinimized != pWnd->IsMinimized() || bWasMaximized != pWnd->IsMaximized())
+							Changed.insert(Key);
+					});
+
+					//
+					// Whatever the prefix no longer reports has been destroyed.
+					// Only the Wine ones are considered here - the X11 side has
+					// its own accounting in SetWindows.
+					//
+					QWriteLocker Locker(&m_WindowMutex);
+					foreach(quint64 Key, OldWine.keys())
+					{
+						m_WindowList.remove(Key);
+						Removed.insert(Key);
+					}
+				} catch (...) {
+					//
+					// A malformed reply costs this round's Wine windows and
+					// nothing else; the X11 ones are already in.
+					//
+				}
+			}
+		}
 	}
 
 	//
@@ -1200,9 +1578,29 @@ bool CLinuxProcess::UpdateWindows()
 	// there was no change leaves the view permanently empty, since the window
 	// list was already filled in by SetWindows() before the view ever asked.
 	//
-	emit WindowsUpdated(QSet<quint64>(), Changed, QSet<quint64>());
+	emit WindowsUpdated(Added, Changed, Removed);
 
 	return true;
+}
+
+//
+// A window by the handle it reports, which is not always its key here.
+//
+// An X11 window is filed under its window id and reports the same number, so
+// the map answers directly. A Wine window is filed above every X11 id, because
+// the two sets would otherwise collide, but reports the HWND that the program
+// inside the prefix knows it by - and that is the number that goes over the
+// wire and comes back in an action.
+//
+CWndPtr CLinuxProcess::GetWindow(quint64 hWnd) const
+{
+	QReadLocker Locker(&m_WindowMutex);
+
+	CWndPtr pWnd = m_WindowList.value(hWnd);
+	if (!pWnd.isNull())
+		return pWnd;
+
+	return m_WindowList.value(c_WineWindowKey | hWnd);
 }
 
 bool CLinuxProcess::SetWindows(const QList<X11Helper::SWindow>& Windows)
@@ -1226,6 +1624,7 @@ bool CLinuxProcess::SetWindows(const QList<X11Helper::SWindow>& Windows)
 		if (pWnd.isNull())
 		{
 			pWnd = QSharedPointer<CLinuxWnd>(new CLinuxWnd());
+			pWnd->SetSystem(GetSystem());
 			if (!pWnd->InitStaticData(Info.Window))
 				continue; // unmapped between the enumeration and the query
 
@@ -1247,6 +1646,14 @@ bool CLinuxProcess::SetWindows(const QList<X11Helper::SWindow>& Windows)
 	QWriteLocker Locker(&m_WindowMutex);
 	foreach(quint64 Window, OldWindows.keys())
 	{
+		//
+		// Except the ones that were never X11's to report. A Wine window is
+		// accounted for against what the prefix says in UpdateWindows, and
+		// dropping it here would delete it a moment after it was added.
+		//
+		if (Window & c_WineWindowKey)
+			continue;
+
 		// CWndInfo derives from CAbstractInfo, which has no removal-persistence
 		// machinery, so closed windows are dropped immediately.
 		m_WindowList.remove(Window);
@@ -1257,4 +1664,33 @@ bool CLinuxProcess::SetWindows(const QList<X11Helper::SWindow>& Windows)
 	emit WindowsUpdated(Added, Changed, Removed);
 
 	return true;
+}
+
+//
+// The collector reads the files, not the viewer.
+//
+// These were called straight out of CCGroupView, which meant the window read
+// its own machine's /sys/fs/cgroup whatever process was selected. Here they
+// answer for the machine the process is actually on, and a remote process can
+// override them with what came over the wire.
+//
+SCGroupStats CLinuxProcess::GetCGroupStats() const
+{
+	const QString Path = GetCGroupPath();
+	if (Path.isEmpty())
+		return SCGroupStats();
+	return ProcFs::ReadCGroupStats(Path);
+}
+
+SResourcePressure CLinuxProcess::GetCGroupPressure(const QString& Resource) const
+{
+	const QString Path = GetCGroupPath();
+	if (Path.isEmpty())
+		return SResourcePressure();
+	return ProcFs::ReadCGroupPressure(Path, Resource);
+}
+
+SProcessSecurity CLinuxProcess::GetProcessSecurity() const
+{
+	return ProcFs::ReadProcSecurity(GetProcessId());
 }

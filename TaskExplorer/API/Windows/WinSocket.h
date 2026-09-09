@@ -19,7 +19,6 @@ public:
 	//virtual bool			IsSubsystemProcess()	{ QReadLocker Locker(&m_Mutex); return m_SubsystemProcess; }
 
 	virtual int				GetFirewallStatus();
-	virtual QString			GetFirewallStatusString();
 
 	virtual quint64			GetIdleTime() const;
 

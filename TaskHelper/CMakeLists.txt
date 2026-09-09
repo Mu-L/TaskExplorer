@@ -20,8 +20,8 @@ add_executable(TaskHelper
 
     # Shared, STL-only serialisation. Same sources the GUI uses, so the two
     # cannot drift apart in wire format.
-    ../TaskExplorer/Common/Variant.cpp
-    ../TaskExplorer/Common/Buffer.cpp
+    ../MiscHelpers/Common/Variant.cpp
+    ../MiscHelpers/Common/Buffer.cpp
 
     # The Qt-free platform shim Exception.h needs.
     ../MiscHelpers/Common/Compat.cpp
@@ -32,6 +32,13 @@ add_executable(TaskHelper
 # Buffer.cpp resolves to TaskHelper's Qt-free one rather than TaskExplorer's
 # Qt-heavy header.
 #
+#
+# These sources are compiled into this binary rather than imported from
+# CoreHelpers.dll, which is what the export macro in SerialExport.h needs to be
+# told. Harmless on Linux, where nothing is decorated either way.
+#
+target_compile_definitions(TaskHelper PRIVATE COREHELPERS_STATIC)
+
 target_include_directories(TaskHelper PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/TaskExplorer

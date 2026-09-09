@@ -5,7 +5,7 @@
 #include "../../../MiscHelpers/Common/TreeWidgetEx.h"
 #include "../../../MiscHelpers/Common/PanelView.h"
 #include "../../../MiscHelpers/Common/SmartGridWidget.h"
-#include "../../Common/IncrementalPlot.h"
+#include "../../../MiscHelpers/Common/IncrementalPlot.h"
 
 class CGPUView : public QWidget //CPanelView
 {
@@ -18,6 +18,13 @@ public slots:
 	void					Refresh();
 	void					UpdateGraphs();
 	void					ReConfigurePlots();
+
+	//
+	// Throw the plotted history away. The points belong to whichever machine
+	// was being shown when they were taken, so they cannot be carried over to
+	// the next one.
+	//
+	void					ResetPlots();
 
 private slots:
 	void					OnResetColumns();

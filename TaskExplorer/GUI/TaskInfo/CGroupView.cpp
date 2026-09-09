@@ -1,20 +1,31 @@
 #include "stdafx.h"
 #include "../TaskExplorer.h"
 #include "CGroupView.h"
-#include "../../API/Linux/ProcFs.h"
 #include "../../../MiscHelpers/Common/Common.h"
 
 CCGroupView::CCGroupView(QWidget *parent)
 	:CPanelView(parent)
 {
-	m_pMainLayout = new QGridLayout();
-	m_pMainLayout->setContentsMargins(0, 0, 0, 0);
-	this->setLayout(m_pMainLayout);
+	//
+	// Laid out as the Token and Security views are: an outer box holding a
+	// header widget and the list, each keeping the style's default margins.
+	// This panel is read beside those two and should not sit differently on
+	// the page - a labelled field flush against the panel edge reads as
+	// clipped.
+	//
+	QVBoxLayout* pOuterLayout = new QVBoxLayout();
+	this->setLayout(pOuterLayout);
+
+	QWidget* pHeaderWidget = new QWidget();
+	pOuterLayout->addWidget(pHeaderWidget);
+
+	m_pHeaderLayout = new QGridLayout();
+	pHeaderWidget->setLayout(m_pHeaderLayout);
 
 	int row = 0;
 
 	m_pPathLabel = new QLabel(tr("Control group:"));
-	m_pMainLayout->addWidget(m_pPathLabel, row, 0);
+	m_pHeaderLayout->addWidget(m_pPathLabel, row, 0);
 
 	//
 	// Read only, but a line edit rather than a label: these paths are long and
@@ -22,14 +33,14 @@ CCGroupView::CCGroupView(QWidget *parent)
 	//
 	m_pPath = new QLineEdit();
 	m_pPath->setReadOnly(true);
-	m_pMainLayout->addWidget(m_pPath, row++, 1);
+	m_pHeaderLayout->addWidget(m_pPath, row++, 1);
 
 	m_pList = new CPanelWidgetEx();
 	m_pList->GetView()->setItemDelegate(theGUI->GetItemDelegate());
 	((QTreeWidgetEx*)m_pList->GetView())->setHeaderLabels(tr("Property|Value").split("|"));
 	m_pList->GetView()->setSelectionMode(QAbstractItemView::ExtendedSelection);
 	m_pList->GetView()->setSortingEnabled(false);
-	m_pMainLayout->addWidget(m_pList, row++, 0, 1, 2);
+	pOuterLayout->addWidget(m_pList);
 
 	AddPanelItemsToMenu();
 
@@ -123,11 +134,11 @@ void CCGroupView::PruneStale()
 
 void CCGroupView::ShowProcesses(const QList<CProcessPtr>& Processes)
 {
-	QSharedPointer<CLinuxProcess> pProcess;
+	CProcessPtr pProcess;
 	if (Processes.count() == 1)
 	{
 		setEnabled(true);
-		pProcess = Processes.first().objectCast<CLinuxProcess>();
+		pProcess = Processes.first();
 	}
 	else
 	{
@@ -167,7 +178,7 @@ void CCGroupView::Refresh()
 		return;
 	}
 
-	const ProcFs::SCGroupStats Stats = ProcFs::ReadCGroupStats(Path);
+	const SCGroupStats Stats = m_pCurProcess->GetCGroupStats();
 
 	SetValue(tr("Control group"), tr("Path"), Path);
 	if (!Stats.Controllers.isEmpty())
@@ -254,7 +265,7 @@ void CCGroupView::Refresh()
 
 	for (size_t i = 0; i < sizeof(Resources) / sizeof(Resources[0]); i++)
 	{
-		const ProcFs::SPressure Pressure = ProcFs::ReadCGroupPressure(Path, Resources[i].Resource);
+		const SResourcePressure Pressure = m_pCurProcess->GetCGroupPressure(Resources[i].Resource);
 		if (!Pressure.Valid)
 			continue;
 

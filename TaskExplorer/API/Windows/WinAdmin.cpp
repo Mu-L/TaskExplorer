@@ -4,7 +4,7 @@
 #include <windows.h>
 #include <codecvt>
 #include <Shlwapi.h>
-#include "..\Common\Strings.h"
+#include "../../../MiscHelpers/Common/Strings.h"
 
 // Note: we want to restart early before initlaizzing PHlib so we need some standalone functions 
 
@@ -32,7 +32,7 @@ int RunElevated(const std::wstring& Params, bool bGetCode)
 	return RunElevated(std::wstring(szPath), Params, bGetCode);
 }
 
-int RunElevated(const std::wstring& binaryPath, const std::wstring& Params, bool bGetCode)
+int RunElevated(const std::wstring& binaryPath, const std::wstring& Params, bool bGetCode, int TimeoutMs)
 {
 	// Launch itself as admin
 	SHELLEXECUTEINFO sei = { sizeof(sei) };
@@ -52,7 +52,7 @@ int RunElevated(const std::wstring& binaryPath, const std::wstring& Params, bool
 	{
 		if (bGetCode)
 		{
-			WaitForSingleObject(sei.hProcess, 10000);
+			WaitForSingleObject(sei.hProcess, TimeoutMs);
 			DWORD ExitCode = -4;
 			BOOL success = GetExitCodeProcess(sei.hProcess, &ExitCode);
 			CloseHandle(sei.hProcess);

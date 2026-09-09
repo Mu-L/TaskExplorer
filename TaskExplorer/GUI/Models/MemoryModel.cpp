@@ -1,12 +1,8 @@
 #include "stdafx.h"
+#include "../TaskStrings.h"
 #include "../TaskExplorer.h"
 #include "MemoryModel.h"
 #include "../../../MiscHelpers/Common/Common.h"
-#ifdef WIN32
-#include "../../API/Windows/WinMemory.h"
-#endif
-
-
 CMemoryModel::CMemoryModel(QObject *parent)
 :CTreeItemModel(parent)
 {
@@ -79,11 +75,6 @@ void CMemoryModel::UpdateMemory(const CMemoryPtr& pMemory, SMemoryNode* pNode, Q
 {
 	//if(Index.isValid()) // this is to slow, be more precise
 		//	emit dataChanged(createIndex(Index.row(), 0, pNode), createIndex(Index.row(), columnCount()-1, pNode));
-
-#ifdef WIN32
-	CWinMemory* pWinMemory = qobject_cast<CWinMemory*>(pMemory.data());
-#endif
-
 	int Col = 0;
 	bool State = false;
 	int Changed = 0;
@@ -93,9 +84,7 @@ void CMemoryModel::UpdateMemory(const CMemoryPtr& pMemory, SMemoryNode* pNode, Q
 	if (pMemory->IsMarkedForRemoval() && CTaskExplorer::UseListColor(CTaskExplorer::eToBeRemoved))		RowColor = CTaskExplorer::eToBeRemoved;
 	else if (pMemory->IsNewlyCreated() && CTaskExplorer::UseListColor(CTaskExplorer::eAdded))			RowColor = CTaskExplorer::eAdded;
 	else if (pMemory->IsExecutable() && CTaskExplorer::UseListColor(CTaskExplorer::eExecutable))		RowColor = CTaskExplorer::eExecutable;
-#ifdef WIN32
-	else if (pWinMemory->IsBitmapRegion() && CTaskExplorer::UseListColor(CTaskExplorer::eElevated))		RowColor = CTaskExplorer::eElevated;
-#endif
+	else if (pMemory->IsBitmapRegion() && CTaskExplorer::UseListColor(CTaskExplorer::eElevated))		RowColor = CTaskExplorer::eElevated;
 	else if (pMemory->IsPrivate() && CTaskExplorer::UseListColor(CTaskExplorer::eUser))					RowColor = CTaskExplorer::eUser;
 
 	if (pNode->iColor != RowColor) {
@@ -113,10 +102,10 @@ void CMemoryModel::UpdateMemory(const CMemoryPtr& pMemory, SMemoryNode* pNode, Q
 		switch(section)
 		{
 			case eBaseAddress:			Value = pMemory->GetBaseAddress(); break;
-			case eType:					Value = pMemory->GetTypeString(); break;
+			case eType:					Value = ::GetMemoryTypeString(pMemory); break;
 			case eSize:					Value = pMemory->GetRegionSize(); break;
 			case eProtection:			Value = pMemory->GetProtection(); break;
-			case eUse:					Value = pMemory->GetUseString(); break;
+			case eUse:					Value = ::GetMemoryUseString(pMemory); break;
 			case eTotalWS:				Value = pMemory->GetTotalWorkingSet(); break;
 			case ePrivateWS: 			Value = pMemory->GetPrivateWorkingSet(); break;
 			case eShareableWS: 			Value = pMemory->GetSharedWorkingSet(); break;
@@ -126,17 +115,23 @@ void CMemoryModel::UpdateMemory(const CMemoryPtr& pMemory, SMemoryNode* pNode, Q
 			case ePrivate:				Value = pMemory->GetPrivateSize(); break;
 
 			case eOriginalProtection:	Value = pMemory->GetAllocProtection(); break;
-#ifdef WIN32
 			// Signing level, shared original pages, the extended region type
 			// and memory priority are all Windows memory-manager concepts with
 			// no /proc counterpart; these columns stay empty on Linux.
-			case eSigningLevel:			Value = pWinMemory->GetSigningLevel(); break;
-			case eOriginalPages:		Value = pWinMemory->GetSharedOriginalPages(); break;
-			case eRegionType:			Value = pWinMemory->GetRegionTypeExStr();
-			case ePriority:				Value = pWinMemory->GetPriority();
-#else
-			case eRegionType:			Value = pMemory->GetTypeString(); break;
-#endif
+			case eSigningLevel:			Value = pMemory->GetSigningLevel(); break;
+			case eOriginalPages:		Value = pMemory->GetSharedOriginalPages(); break;
+			//
+			// The extended region type where the backend has one, the plain
+			// type otherwise. Windows distinguishes e.g. an image mapping from
+			// a private commit; /proc reports only the mapping kind.
+			//
+			case eRegionType:
+			{
+				const QString TypeEx = ::GetRegionTypeExString(pMemory);
+				Value = TypeEx.isEmpty() ? ::GetMemoryTypeString(pMemory) : TypeEx;
+				break;
+			}
+			case ePriority:				Value = pMemory->GetPriority(); break;
 		}
 
 		SMemoryNode::SValue& ColValue = pNode->Values[section];
@@ -163,12 +158,10 @@ void CMemoryModel::UpdateMemory(const CMemoryPtr& pMemory, SMemoryNode* pNode, Q
 				case ePrivate:		
 											ColValue.Formatted = FormatSize(Value.toULongLong()); break;	
 
-				case eProtection:			ColValue.Formatted = pMemory->GetProtectionString(); break;
-				case eOriginalProtection:	ColValue.Formatted = pMemory->GetAllocProtectionString(); break;
-#ifdef WIN32
-				case eSigningLevel:			ColValue.Formatted = pWinMemory->GetSigningLevelString(); break;
-				case eOriginalPages:		ColValue.Formatted = pWinMemory->GetOriginalPagesString(); break;
-#endif
+				case eProtection:			ColValue.Formatted = ::GetProtectionString(pMemory); break;
+				case eOriginalProtection:	ColValue.Formatted = ::GetAllocProtectionString(pMemory); break;
+				case eSigningLevel:			ColValue.Formatted = ::GetSigningLevelString(pMemory); break;
+				case eOriginalPages:		ColValue.Formatted = ::GetOriginalPagesString(pMemory); break;
 			}
 		}
 

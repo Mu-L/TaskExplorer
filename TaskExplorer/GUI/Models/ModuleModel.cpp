@@ -1,11 +1,8 @@
 #include "stdafx.h"
+#include "../TaskStrings.h"
 #include "../TaskExplorer.h"
 #include "ModuleModel.h"
 #include "../../../MiscHelpers/Common/Common.h"
-#ifdef WIN32
-#include "../../API/Windows/ProcessHacker.h"
-#include "../../API/Windows/WinModule.h"
-#endif
 #include "../../API/ProcessInfo.h"
 
 
@@ -95,9 +92,9 @@ QSet<quint64> CModuleModel::Sync(const QMap<quint64, CModulePtr>& ModuleList)
 		{
 			QPixmap Icon;
 			if (!pProcess)
-				Icon = pModule->GetFileIcon();
+				Icon = ::MakeIcon(pModule->GetFileIcon());
 			else if (CModulePtr pModule = pProcess->GetModuleInfo())
-				Icon = pModule->GetFileIcon();
+				Icon = ::MakeIcon(pModule->GetFileIcon());
 
 			if (!Icon.isNull()) {
 				Changed = 1; // set change for first column
@@ -110,11 +107,6 @@ QSet<quint64> CModuleModel::Sync(const QMap<quint64, CModulePtr>& ModuleList)
 			pNode->IsGray = !pModule->IsLoaded();
 			Changed = 2;
 		}
-
-#ifdef WIN32
-		CWinModule* pWinModule = qobject_cast<CWinModule*>(pModule.data());
-#endif
-
 		for(int section = 0; section < columnCount(); section++)
 		{
 			if (m_ColumnsOff.contains(section))
@@ -123,43 +115,34 @@ QSet<quint64> CModuleModel::Sync(const QMap<quint64, CModulePtr>& ModuleList)
 			QVariant Value;
 			switch(section)
 			{
-				case eModule:				if (!pProcess.isNull()) { Value = pProcess->GetName(); break; }
+				case eModule:				if (!pProcess.isNull()) { Value = ::LocalizeName(pProcess->GetName()); break; }
 				case eModuleFile:			Value = pModule->GetName(); break;
 				case eBaseAddress:			Value = pModule->GetBaseAddress(); break;
 				case eSize:					Value = pModule->GetSize(); break;
-#ifdef WIN32
 				case eDescription:			Value = pModule->GetFileInfo("Description"); break;
 
 				case eCompanyName:			Value = pModule->GetFileInfo("CompanyName"); break;
 				case eVersion:				Value = pModule->GetFileInfo("FileVersion"); break;
-#endif
 				case eFileName:				Value = pModule->GetFileName(); break;
-#ifdef WIN32
-				case eType:					Value = pWinModule->GetTypeString(); break;
-				case eLoadCount:			Value = pWinModule->GetLoadCount(); break;
-				case eVerificationStatus:	Value = pWinModule->GetVerifyResultString(); break;
-				case eVerifiedSigner:		Value = pWinModule->GetVerifySignerName(); break;
-				case eMitigations:			Value = pWinModule->GetMitigationsString(); break;
-				case eImageCoherency:		Value = pWinModule->GetImageCoherency(); break;
-				case eTimeStamp:			Value = pWinModule->GetTimeStamp(); break;
-				case eLoadTime:				Value = pWinModule->GetLoadTime(); break;
-				case eLoadReason:			Value = pWinModule->GetLoadReasonString(); break;
-#endif
+				case eType:					Value = ::GetModuleTypeString(pModule); break;
+				case eLoadCount:			Value = pModule->GetLoadCount(); break;
+				case eVerificationStatus:	Value = ::GetVerifyResultString(pModule); break;
+				case eVerifiedSigner:		Value = pModule->GetVerifySignerName(); break;
+				case eMitigations:			Value = ::GetMitigationsString(pModule); break;
+				case eImageCoherency:		Value = pModule->GetImageCoherency(); break;
+				case eTimeStamp:			Value = pModule->GetTimeStamp(); break;
+				case eLoadTime:				Value = pModule->GetLoadTime(); break;
+				case eLoadReason:			Value = ::GetLoadReasonString(pModule); break;
 				case eFileModifiedTime:		Value = pModule->GetModificationTime(); break;
 				case eFileSize:				Value = pModule->GetFileSize(); break;
-#ifdef WIN32
-				case eEntryPoint:			Value = pWinModule->GetEntryPoint(); break;
-				case eService:				Value = pWinModule->GetRefServices().join(", "); break;
-#endif
+				case eEntryPoint:			Value = pModule->GetEntryPoint(); break;
+				case eService:				Value = pModule->GetRefServices().join(", "); break;
 				case eParentBaseAddress:	Value = pModule->GetParentBaseAddress(); break;
-
-#ifdef WIN32
-				case eOriginalName:			Value = pWinModule->GetFileNameNt(); break;
-				case eArchitecture:			Value = pWinModule->GetImageMachine(); break;
-				case eEnclaveType:			Value = pWinModule->GetEnclaveType(); break;
-				case eEnclaveBaseAddress:	Value = pWinModule->GetEnclaveBaseAddress(); break;
-				case eEnclaveSize:			Value = pWinModule->GetEnclaveSize(); break;
-#endif
+				case eOriginalName:			Value = pModule->GetFileNameNt(); break;
+				case eArchitecture:			Value = pModule->GetImageMachine(); break;
+				case eEnclaveType:			Value = pModule->GetEnclaveType(); break;
+				case eEnclaveBaseAddress:	Value = pModule->GetEnclaveBaseAddress(); break;
+				case eEnclaveSize:			Value = pModule->GetEnclaveSize(); break;
 			}
 
 			SModuleNode::SValue& ColValue = pNode->Values[section];
@@ -172,29 +155,22 @@ QSet<quint64> CModuleModel::Sync(const QMap<quint64, CModulePtr>& ModuleList)
 
 				switch (section)
 				{
-					case eModule:			if (!pProcess.isNull()) ColValue.Formatted = tr("%1 (%2)").arg(pProcess.isNull() ? tr("Unknown process") : pProcess->GetName()).arg(theGUI->FormatID(pProcess->GetProcessId())); break;
+					case eModule:			if (!pProcess.isNull()) ColValue.Formatted = tr("%1 (%2)").arg(::LocalizeName(pProcess->GetName())).arg(theGUI->FormatID(pProcess->GetProcessId())); break;
 					case eBaseAddress:
 					case eParentBaseAddress:
-#ifdef WIN32
 					case eEntryPoint:
-#endif
 											ColValue.Formatted = FormatAddress(ColValue.Raw.toULongLong()); break;
 					case eSize:
 					case eFileSize:			
 											ColValue.Formatted = FormatSize(ColValue.Raw.toULongLong()); break;
-#ifdef WIN32
 					case eTimeStamp:
 					case eLoadTime:
-#endif
 					case eFileModifiedTime:	ColValue.Formatted = QDateTime::fromSecsSinceEpoch(ColValue.Raw.toULongLong()).toString("dd.MM.yyyy hh:mm:ss"); break;
-
-#ifdef WIN32
-					case eImageCoherency:	ColValue.Formatted = pWinModule->GetImageCoherencyString(); break;
-					case eArchitecture:		ColValue.Formatted = pWinModule->GetImageMachineString(); break;
-					case eEnclaveType:		ColValue.Formatted = pWinModule->GetEnclaveType() == 0 ? "" : pWinModule->GetEnclaveTypeString(); break;
-					case eEnclaveBaseAddress:ColValue.Formatted = pWinModule->GetEnclaveType() == 0 ? "" : FormatAddress(ColValue.Raw.toULongLong()); break;
-					case eEnclaveSize:		ColValue.Formatted = pWinModule->GetEnclaveType() == 0 ? "" : FormatSize(ColValue.Raw.toULongLong()); break;
-#endif
+					case eImageCoherency:	ColValue.Formatted = ::GetImageCoherencyString(pModule); break;
+					case eArchitecture:		ColValue.Formatted = ::GetImageMachineString(pModule); break;
+					case eEnclaveType:		ColValue.Formatted = pModule->GetEnclaveType() == 0 ? "" : ::GetEnclaveTypeString(pModule); break;
+					case eEnclaveBaseAddress:ColValue.Formatted = pModule->GetEnclaveType() == 0 ? "" : FormatAddress(ColValue.Raw.toULongLong()); break;
+					case eEnclaveSize:		ColValue.Formatted = pModule->GetEnclaveType() == 0 ? "" : FormatSize(ColValue.Raw.toULongLong()); break;
 				}
 			}
 
@@ -210,27 +186,21 @@ QSet<quint64> CModuleModel::Sync(const QMap<quint64, CModulePtr>& ModuleList)
 		}
 		if(State && Index.isValid())
 			emit dataChanged(createIndex(Index.row(), Col, pNode), createIndex(Index.row(), columnCount()-1, pNode));
-
-
-#ifdef WIN32
-		Sync(pWinModule, pNode->Path, Added, New, Old);
-#endif
+		Sync(pModule.data(), pNode->Path, Added, New, Old);
 	}
 
 	CTreeItemModel::Sync(New, Old);
 
 	return Added;
 }
-
-#ifdef WIN32
-void CModuleModel::Sync(const CWinModule* pModule, QList<QVariant> Path, QSet<quint64> &Added, QMap<QList<QVariant>, QList<STreeNode*> > &New, QHash<QVariant, STreeNode*> &Old)
+void CModuleModel::Sync(const CModuleInfo* pModule, QList<QVariant> Path, QSet<quint64> &Added, QMap<QList<QVariant>, QList<STreeNode*> > &New, QHash<QVariant, STreeNode*> &Old)
 {
 	auto ModPages = pModule->GetModifiedPages();
 	Path.append(pModule->GetBaseAddress());
 
-	for (QMap<quint64, CWinModule::SModPage>::const_iterator J = ModPages.constBegin(); J != ModPages.constEnd(); ++J)
+	for (QMap<quint64, CModuleInfo::SModPage>::const_iterator J = ModPages.constBegin(); J != ModPages.constEnd(); ++J)
 	{
-		const CWinModule::SModPage& ModPage = J.value();
+		const CModuleInfo::SModPage& ModPage = J.value();
 		quint64 ID = J.key();
 
 		QModelIndex Index;
@@ -296,8 +266,6 @@ void CModuleModel::Sync(const CWinModule* pModule, QList<QVariant> Path, QSet<qu
 			emit dataChanged(createIndex(Index.row(), Col, pNode), createIndex(Index.row(), columnCount()-1, pNode));
 	}
 }
-#endif
-
 CModulePtr CModuleModel::GetModule(const QModelIndex &index) const
 {
 	if (!index.isValid())
@@ -324,14 +292,11 @@ QVariant CModuleModel::headerData(int section, Qt::Orientation orientation, int 
 			case eModuleFile:			return tr("Name");
 			case eBaseAddress:			return tr("Base address");
 			case eSize:					return tr("Size");
-#ifdef WIN32
 			case eDescription:			return tr("Description");
 
 			case eCompanyName:			return tr("Company name");
 			case eVersion:				return tr("Version");
-#endif
 			case eFileName:				return tr("File name");
-#ifdef WIN32
 			case eType:					return tr("Type");
 			case eLoadCount:			return tr("Load count");
 			case eVerificationStatus:	return tr("Verification status");
@@ -341,22 +306,16 @@ QVariant CModuleModel::headerData(int section, Qt::Orientation orientation, int 
 			case eTimeStamp:			return tr("Time stamp");
 			case eLoadTime:				return tr("Load time");
 			case eLoadReason:			return tr("Load reason");
-#endif
 			case eFileModifiedTime:		return tr("File modified time");
 			case eFileSize:				return tr("File size");
-#ifdef WIN32
 			case eEntryPoint:			return tr("Entry point");
 			case eService:				return tr("Ref. services");
-#endif
 			case eParentBaseAddress:	return tr("Parent base address");
-
-#ifdef WIN32
 			case eOriginalName:			return tr("Original name");
 			case eArchitecture:			return tr("Architecture");
 			case eEnclaveType:			return tr("Enclave type");
 			case eEnclaveBaseAddress:	return tr("Enclave base address");
 			case eEnclaveSize:			return tr("Enclave size");
-#endif
 		}
 	}
     return QVariant();

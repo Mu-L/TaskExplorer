@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "../TaskExplorer.h"
+#include "../TaskStrings.h"
 #include "GDIModel.h"
 #include "../../../MiscHelpers/Common/Common.h"
 
@@ -12,12 +13,12 @@ CGDIModel::~CGDIModel()
 {
 }
 
-void CGDIModel::Sync(QMap<quint64, CWinGDIPtr> List)
+void CGDIModel::Sync(QMap<quint64, CGdiPtr> List)
 {
 	QList<SListNode*> New;
 	QHash<QVariant, SListNode*> Old = m_Map;
 
-	foreach (const CWinGDIPtr& pGDI, List)
+	foreach (const CGdiPtr& pGDI, List)
 	{
 		QVariant ID = (quint32)pGDI->GetHandleId();
 
@@ -61,7 +62,7 @@ void CGDIModel::Sync(QMap<quint64, CWinGDIPtr> List)
 			{
 				case eHandle:			Value = (quint32)pGDI->GetHandleId(); break;
 				case eProcess:			Value = pGDI->GetProcessId();  break;
-				case eType:				Value = pGDI->GetTypeString(); break;
+				case eType:				Value = ::GetGdiTypeString(pGDI); break;
 				case eObject:			Value = pGDI->GetObject(); break;
 				case eInformation:		Value = pGDI->GetInformations(); break;
 			}
@@ -76,7 +77,7 @@ void CGDIModel::Sync(QMap<quint64, CWinGDIPtr> List)
 
 				switch (section)
 				{
-					case eProcess:	ColValue.Formatted = tr("%1 (%2)").arg(pGDI->GetProcessName()).arg(theGUI->FormatID(pGDI->GetProcessId())); 
+					case eProcess:	ColValue.Formatted = tr("%1 (%2)").arg(::LocalizeName(pGDI->GetProcessName())).arg(theGUI->FormatID(pGDI->GetProcessId())); 
 					case eHandle:	ColValue.Formatted = "0x" + QString::number(Value.toUInt(), 16); break;
                     case eObject:	ColValue.Formatted = FormatAddress(Value.toULongLong()); break;
 				}
@@ -100,10 +101,10 @@ void CGDIModel::Sync(QMap<quint64, CWinGDIPtr> List)
 	CListItemModel::Sync(New, Old);
 }
 
-CWinGDIPtr CGDIModel::GetGDI(const QModelIndex &index) const
+CGdiPtr CGDIModel::GetGDI(const QModelIndex &index) const
 {
 	if (!index.isValid())
-        return CWinGDIPtr();
+        return CGdiPtr();
 
 	SGDINode* pNode = static_cast<SGDINode*>(index.internalPointer());
 	return pNode->pGDI;

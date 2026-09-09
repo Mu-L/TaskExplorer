@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../mischelpers_global.h"
+#include "../guihelpers_global.h"
 
 struct PixmapEntry {
 	QString name;
@@ -9,5 +9,5 @@ struct PixmapEntry {
 
 typedef QVector<PixmapEntry> PixmapEntryList;
 
-MISCHELPERS_EXPORT PixmapEntryList extractIcons(const QString &sourceFile, bool large);
-MISCHELPERS_EXPORT PixmapEntryList extractShellIcons(const QString &sourceFile, bool addOverlays);
+GUIHELPERS_EXPORT PixmapEntryList extractIcons(const QString &sourceFile, bool large);
+GUIHELPERS_EXPORT PixmapEntryList extractShellIcons(const QString &sourceFile, bool addOverlays);

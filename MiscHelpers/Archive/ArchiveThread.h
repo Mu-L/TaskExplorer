@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../mischelpers_global.h"
+#include "../corehelpers_global.h"
 
 #include "../Common/MT/ThreadLock.h"
 #include "Archive.h"
@@ -37,7 +37,7 @@ protected:
 	QStringList				m_Errors;
 };
 
-class MISCHELPERS_EXPORT CArchiveThread: public QThread
+class COREHELPERS_EXPORT CArchiveThread: public QThread
 {
 	Q_OBJECT
 
@@ -90,7 +90,7 @@ protected:
 
 #ifdef USE_7Z
 
-class MISCHELPERS_EXPORT C7zWorker: public CArchiveWorker, protected CArchive 
+class COREHELPERS_EXPORT C7zWorker: public CArchiveWorker, protected CArchive 
 {
 	Q_OBJECT
 
@@ -116,7 +116,7 @@ public slots:
 
 #endif
 
-class MISCHELPERS_EXPORT CRarWorker: public CArchiveWorker
+class COREHELPERS_EXPORT CRarWorker: public CArchiveWorker
 {
 	Q_OBJECT
 

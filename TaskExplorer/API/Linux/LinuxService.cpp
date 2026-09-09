@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "LinuxService.h"
+#include <QStandardPaths>
 #include "LinuxHelper.h"
 
 #include <QDBusConnection>
@@ -31,11 +32,33 @@ bool CLinuxService::InitStaticData(const QString& UnitName)
 	return true;
 }
 
-bool CLinuxService::FetchProperties(bool bFragmentPathOnly)
+bool CLinuxService::FetchProperties(bool bFragmentPathOnly, bool bForce)
 {
 	const QString Path = GetObjectPath();
 	if (Path.isEmpty())
 		return false;
+
+	//
+	// Not more than once every few seconds per unit, unless something about the
+	// unit has actually changed.
+	//
+	// Every call below is a blocking D-Bus round trip on the collector's thread,
+	// and doing two of them for every running unit on every refresh made this
+	// pass cost a measured median of 180 ms per second on a small WSL system -
+	// twenty-five times the whole process list, and the collector is blocked for
+	// all of it, so anything waiting on that thread waits too.
+	//
+	// The two properties this re-reads are MainPID and FreezerState. Neither
+	// changes without the unit's state changing with it in almost every case,
+	// and bForce covers exactly that case - so what is dropped here is the
+	// steady cost of asking hundreds of times for an answer that has not moved.
+	//
+	{
+		QReadLocker Locker(&m_Mutex);
+		const quint64 Now = GetCurTick();
+		if (!bForce && m_LastPropertyFetch != 0 && Now - m_LastPropertyFetch < c_PropertyMaxAge)
+			return false;
+	}
 
 	QDBusConnection Bus = QDBusConnection::systemBus();
 	if (!Bus.isConnected())
@@ -44,6 +67,18 @@ bool CLinuxService::FetchProperties(bool bFragmentPathOnly)
 	QDBusInterface Props("org.freedesktop.systemd1", Path, "org.freedesktop.DBus.Properties", Bus);
 	if (!Props.isValid())
 		return false;
+
+	//
+	// A bus that has stopped answering must not take the refresh with it. The Qt
+	// default is twenty-five seconds, which on the collector's thread means the
+	// whole machine stops updating for that long.
+	//
+	Props.setTimeout(2000);
+
+	{
+		QWriteLocker Locker(&m_Mutex);
+		m_LastPropertyFetch = GetCurTick();
+	}
 
 	bool bChanged = false;
 
@@ -145,7 +180,7 @@ bool CLinuxService::IsPaused() const
 	return m_FreezerState == "frozen" || m_FreezerState == "freezing";
 }
 
-QString CLinuxService::GetStateString() const
+QString CLinuxService::GetStateName() const
 {
 	QReadLocker Locker(&m_Mutex);
 	if (m_SubState.isEmpty())
@@ -164,41 +199,39 @@ static STATUS DBusErrorToStatus(const QString& Unit, const QString& Action, cons
 
 	if (Name == "org.freedesktop.DBus.Error.InteractiveAuthorizationRequired")
 	{
-		return ERR(QObject::tr("Not authorised to %1 %2, and no interactive authentication agent is available. "
-		                       "Run TaskExplorer from a desktop session with a polkit agent, or as root.")
-		           .arg(Action).arg(Unit));
+		return ERR(TE_AuthorisedNoInteractive, QVariantList() << Action << Unit);
 	}
 
 	if (Name == "org.freedesktop.DBus.Error.AccessDenied")
-		return ERR(QObject::tr("Not authorised to %1 %2.").arg(Action).arg(Unit));
+		return ERR(TE_NotAuthorised, QVariantList() << Action << Unit);
 
 	if (Name == "org.freedesktop.systemd1.NoSuchUnit")
-		return ERR(QObject::tr("The unit %1 no longer exists.").arg(Unit));
+		return ERR(TE_UnitNoLonger, QVariantList() << Unit);
 
 	if (Name == "org.freedesktop.systemd1.UnitMasked")
-		return ERR(QObject::tr("The unit %1 is masked and cannot be started.").arg(Unit));
+		return ERR(TE_UnitMaskedStarted, QVariantList() << Unit);
 
 	if (Name == "org.freedesktop.DBus.Error.UnknownMethod")
 	{
-		return ERR(QObject::tr("This operation is not supported by the running version of systemd."));
+		return ERR(TE_OperationUnsupportedRunning);
 	}
 
 	if (Name == "org.freedesktop.DBus.Error.NoReply" || Name == "org.freedesktop.DBus.Error.Timeout")
-		return ERR(QObject::tr("Timed out waiting for systemd to %1 %2.").arg(Action).arg(Unit));
+		return ERR(TE_TimedWaitingSystemd, QVariantList() << Action << Unit);
 
 	// Anything else: systemd's own message is usually descriptive.
 	const QString Message = Error.message();
 	if (!Message.isEmpty())
-		return ERR(QObject::tr("Failed to %1 %2: %3").arg(Action).arg(Unit).arg(Message));
+		return ERR(TE_UnitActionFailed, QVariantList() << Action << Unit << Message);
 
-	return ERR(QObject::tr("Failed to %1 %2: %3").arg(Action).arg(Unit).arg(Name));
+	return ERR(TE_UnitActionFailed, QVariantList() << Action << Unit << Name);
 }
 
 STATUS CLinuxService::CallManager(const QString& Method, const QVariantList& Arguments)
 {
 	QDBusConnection Bus = QDBusConnection::systemBus();
 	if (!Bus.isConnected())
-		return ERR(tr("Cannot connect to the system bus."));
+		return ERR(TE_ConnectSystemBus);
 
 	QDBusMessage Call = QDBusMessage::createMethodCall("org.freedesktop.systemd1",
 	                                                   "/org/freedesktop/systemd1",
@@ -261,6 +294,23 @@ STATUS CLinuxService::Continue()
 	return CallManager("ThawUnit", QVariantList() << GetUnitName());
 }
 
+STATUS CLinuxService::ViewLog() const
+{
+	//
+	// journalctl in a terminal rather than a built-in log pane: the journal has
+	// its own pager, filtering and follow mode, and reimplementing any of that
+	// would be strictly worse than the tool everyone already knows.
+	//
+	// -e starts at the end, which is the interesting part, and leaves the pager
+	// open so the window does not vanish.
+	//
+	const QString Journal = QStandardPaths::findExecutable("journalctl");
+	if (Journal.isEmpty())
+		return ERR(TE_JournalctlFoundSystem);
+
+	return LinuxRunInTerminal(Journal, QStringList() << "-u" << GetName() << "-e");
+}
+
 STATUS CLinuxService::Delete(bool bForce)
 {
 	//
@@ -275,7 +325,5 @@ STATUS CLinuxService::Delete(bool bForce)
 	// The two operations a user actually wants are offered by systemctl and
 	// are named here rather than guessed at.
 	//
-	return ERR(tr("Deleting a systemd unit is not supported: the unit file usually belongs to a distribution package. "
-	              "Use 'systemctl disable %1' to stop it starting at boot, or 'systemctl mask %1' to prevent it "
-	              "from being started at all.").arg(GetUnitName()));
+	return ERR(TE_DeletingSystemdUnit, QVariantList() << GetUnitName());
 }

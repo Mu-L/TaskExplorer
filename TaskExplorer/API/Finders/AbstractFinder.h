@@ -1,8 +1,9 @@
 #pragma once
+#include "../../taskcore_global.h"
 
 #include "../ProcessInfo.h"
 
-class CAbstractFinder : public QThread
+class TASKCORE_EXPORT CAbstractFinder : public QThread
 {
 	Q_OBJECT
 
@@ -31,9 +32,18 @@ public:
 signals:
 	void	Progress(float value, const QString& Info = QString());
 	void	Results(QList<QSharedPointer<QObject>> List);
-	void	Error(const QString& Error, int Code);
+	void	Error(const STATUS& Error);
 	void	Finished();
 
 protected:
 	bool	m_bCancel;
+
+	// the system being searched - a finder always scans the machine it was
+	// created for, and objects it produces have to carry that same owner
+	//
+	// Shared, not raw: a finder outlives a single refresh and hands the system
+	// to every object it creates - see CAbstractInfo::SetSystem, which requires
+	// one.
+	//
+	CSystemPtr	m_pSystem;
 };

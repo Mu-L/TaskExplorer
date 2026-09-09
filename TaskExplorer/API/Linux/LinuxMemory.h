@@ -35,14 +35,10 @@ public:
 	// is expensive and only worth doing when the memory view is populated.
 	virtual void			SetDetail(const ProcFs::SMapDetail& Detail);
 
-	virtual QString			GetTypeString() const;
-	virtual QString			GetProtectionString() const;
-	virtual QString			GetAllocProtectionString() const;
 	virtual bool			IsFree() const;
 	virtual bool			IsExecutable() const;
 	virtual bool			IsMapped() const;
 	virtual bool			IsPrivate() const;
-	virtual QString			GetUseString() const;
 
 	virtual STATUS			SetProtect(quint32 Protect);
 	virtual STATUS			DumpMemory(QIODevice* pFile);

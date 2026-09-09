@@ -15,6 +15,8 @@ public:
 
 	virtual bool Init();
 
+	void SetSystem(const CSystemPtr& pSystem)			{ m_pSystem = pSystem; }
+
 	virtual QString GetHostName(const QHostAddress& Address, QObject *receiver = NULL, const char *member = NULL);
 
 	virtual QMultiMap<QString, CDnsCacheEntryPtr> GetEntryList() const { QReadLocker Locker(&m_Mutex);  return m_DnsCache; }
@@ -34,6 +36,8 @@ private slots:
 
 protected:
 	friend class CDnsResolverJob;
+
+	CSystemPtr m_pSystem;
 
 	virtual void run();
 

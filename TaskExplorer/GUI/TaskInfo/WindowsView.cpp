@@ -1,18 +1,13 @@
 #include "stdafx.h"
 #include "../TaskExplorer.h"
+#include "../TaskStrings.h"
 #include "WindowsView.h"
 #include "../../../MiscHelpers/Common/Common.h"
 #include "../Models/WindowModel.h"
 #include "../../../MiscHelpers/Common/SortFilterProxyModel.h"
 #include "../../../MiscHelpers/Common/Finder.h"
-#ifdef WIN32
-#include "../../API/Windows/ProcessHacker.h"
-#include "../../API/Windows/WinWnd.h"
 #undef IsMinimized
 #undef IsMaximized
-#endif
-
-
 CWindowsView::CWindowsView(QWidget *parent)
 	:CPanelView(parent)
 {
@@ -42,10 +37,8 @@ CWindowsView::CWindowsView(QWidget *parent)
 	m_pWindowList->setModel(m_pSortProxy);
 
 	m_pWindowList->setSelectionMode(QAbstractItemView::ExtendedSelection);
-#ifdef WIN32
 	QStyle* pStyle = QStyleFactory::create("windows");
 	m_pWindowList->setStyle(pStyle);
-#endif
 	m_pWindowList->setSortingEnabled(true);
 
 	m_pWindowList->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -298,7 +291,17 @@ void CWindowsView::OnWindowAction()
 			return;
 	}
 
-	// QList<STATUS> Errors;
+	//
+	// Collected and shown, not discarded.
+	//
+	// These were left commented out, so a window action that failed did nothing
+	// and said nothing: an hour went into finding out that every action was
+	// being refused by the server for want of one line in its key file, which
+	// the refusal says in as many words - to nobody. A menu item that quietly
+	// does nothing is the worst of both.
+	//
+	QList<STATUS> Errors;
+
 	foreach(const QModelIndex& Index, m_pWindowList->selectedRows())
 	{
 		QModelIndex ModelIndex = m_pSortProxy->mapToSource(Index);
@@ -330,12 +333,12 @@ void CWindowsView::OnWindowAction()
 			else if (sender() == m_pOnTop)
 				Status = pWindow->SetAlwaysOnTop(m_pOnTop->isChecked());
 
-			//if(Status.IsError())
-			//	Errors.append(Status);
+			if (Status.IsError())
+				Errors.append(Status);
 		}
 	}
 
-	//CTaskExplorer::CheckErrors(Errors);
+	CTaskExplorer::CheckErrors(Errors);
 }
 
 QString QRect2Str(const QRect& rect)
@@ -354,16 +357,14 @@ void CWindowsView::OnItemSelected(const QModelIndex &current)
 	QTreeWidget* pDetails = (QTreeWidget*)m_pWindowDetails->GetView();
 	// Note: we don't auto refresh this infos
 	pDetails->clear();
-
-#ifdef WIN32
-	CWinWnd::SWndInfo WndInfo = pWindow.staticCast<CWinWnd>()->GetWndInfo();
+	CWndInfo::SWndInfo WndInfo = pWindow->GetWndInfo();
 
 	QTreeWidgetItem* pGeneral = new QTreeWidgetItem(QStringList(tr("General")));
 	pDetails->addTopLevelItem(pGeneral);
 
 	QTreeWidgetEx::AddSubItem(pGeneral, tr("AppID"), WndInfo.AppID);
 	QTreeWidgetEx::AddSubItem(pGeneral, tr("Text"), WndInfo.Text);
-	QTreeWidgetEx::AddSubItem(pGeneral, tr("Thread"), WndInfo.Thread);
+	QTreeWidgetEx::AddSubItem(pGeneral, tr("Thread"), ::GetWndThreadString(WndInfo));
 	QTreeWidgetEx::AddSubItem(pGeneral, tr("Rectangle"), QRect2Str(WndInfo.Rect));
 	QTreeWidgetEx::AddSubItem(pGeneral, tr("Normal rectangle"), QRect2Str(WndInfo.NormalRect));
 	QTreeWidgetEx::AddSubItem(pGeneral, tr("Client rectangle"), QRect2Str(WndInfo.ClientRect));
@@ -403,5 +404,4 @@ void CWindowsView::OnItemSelected(const QModelIndex &current)
 	// ToDo:
 
 	pDetails->expandAll();
-#endif
 }

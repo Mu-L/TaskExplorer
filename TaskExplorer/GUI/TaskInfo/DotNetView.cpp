@@ -2,13 +2,7 @@
 #include "DotNetView.h"
 #include "../../../MiscHelpers/Common/Finder.h"
 #include "../TaskExplorer.h"
-#include "../../API/Windows/WindowsAPI.h"
-#include "../../API/Windows/ProcessHacker/AssemblyEnum.h"
-#include "../../API/Windows/ProcessHacker.h"
-#include "../../API/Windows/ProcessHacker/DotNet.h"
-#include "../../API/Windows/ProcessHacker/appsup.h"	
-
-
+#include "../DesktopActions.h"
 CDotNetView::CDotNetView(QWidget *parent)
 	:CPanelView(parent)
 {
@@ -79,7 +73,7 @@ CDotNetView::CDotNetView(QWidget *parent)
 	m_pSplitter->addWidget(m_pPerfStats);
 	//
 
-	InitDotNetStatTree(((QTreeWidgetEx*)m_pPerfStats->GetView()), m_PerfCounters);
+	CreatePerfTree();
 
 
 	//m_pMenu = new QMenu();
@@ -149,13 +143,17 @@ void CDotNetView::OnRefresh()
 {
 	QObject::disconnect(this, SLOT(OnAssemblies(const CAssemblyListPtr&)));
 
-	if (!m_pCurProcess || !m_pCurProcess.staticCast<CWinProcess>().data()->IsNetProcess()) {
+	if (!m_pCurProcess || !m_pCurProcess->IsNetProcess()) {
 		m_Assemblies.clear();
 		return;
 	}
 
-	CAssemblyEnum* pEnum = new CAssemblyEnum(m_pCurProcess->GetProcessId(), this);
-	
+	CAssemblyEnumerator* pEnum = m_pCurProcess->GetAssemblyEnumerator(this);
+	if (!pEnum) {
+		m_Assemblies.clear();
+		return;
+	}
+
 	QObject::connect(pEnum, SIGNAL(Assemblies(const CAssemblyListPtr&)), this, SLOT(OnAssemblies(const CAssemblyListPtr&)));
 	QObject::connect(pEnum, SIGNAL(Finished()), pEnum, SLOT(deleteLater()));
 
@@ -196,7 +194,7 @@ void CDotNetView::Refresh()
 
 	if (m_pSplitter->sizes()[1] > 0)
 	{
-		UpdateDotNetStatTree(m_pCurProcess.staticCast<CWinProcess>().data(), m_PerfCounters);
+		UpdatePerfTree();
 	}
 }
 
@@ -219,10 +217,6 @@ void CDotNetView::OnDoubleClicked()
 
 	if (!FileName.isEmpty())
 	{
-#ifdef WIN32
-		PPH_STRING phFileName = CastQString(FileName);
-		PhShellExecuteUserString(NULL, (PWSTR)L"FileBrowseExecutable", phFileName->Buffer, FALSE, (PWSTR)L"Make sure the Explorer executable file is present.");
-		PhDereferenceObject(phFileName);
-#endif
+		::ExploreFile(theSystem.data(), FileName);
 	}
 }

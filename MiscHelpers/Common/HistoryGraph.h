@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../mischelpers_global.h"
+#include "../guihelpers_global.h"
 
-class MISCHELPERS_EXPORT CHistoryGraph: public QObject
+class GUIHELPERS_EXPORT CHistoryGraph: public QObject
 {
 public:
 	CHistoryGraph(bool bSimpleMode = false, QColor BkG = Qt::white, QObject* parent = NULL) : QObject(parent) {

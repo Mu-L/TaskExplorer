@@ -71,9 +71,9 @@ __inline uint qHash( const QVariant & var )
     return -1;
 }
 
-#include "../mischelpers_global.h"
+#include "../guihelpers_global.h"
 
-class MISCHELPERS_EXPORT QAbstractItemModelEx : public QAbstractItemModel
+class GUIHELPERS_EXPORT QAbstractItemModelEx : public QAbstractItemModel
 {
     Q_OBJECT
 
@@ -99,7 +99,7 @@ protected:
 	QSet<int>				m_ColumnsOff;
 };
 
-class MISCHELPERS_EXPORT QTreeViewEx : public QTreeView
+class GUIHELPERS_EXPORT QTreeViewEx : public QTreeView
 {
 	Q_OBJECT
 public:
@@ -331,7 +331,7 @@ protected:
 	bool				m_SelectionPending;
 };
 
-class MISCHELPERS_EXPORT QStyledItemDelegateMaxH : public QStyledItemDelegate
+class GUIHELPERS_EXPORT QStyledItemDelegateMaxH : public QStyledItemDelegate
 {
     Q_OBJECT
 public:
@@ -348,7 +348,7 @@ public:
 	int m_MaxHeight;
 };
 
-class MISCHELPERS_EXPORT CStyledGridItemDelegate : public QStyledItemDelegateMaxH
+class GUIHELPERS_EXPORT CStyledGridItemDelegate : public QStyledItemDelegateMaxH
 {
 public:
 	explicit CStyledGridItemDelegate(int MaxHeight, QObject * parent = 0) : CStyledGridItemDelegate(MaxHeight, false, parent) { }

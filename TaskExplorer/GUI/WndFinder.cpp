@@ -1,9 +1,6 @@
 #include "stdafx.h"
 #include "TaskExplorer.h"
 
-#include "../API/Windows/ProcessHacker.h"
-
-extern PHAPPAPI HWND PhMainWndHandle;
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // WinSpy based window finder
@@ -91,7 +88,7 @@ UINT CALLBACK FindProc(HWND hwndTool, UINT uCode, HWND hwnd)
 	//	if (rc.bottom - rc.top <= DS(150)) 
 	//		SetWindowPos(hwndTool, NULL, 0, 0, rc.right - rc.left, rc.bottom - rc.top + DS(70), SWP_SHOWWINDOW | SWP_NOMOVE);
 	//	
-	//	CBoxedProcessPtr pProcess = theAPI->GetProcessById(pid);
+	//	CBoxedProcessPtr pProcess = theSystem->GetProcessById(pid);
 	//	if (!pProcess.isNull()) 
 	//	{
 	//		std::wstring result = CTaskExplorer::tr("The selected window is running as part of program %1 in sandbox %2").arg(pProcess->GetProcessName()).arg(pProcess->GetBoxName()).toStdWString();
@@ -208,7 +205,7 @@ DWORD WINAPI FinderThreadFunc(LPVOID lpParam)
 	//               child windows with the same parent window.
 
 	SFinderWndData WndData;
-	WndData.Scale = GetMonitorScaling(PhMainWndHandle);
+	WndData.Scale = GetMonitorScaling((HWND)theGUI->winId());
 
 	HWND hwnd = CreateWindowW(mainWindowClass.lpszClassName, CTaskExplorer::tr("TaskExplorer - Window Finder").toStdWString().c_str()
 		, WS_SYSMENU | WS_CAPTION | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, DS(275), DS(135), NULL, 0, hInstance, &WndData);

@@ -1,11 +1,8 @@
 #include "stdafx.h"
 #include "../TaskExplorer.h"
+#include "../TaskStrings.h"
 #include "HandleModel.h"
 #include "../../../MiscHelpers/Common/Common.h"
-#ifdef WIN32
-#include "../../API/Windows/WinHandle.h"
-#endif
-
 CHandleModel::CHandleModel(QObject *parent)
 :CListItemModel(parent)
 {
@@ -42,11 +39,6 @@ void CHandleModel::Sync(QMap<quint64, CHandlePtr> HandleList)
 			I.value() = NULL;
 			Row = GetRow(pNode);
 		}
-
-#ifdef WIN32
-		CWinHandle* pWinHandle = qobject_cast<CWinHandle*>(pHandle.data());
-#endif
-
 		int Col = 0;
 		bool State = false;
 		int Changed = 0;
@@ -59,7 +51,7 @@ void CHandleModel::Sync(QMap<quint64, CHandlePtr> HandleList)
 			CModulePtr pModule = pProcess ? pProcess->GetModuleInfo() : CModulePtr();
 			if (pModule)
 			{
-				QPixmap Icon = pModule->GetFileIcon();
+				QPixmap Icon = ::MakeIcon(pModule->GetFileIcon());
 				if (!Icon.isNull()) {
 					Changed = 1; // set change for first column
 					pNode->Icon = Icon;
@@ -70,11 +62,8 @@ void CHandleModel::Sync(QMap<quint64, CHandlePtr> HandleList)
 		int RowColor = CTaskExplorer::eNone;
 		if (pHandle->IsMarkedForRemoval() && CTaskExplorer::UseListColor(CTaskExplorer::eToBeRemoved))		RowColor = CTaskExplorer::eToBeRemoved;
 		else if (pHandle->IsNewlyCreated() && CTaskExplorer::UseListColor(CTaskExplorer::eAdded))			RowColor = CTaskExplorer::eAdded;
-#ifdef WIN32
-		else if (pWinHandle->IsInherited() && CTaskExplorer::UseListColor(CTaskExplorer::eIsInherited))		RowColor = CTaskExplorer::eIsInherited;
-		else if (pWinHandle->IsProtected() && CTaskExplorer::UseListColor(CTaskExplorer::eIsProtected))		RowColor = CTaskExplorer::eIsProtected;
-#endif
-
+		else if (pHandle->IsInherited() && CTaskExplorer::UseListColor(CTaskExplorer::eIsInherited))		RowColor = CTaskExplorer::eIsInherited;
+		else if (pHandle->IsProtected() && CTaskExplorer::UseListColor(CTaskExplorer::eIsProtected))		RowColor = CTaskExplorer::eIsProtected;
 		if (pNode->iColor != RowColor) {
 			pNode->iColor = RowColor;
 			pNode->Color = CTaskExplorer::GetListColor(RowColor);
@@ -96,16 +85,14 @@ void CHandleModel::Sync(QMap<quint64, CHandlePtr> HandleList)
 				case ePosition:			Value = pHandle->GetPosition(); break;	
 				case eSize:				Value = pHandle->GetSize(); break;	
 				case eGrantedAccess:	Value = (quint32)pHandle->GetGrantedAccess(); break;
-#ifdef WIN32
-				case eFileShareAccess:	Value = (quint32)pWinHandle->GetFileFlags(); break;	
-				case eAttributes:		Value = (quint32)pWinHandle->GetAttributes(); break;	
-				case eObjectAddress:	Value = pWinHandle->GetObjectAddress(); break;	
-				case eOriginalName:		Value = pWinHandle->GetOriginalName(); break;	
-				//case eHandleCount:		Value = pWinHandle->GetHandleCount(); break; // PhGetHandleInformation
-				//case eRefCount:			Value = pWinHandle->GetRefCount(); break; // PhGetHandleInformation
-				//case ePagedSize:		Value = pWinHandle->GetPagedSize(); break; // PhGetHandleInformation
-				//case eNonPagedSize:		Value = pWinHandle->GetNonpagedSize(); break; // PhGetHandleInformation
-#endif
+				case eFileShareAccess:	Value = (quint32)pHandle->GetFileFlags(); break;	
+				case eAttributes:		Value = (quint32)pHandle->GetAttributes(); break;	
+				case eObjectAddress:	Value = pHandle->GetObjectAddress(); break;	
+				case eOriginalName:		Value = pHandle->GetOriginalName(); break;	
+				//case eHandleCount:		Value = pHandle->GetHandleCount(); break; // PhGetHandleInformation
+				//case eRefCount:			Value = pHandle->GetRefCount(); break; // PhGetHandleInformation
+				//case ePagedSize:		Value = pHandle->GetPagedSize(); break; // PhGetHandleInformation
+				//case eNonPagedSize:		Value = pHandle->GetNonpagedSize(); break; // PhGetHandleInformation
 			}
 
 			SHandleNode::SValue& ColValue = pNode->Values[section];
@@ -121,15 +108,13 @@ void CHandleModel::Sync(QMap<quint64, CHandlePtr> HandleList)
 
 				switch (section)
 				{
-					case eProcess:			ColValue.Formatted = tr("%1 (%2)").arg(pProcess.isNull() ? tr("Unknown process") : pProcess->GetName()).arg(theGUI->FormatID(pHandle->GetProcessId())); break;	
+					case eProcess:			ColValue.Formatted = tr("%1 (%2)").arg(::LocalizeName(pProcess.isNull() ? QString() : pProcess->GetName())).arg(theGUI->FormatID(pHandle->GetProcessId())); break;	
 					case eHandle:			ColValue.Formatted = "0x" + QString::number(pHandle->GetHandleId(), 16); break;
-					case eType:				ColValue.Formatted = pHandle->GetTypeString(); break;
-					case eGrantedAccess:	ColValue.Formatted = pHandle->GetGrantedAccessString(); break;
-#ifdef WIN32
-					case eAttributes:		ColValue.Formatted = pWinHandle->GetAttributesString(); break;	
-					case eFileShareAccess:	ColValue.Formatted = pWinHandle->GetFileShareAccessString(); break;	
-					case eObjectAddress:	ColValue.Formatted = FormatAddress(pWinHandle->GetObjectAddress()); break;	
-#endif
+					case eType:				ColValue.Formatted = ::GetHandleTypeString(pHandle); break;
+					case eGrantedAccess:	ColValue.Formatted = ::GetGrantedAccessString(pHandle); break;
+					case eAttributes:		ColValue.Formatted = ::GetHandleAttributesString(pHandle); break;	
+					case eFileShareAccess:	ColValue.Formatted = ::GetFileShareAccessString(pHandle); break;	
+					case eObjectAddress:	ColValue.Formatted = FormatAddress(pHandle->GetObjectAddress()); break;	
 					case eSize:
 					case ePosition:			if(Value.type() != QVariant::String) ColValue.Formatted = FormatNumberEx(Value.toULongLong(), bClearZeros);
 				}
@@ -180,7 +165,6 @@ QVariant CHandleModel::headerData(int section, Qt::Orientation orientation, int 
 			case ePosition:				return tr("Position");
 			case eSize:					return tr("Size");
 			case eGrantedAccess:		return tr("Granted access");
-#ifdef WIN32
 			case eFileShareAccess:		return tr("File share access");
 			case eAttributes:			return tr("Attributes");
 			case eObjectAddress:		return tr("Object address");
@@ -189,7 +173,6 @@ QVariant CHandleModel::headerData(int section, Qt::Orientation orientation, int 
 			//case eRefCount:				return tr("Reference count");
 			//case ePagedSize:			return tr("Paged size");
 			//case eNonPagedSize:			return tr("Non-paged size");
-#endif
 		}
 	}
     return QVariant();

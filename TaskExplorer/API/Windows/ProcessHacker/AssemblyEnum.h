@@ -1,7 +1,8 @@
 #pragma once
+#include "../../../taskcore_global.h"
 #include "../../AssemblyList.h"
 
-class CAssemblyEnum : public QThread
+class TASKCORE_EXPORT CAssemblyEnum : public CAssemblyEnumerator
 {
 	Q_OBJECT
 
@@ -9,11 +10,6 @@ class CAssemblyEnum : public QThread
 public:
 	CAssemblyEnum(quint64 ProcessId, QObject *parent = nullptr);
 	virtual ~CAssemblyEnum();
-
-
-signals:
-	void				Assemblies(const CAssemblyListPtr& List);
-	void				Finished();
 
 protected:
 	void				run();

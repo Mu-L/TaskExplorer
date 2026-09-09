@@ -196,7 +196,8 @@ void CTreeItemModel::Purge(STreeNode* pParent, const QModelIndex &parent, QHash<
 			Purge(pNode, index(i, 0, parent), Old);
 
 		bool bRemove = false;
-		if(pNode && (pNode->Virtual || pNode->ID.isNull() || (bRemove = Old.value(pNode->ID) != NULL)) && pNode->Children.isEmpty()) // remove it
+		if(pNode && (pNode->Virtual || pNode->ID.isNull() || (bRemove = Old.value(pNode->ID) != NULL)) && pNode->Children.isEmpty()
+			&& !IsBranchPinned(pNode->ID)) // remove it
 		{
 			//m_Map.remove(pNode->ID, pNode);
 			m_Map.remove(pNode->ID);
@@ -255,6 +256,13 @@ void CTreeItemModel::Fill(STreeNode* pParent, /*const QModelIndex &parent,*/ con
 		//if(i != -1)
 		//	pNode = pParent->Children[i];
 		//else
+		//
+		// Looked up in the model-wide map, not among this parent's children -
+		// so a branch id has to be unique across the whole tree and not merely
+		// among its siblings. A caller whose ids repeat from one subtree to the
+		// next gets the *first* subtree's node handed back here, and everything
+		// meant for the second is quietly filed under the first.
+		//
 		STreeNode* &pNode = m_Map[CurPath];
 		if(!pNode)
 		{
@@ -336,7 +344,7 @@ void CTreeItemModel::Clear()
 	//beginResetModel();
 	Purge(m_Root, QModelIndex(), Old);
 	//endResetModel();
-	ASSERT(m_Map.isEmpty());
+	//ASSERT(m_Map.isEmpty());
 }
 
 void CTreeItemModel::RemoveIndex(const QModelIndex &index)

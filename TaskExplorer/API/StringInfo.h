@@ -1,10 +1,11 @@
 #pragma once
+#include "../taskcore_global.h"
 #include <qobject.h>
 #include "AbstractInfo.h"
-#include "../../MiscHelpers/Common/FlexError.h"
+#include "../../MiscHelpers/Common/Status.h"
 #include "ProcessInfo.h"
 
-class CStringInfo : public QObject
+class TASKCORE_EXPORT CStringInfo : public QObject
 {
 	Q_OBJECT
 

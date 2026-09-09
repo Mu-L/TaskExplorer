@@ -70,6 +70,7 @@ protected:
 	QMap<quint64, CThreadPtr> m_Threads;
 
 	quint64					m_CurStackTraceJob;
+	CSystemAPI*				m_pStackTraceSystem;	// the system the pending job was issued to
 
 private:
 	QVBoxLayout*			m_pMainLayout;
@@ -88,8 +89,6 @@ private:
 	CStackView*				m_pStackView;
 
 	//QMenu*					m_pMenu;
-
-#ifdef WIN32
 	QMenu*					m_pMiscMenu;
 	QAction*				m_pCancelIO;
 	//QAction*				m_pAnalyze;
@@ -98,7 +97,6 @@ private:
 	QAction*				m_pToken;
 	QAction*				m_pToken2;
 	QAction*				m_pPermissions;
-#endif
 	//QAction*				m_pWindows;
 
 

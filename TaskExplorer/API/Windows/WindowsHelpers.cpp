@@ -81,7 +81,9 @@ QString GetPathFromCmd(QString CommandLine, quint32 ProcessID, QString FileName/
 	if (!PathIsRelativeW(filePath.toStdWString().c_str()))
 		return filePath;
 
-	CProcessPtr pParent = theAPI->GetProcessByID(ParentID);
+	// free helper resolving a path against the local filesystem; there is no
+	// object here to ask, and a remote path would not be resolvable anyway
+	CProcessPtr pParent = theSystem->GetProcessByID(ParentID);
 	if (pParent.isNull())
 		return QString();
 

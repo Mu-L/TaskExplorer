@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "DNSEntry.h"
 
+
 CDnsLogEntry::CDnsLogEntry(const QString& HostName, const QList<QHostAddress>& Addresses)
 {
 	m_HostName = HostName;
@@ -40,48 +41,6 @@ CDnsCacheEntry::CDnsCacheEntry(const QString& HostName, quint16 Type, const QHos
 	m_TTL = 0;
 
 	m_QueryCounter = 0;
-}
-
-#ifndef DNS_TYPE_A
-#define DNS_TYPE_A          0x0001      //  1
-#define DNS_TYPE_AAAA       0x001c      //  28
-#define DNS_TYPE_PTR        0x000c      //  12
-#define DNS_TYPE_CNAME      0x0005      //  5
-#define DNS_TYPE_SRV        0x0021      //  33
-#define DNS_TYPE_MX         0x000f      //  15
-#endif
-
-//
-// Not part of the set the Windows cache reader produces, but systemd-resolved
-// caches them and the Linux reader passes them on. Spelled with the same names
-// dnsapi.h uses, so a Windows build that already has them keeps its own.
-//
-#ifndef DNS_TYPE_NS
-#define DNS_TYPE_NS         0x0002      //  2
-#endif
-#ifndef DNS_TYPE_TEXT
-#define DNS_TYPE_TEXT       0x0010      //  16
-#endif
-
-QString CDnsCacheEntry::GetTypeString() const
-{
-	return GetTypeString(GetType());
-}
-
-QString CDnsCacheEntry::GetTypeString(quint16 Type)
-{
-	switch (Type)
-	{
-		case DNS_TYPE_A:	return "A";
-		case DNS_TYPE_AAAA:	return "AAAA";
-		case DNS_TYPE_PTR:	return "PTR";
-		case DNS_TYPE_CNAME:return "CNAME";
-		case DNS_TYPE_SRV:	return "SRV";
-		case DNS_TYPE_MX:	return "MX";
-		case DNS_TYPE_NS:	return "NS";
-		case DNS_TYPE_TEXT:	return "TXT";
-		default:			return QString("UNKNOWN (%1)").arg(Type);
-	}
 }
 
 void CDnsCacheEntry::SetTTL(quint64 TTL)

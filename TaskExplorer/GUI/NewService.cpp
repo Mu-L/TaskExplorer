@@ -1,9 +1,8 @@
 #include "stdafx.h"
 #include "NewService.h"
 #include "../../MiscHelpers/Common/Settings.h"
-#ifdef WIN32
-#include "../API/Windows/ProcessHacker/PhSvc.h"
-#endif
+#include "../API/SystemAPI.h"
+#include "TaskExplorer.h"
 
 
 CNewService::CNewService(QWidget *parent)
@@ -13,14 +12,12 @@ CNewService::CNewService(QWidget *parent)
 	ui.setupUi(centralWidget);
 	this->setCentralWidget(centralWidget);
 
-#ifdef WIN32
-	for (int i = 0; i < 10; i++)
-		ui.svcType->addItem((char*)PhpServiceTypePairs[i].Key, (quint64)PhpServiceTypePairs[i].Value);
-	for (int i = 0; i < 5; i++)
-		ui.startType->addItem((char*)PhpServiceStartTypePairs[i].Key, (quint64)PhpServiceStartTypePairs[i].Value);
-	for (int i = 0; i < 4; i++)
-		ui.errorControl->addItem((char*)PhpServiceErrorControlPairs[i].Key, (quint64)PhpServiceErrorControlPairs[i].Value);
-#endif
+	foreach(const CServiceInfo::SLabeledValue& Type, theSystem->GetNewServiceTypes())
+		ui.svcType->addItem(Type.first, Type.second);
+	foreach(const CServiceInfo::SLabeledValue& Type, theSystem->GetNewServiceStartTypes())
+		ui.startType->addItem(Type.first, Type.second);
+	foreach(const CServiceInfo::SLabeledValue& Type, theSystem->GetNewServiceErrorControlTypes())
+		ui.errorControl->addItem(Type.first, Type.second);
 
 	ui.svcType->setCurrentIndex(2); // "Own Process"
 	ui.startType->setCurrentIndex(4); // "Demand Start"
@@ -45,46 +42,21 @@ void CNewService::closeEvent(QCloseEvent *e)
 
 void CNewService::accept()
 {
-	std::wstring serviceName = ui.scvName->text().toStdWString();
-	std::wstring serviceDisplayName = ui.displayName->text().toStdWString();
-	std::wstring serviceBinaryPath = ui.binaryPath->text().replace("/","\\").toStdWString();
 
-	quint64 serviceType = ui.svcType->currentData().toInt();
-	quint64 serviceStartType = ui.startType->currentData().toInt();
-	quint64 serviceErrorControl = ui.errorControl->currentData().toInt();
+	quint32 serviceType = ui.svcType->currentData().toInt();
+	quint32 serviceStartType = ui.startType->currentData().toInt();
+	quint32 serviceErrorControl = ui.errorControl->currentData().toInt();
 
-#ifdef WIN32
-	NTSTATUS status = STATUS_SUCCESS;
-	BOOLEAN success = FALSE;
-	SC_HANDLE scManagerHandle;
-	SC_HANDLE serviceHandle;
+	STATUS Status = theSystem->CreateNewService(ui.scvName->text(), ui.displayName->text(),
+		ui.binaryPath->text().replace("/", "\\"), serviceType, serviceStartType, serviceErrorControl);
 
-	ULONG win32Result = ERROR_SUCCESS;
-	if (scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE))
-    {
-		serviceHandle = CreateService(scManagerHandle, serviceName.c_str(), serviceDisplayName.c_str(), SERVICE_CHANGE_CONFIG,
-			serviceType, serviceStartType, serviceErrorControl, serviceBinaryPath.c_str(), NULL, NULL, NULL, NULL, L"");
-
-        if(!serviceHandle)
-        {
-            win32Result = GetLastError();
-        }
-
-        CloseServiceHandle(scManagerHandle);
-    }
-    else
-    {
-        win32Result = GetLastError();
-    }
-
-	if(win32Result != ERROR_SUCCESS)
-		QMessageBox::warning(NULL, "TaskExplorer", tr("Failed to create service, error: %1").arg(win32Result));
+	if (Status.IsError())
+		QMessageBox::warning(NULL, "TaskExplorer", tr("Failed to create service, error: %1").arg(CTaskExplorer::FormatError(Status)));
 	else
 	{
-		QMessageBox::information(NULL, "TaskExplorer", tr("Successfully creted service: %1").arg(ui.scvName->text()));
+		QMessageBox::information(NULL, "TaskExplorer", tr("Successfully created service: %1").arg(ui.scvName->text()));
 		this->close();
 	}
-#endif
 }
 
 void CNewService::reject()

@@ -25,8 +25,8 @@
 #include "AppUtil.h"
 
 // Variant support for pipe server mode
-#include "../TaskExplorer/Common/Buffer.h"
-#include "../TaskExplorer/Common/Variant.h"
+#include "../MiscHelpers/Common/Buffer.h"
+#include "../MiscHelpers/Common/Variant.h"
 
 
 

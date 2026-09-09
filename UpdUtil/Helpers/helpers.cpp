@@ -89,27 +89,14 @@ std::wstring hexStr(unsigned char* data, int len)
 }
 
 
-std::wstring MkLower(std::wstring Str)
-{
-	for(std::wstring::size_type i = 0; i < Str.size(); i++)
-	{
-		std::wstring::value_type &Char = Str.at(i);
-		if((Char >= L'A') && (Char <= L'Z'))
-			Char += 32;
-	}
-	return Str;
-}
-
-std::wstring MkUpper(std::wstring Str)
-{
-	for(std::wstring::size_type i = 0; i < Str.size(); i++)
-	{
-		std::wstring::value_type &Char = Str.at(i);
-		if((Char >= L'a') && (Char <= L'z'))
-			Char -= 32;
-	}
-	return Str;
-}
+//
+// MkLower and MkUpper were here, character for character the same as the ones
+// in MiscHelpers/Common/Strings.cpp. That was harmless while this project had
+// its own copy of everything; it stopped being harmless when Strings.cpp joined
+// the project - two definitions of one function is a link error, not a warning.
+//
+// Declared in helpers.h still, so nothing that used them had to change.
+//
 
 bool FileExists(const wchar_t* path)
 {

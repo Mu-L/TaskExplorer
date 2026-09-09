@@ -1,14 +1,11 @@
 #include "stdafx.h"
+#include "../../API/Cluster.h"
 #include "../TaskExplorer.h"
 #include "DnsCacheView.h"
 #include "../../../MiscHelpers/Common/Common.h"
 #include "../../API/SystemAPI.h"
 #include "../../../MiscHelpers/Common/SortFilterProxyModel.h"
 #include "../../../MiscHelpers/Common/Finder.h"
-#ifndef WIN32
-#include "../../API/Linux/LinuxAPI.h"
-#endif
-
 CDnsCacheView::CDnsCacheView(bool bAll, QWidget *parent)
 	:CPanelView(parent)
 {
@@ -53,7 +50,8 @@ CDnsCacheView::CDnsCacheView(bool bAll, QWidget *parent)
 	//m_pMenu = new QMenu();
 	AddPanelItemsToMenu();
 
-	connect(theAPI, SIGNAL(DnsCacheUpdated()), this, SLOT(OnDnsCacheUpdated()));
+	new CViewSystemLink(this, SIGNAL(DnsCacheUpdated()), SLOT(OnDnsCacheUpdated()));
+	connect(theGUI, SIGNAL(ViewSystemChanged()), this, SLOT(OnViewSystemChanged()));
 
 	setObjectName(parent->objectName());
 	//m_ViewMode = eNone;
@@ -115,9 +113,15 @@ void CDnsCacheView::OnColumnsChanged()
 	m_pDnsModel->Sync(m_DnsCacheList);
 }
 
+void CDnsCacheView::OnViewSystemChanged()
+{
+	m_DnsCacheList.clear();
+	m_pDnsModel->Clear();
+}
+
 void CDnsCacheView::OnDnsCacheUpdated()
 {
-	m_DnsCacheList = theAPI->GetDnsEntryList();
+	m_DnsCacheList = CCluster::GetViewSystem()->GetDnsEntryList();
 
 	m_pDnsModel->Sync(m_DnsCacheList);
 }
@@ -140,23 +144,21 @@ void CDnsCacheView::showEvent(QShowEvent* pEvent)
 {
 	CPanelView::showEvent(pEvent);
 
-#ifndef WIN32
 	//
-	// Becoming visible re-arms the one interactive polkit prompt that reading
-	// systemd-resolved's cache costs; see CLinuxAPI::AllowDnsAuthPrompt.
+	// Becoming visible re-arms whatever one-shot authorisation the backend
+	// needs to read the cache - on Linux the polkit prompt that querying
+	// systemd-resolved costs.
 	//
 	// Doing it here rather than in Refresh() is the point: Refresh() is also the
 	// periodic tick, and cannot tell "the user just opened this tab" from "one
 	// second has passed".
 	//
-	if (CLinuxAPI* pLinuxAPI = qobject_cast<CLinuxAPI*>(theAPI))
-		pLinuxAPI->AllowDnsAuthPrompt();
-#endif
+	CCluster::GetViewSystem()->AllowAuthPrompt();
 }
 
 void CDnsCacheView::Refresh()
 {
 	// Note: if MonitorDnsCache is enabled the cache is always updated
 	if(!theConf->GetBool("Options/MonitorDnsCache", false))
-		theAPI->UpdateDnsCache();
+		CCluster::GetViewSystem()->UpdateDnsCache();
 }

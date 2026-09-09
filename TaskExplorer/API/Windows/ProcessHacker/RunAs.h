@@ -2,7 +2,12 @@
 
 #include "../ProcessHacker.h"
 
-BOOLEAN PhShellProcessHackerEx(
+//
+// Returns the NTSTATUS from PhShellExecuteEx rather than a BOOLEAN. The caller
+// needs to tell a refused UAC prompt (STATUS_CANCELLED) from a real failure,
+// and GetLastError() is no use by the time it gets there.
+//
+NTSTATUS PhShellProcessHackerEx(
 	_In_opt_ HWND hWnd,
 	_In_opt_ PWSTR FileName,
 	_In_opt_ PWSTR Parameters,
@@ -101,14 +106,14 @@ extern PHAPPAPI HWND PhMainWndHandle;
 BOOLEAN IsServiceAccount(_In_ PPH_STRING UserName);
 BOOLEAN IsCurrentUserAccount(_In_ PPH_STRING UserName);
 
-void AddAccountsToComboBox(QComboBox* pComboBox);
-void AddSessionsToComboBox(QComboBox* pComboBox);
-void AddDesktopsToComboBox(QComboBox* pComboBox);
+QStringList GetLogonAccounts();
+QList<QPair<QString, quint32> > GetLogonSessions();
+QStringList GetDesktops();
 
-VOID SetDefaultSessionEntry(QComboBox* pComboBox);
-VOID SetDefaultDesktopEntry(QComboBox* pComboBox);
+quint32 GetCurrentSessionId();
+QString GetCurrentDesktop();
 
-void AddProgramsToComboBox(QComboBox* pComboBox);
+QStringList GetRunMruList();
 VOID PhpAddRunMRUListEntry(_In_ PH_STRINGREF CommandLine);
 
 // from guisup.h

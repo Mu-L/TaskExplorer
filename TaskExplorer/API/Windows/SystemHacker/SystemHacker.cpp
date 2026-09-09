@@ -40,23 +40,23 @@ STATUS InitKSH(QString DeviceName, QString FileName, int SecurityLevel)
 
 	// if the file name is not a full path Add the application directory
 	if (!FileName.contains("\\"))
-		FileName = QApplication::applicationDirPath() + "/" + FileName;
+		FileName = QCoreApplication::applicationDirPath() + "/" + FileName;
 
 	FileName = FileName.replace("/", "\\");
     if (!QFile::exists(FileName))
-		return ERR(QObject::tr("The Process Hacker kernel driver '%1' was not found.").arg(FileName), STATUS_NOT_FOUND);
+		return ERR(TE_ProcHackerKernel, QVariantList() << FileName, STATUS_NOT_FOUND);
 
 	KPH_PARAMETERS parameters;
     parameters.SecurityLevel = (KPH_SECURITY_LEVEL)SecurityLevel;
     parameters.CreateDynamicConfiguration = TRUE;
 	NTSTATUS status = XphConnect2Ex((wchar_t*)DeviceName.toStdWString().c_str(), (wchar_t*)FileName.toStdWString().c_str(), &parameters);
     if (!NT_SUCCESS(status))
-		return ERR(QObject::tr("Unable to load the kernel driver, Error: 0x%1").arg((quint32)status, 8, 16, QChar('0')), status);
+		return ERR(TE_LoadKernelDriver, QVariantList() << (quint32)status, status);
     
 	PUCHAR signature = NULL;
     ULONG signatureSize = 0;
 
-	//QString SigFileName = QApplication::applicationDirPath() + "/TaskExplorer.sig";
+	//QString SigFileName = QCoreApplication::applicationDirPath() + "/TaskExplorer.sig";
 	//SigFileName = SigFileName.replace("/", "\\");
 	//if (QFile::exists(SigFileName))
 	//	PhpReadSignature((wchar_t*)SigFileName.toStdWString().c_str(), &signature, &signatureSize);

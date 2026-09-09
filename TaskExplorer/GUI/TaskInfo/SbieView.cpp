@@ -1,10 +1,10 @@
 #include "stdafx.h"
 #include "../TaskExplorer.h"
+#include "../TaskStrings.h"
 #include "SbieView.h"
 #include "../../../MiscHelpers/Common/KeyValueInputDialog.h"
 #include "../../../MiscHelpers/Common/Finder.h"
 #include "../../API/Windows/WinProcess.h"
-#include "../../API/Windows/ProcessHacker.h"
 #include "../../API/Windows/SandboxieAPI.h"
 #include "../../API/Windows/WindowsAPI.h"
 
@@ -139,10 +139,28 @@ void CSbieView::ShowProcesses(const QList<CProcessPtr>& Processes)
 		pProcess = Processes.first();
 	}
 
-	m_pCurProcess = pProcess.staticCast<CWinProcess>();
+	//
+	// No cast. m_pCurProcess is a CProcessPtr and everything asked of it below
+	// is GetProcessId(), which is on the base - the staticCast that used to be
+	// here went down to CWinProcess and straight back up again, and would have
+	// been a lie about a remote process rather than a compile error.
+	//
+	m_pCurProcess = pProcess;
 
-
-	CSandboxieAPI* pSandboxieAPI = ((CWindowsAPI*)theAPI)->GetSandboxieAPI();
+	//
+	// theSystem is a CWindowsAPI only when the target is this machine: a remote
+	// Windows one is a CRemoteSystem that answers eOsWindows just the same. So
+	// the cast is made only after the base has confirmed both halves, rather
+	// than unconditionally as it was.
+	//
+	// qobject_cast would say this more directly, but CWindowsAPI is not
+	// exported from TaskCore and so has no staticMetaObject the front end can
+	// reach. Sandboxie has no remote form yet in any case; when it gets one
+	// this becomes a virtual on CSystemAPI and the cast goes entirely.
+	//
+	CSandboxieAPI* pSandboxieAPI = nullptr;
+	if (theSystem->IsLocal() && theSystem->GetOsType() == CSystemAPI::eOsWindows)
+		pSandboxieAPI = ((CWindowsAPI*)theSystem.data())->GetSandboxieAPI();
 
 	if (!pSandboxieAPI || !m_pCurProcess) {
 		setEnabled(false);
@@ -168,7 +186,7 @@ void CSbieView::ShowProcesses(const QList<CProcessPtr>& Processes)
 	quint32 ImageType;
 	quint32 Flags = pSandboxieAPI->QueryProcessInfoEx(m_pCurProcess->GetProcessId(), NULL, &ImageType);
 	m_pImageName->setText(ImageName);
-	m_pImageType->setText(CSandboxieAPI::ImageTypeToStr(ImageType) + "; " + CSandboxieAPI::ImageFlagsToStr(Flags).join(", "));
+	m_pImageType->setText(::GetSbieImageTypeString(ImageType) + "; " + ::GetSbieImageFlagsString(Flags));
 
 	QString FilePath, KeyPath, IpcPath;
 	pSandboxieAPI->GetProcessPaths(m_pCurProcess->GetProcessId(), FilePath, KeyPath, IpcPath);

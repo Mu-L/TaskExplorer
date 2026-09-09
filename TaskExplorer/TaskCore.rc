@@ -1,0 +1,46 @@
+//
+// Version information only.
+//
+// No icon, no manifest, no dialogs - this exists so that the file properties of
+// TaskCore.dll say what it is and which build it came from. The strings come
+// from version.h, which is the one place the product's names and numbers live.
+//
+
+#include "winres.h"
+#include "version.h"
+
+LANGUAGE LANG_GERMAN, SUBLANG_GERMAN_AUSTRIAN
+#pragma code_page(1252)
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION VERSION_BIN
+ PRODUCTVERSION VERSION_BIN
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x2L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "0c0704b0"
+        BEGIN
+            VALUE "CompanyName", MY_COMPANY_NAME_STRING
+            VALUE "FileDescription", "TaskExplorer object model and platform backends"
+            VALUE "FileVersion", VERSION_STR
+            VALUE "InternalName", "TaskCore.dll"
+            VALUE "LegalCopyright", MY_COPYRIGHT_STRING
+            VALUE "OriginalFilename", "TaskCore.dll"
+            VALUE "ProductName", MY_PRODUCT_NAME_STRING
+            VALUE "ProductVersion", VERSION_STR
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0xc07, 1200
+    END
+END

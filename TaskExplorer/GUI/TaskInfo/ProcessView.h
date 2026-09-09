@@ -20,6 +20,16 @@ public:
 public slots:
 	void					ShowProcesses(const QList<CProcessPtr>& Processes);
 	void					ShowProcess(const CProcessPtr& pProcess);
+
+	//
+	// What the panel says when there is nothing selected.
+	//
+	// ShowProcess cannot answer it - it reads the process on its first line and
+	// there is none - and leaving the last one on screen is worse than blank: a
+	// page of numbers about a machine nobody is connected to reads exactly like a
+	// page of numbers about one that is.
+	//
+	void					ClearProcess();
 	void					Refresh();
 
 private slots:
@@ -66,11 +76,23 @@ private:
 	QLabel*					m_pCompanyName;
 	QLabel*					m_pProcessVersion;
 	QLabel*					m_pSubSystem;
-	QLineEdit*				m_pFilePath;
-#ifdef WIN32
-	QLineEdit*				m_pFilePathNt;
-#endif
+	//
+	// Says why this panel is empty when the target withheld the process. See
+	// API_PROC_REDACTED.
+	//
+	QLabel*					m_pRedacted;
 
+	QLineEdit*				m_pFilePath;
+	// Shown only for a process running under Wine; see ShowProcess.
+	QLabel*					m_pWineImageLabel = nullptr;
+	QLineEdit*				m_pWineImage = nullptr;
+
+	QLabel*					m_pFilePathNtLabel;
+	QLineEdit*				m_pFilePathNt;
+
+	// The Windows-only sub-tabs; -1 when the tab was never added. See ShowProcess.
+	int						m_SecurityTab = -1;
+	int						m_AppTab = -1;
 	QTabWidget*				m_pTabWidget;
 
 	QScrollArea*			m_pProcessArea;
@@ -79,12 +101,18 @@ private:
 	QGridLayout*			m_pProcessLayout;
 	QLineEdit*				m_pCmdLine;
 	QLineEdit*				m_pCurDir;
-#ifdef WIN32
-	QLineEdit*				m_pDesktop;
-	QLabel*					m_pDPIAware;
-#else
-	QLineEdit*				m_pUserName;
-#endif
+	//
+	// Both sets are built and share one grid row; ShowProcess shows whichever
+	// belongs to the machine the selected process is on. They used to be built
+	// one or the other from theSystem, which is *this* machine - so a Windows
+	// viewer watching a Linux box got the desktop row it can never fill and no
+	// user name row at all.
+	//
+	QLabel*					m_pDesktopLabel = nullptr;
+	QLineEdit*				m_pDesktop = nullptr;
+	QLabel*					m_pDPIAware = nullptr;
+	QLabel*					m_pUserNameLabel = nullptr;
+	QLineEdit*				m_pUserName = nullptr;
 	QLineEdit*				m_pProcessId;
 	QLineEdit*				m_pStartedBy;
 
@@ -95,8 +123,7 @@ private:
 	QSortFilterProxyModel*	m_pSortProxy;
 
 	QTreeViewEx*			m_pProcessList;
-
-#ifdef WIN32
+	QLabel*					m_pPEBAddressLabel = nullptr;
 	QLineEdit*				m_pPEBAddress;
 	QLabel*					m_ImageType;
 
@@ -123,7 +150,6 @@ private:
 	//QLineEdit*				m_pPackageDataDir;
 
 	CServicesView*			m_pServiceView;
-#endif
 	CEnvironmentView*		m_pEnvironmentView;
 
 

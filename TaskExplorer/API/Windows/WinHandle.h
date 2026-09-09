@@ -21,7 +21,6 @@ public:
 	virtual quint64 GetObjectAddress()	const		{ QReadLocker Locker(&m_Mutex); return m_Object; }
 	
 	virtual quint32 GetAttributes() const			{ QReadLocker Locker(&m_Mutex); return m_Attributes; }
-	virtual QString GetAttributesString() const;
 	virtual STATUS SetAttribute(quint32 Attribute, bool bSet = true);
 	virtual bool IsProtected() const;
 	virtual STATUS SetProtected(bool bSet);
@@ -35,36 +34,24 @@ public:
 	virtual QString GetTypeName() const				{ QReadLocker Locker(&m_Mutex); return m_TypeName; }
 	virtual QString GetOriginalName() const			{ QReadLocker Locker(&m_Mutex); return m_OriginalName; }
 
-	virtual QString GetFileShareAccessString() const;
-	virtual QString GetTypeString() const;
-	virtual QString GetGrantedAccessString() const;
-	virtual QString GetGenericAccessString() const;
-	virtual QString GetObjectSecurityDescriptorString() const;
+	virtual QString GetSubTypeName() const			{ QReadLocker Locker(&m_Mutex); return m_SubTypeName; }
+	virtual QList<int> GetGrantedAccessRights() const;
+	virtual quint32 GetGenericAccess() const;
+	virtual QString GetSecurityDescriptorSddl() const;
 
-	static QString GetFileAccessMode(quint32 Mode);
-	static QString GetSectionType(quint32 Attribs);
+	virtual QList<int> GetFileAccessModeRights(quint32 Mode) const;
+
+	virtual CTokenInfoPtr GetToken() const;
+	virtual CJobInfoPtr   GetJob() const;
+	virtual QIODevice*    OpenDevice() const;
 	virtual QVariantMap GetHandleInfo() const;
 
 	virtual STATUS				Close(bool bForce = false);
 
-	enum EHandleAction
-	{
-		eSemaphoreAcquire,
-		eSemaphoreRelease,
-
-		eEventSet,
-		eEventReset,
-		eEventPulse,
-
-		eSetLow,
-		eSetHigh,
-
-		eCancelTimer
-	};
 	virtual STATUS				DoHandleAction(EHandleAction Action);
 
 	
-	virtual void OpenPermissions();
+	virtual CSecurityEditablePtr GetSecurityObject() const;
 
 protected:
 	friend class CWindowsAPI;

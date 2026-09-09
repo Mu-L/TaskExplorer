@@ -14,7 +14,6 @@
 #include "RunObjView.h"
 #include "../../../../MiscHelpers/Common/KeyValueInputDialog.h"
 #include "../../../../MiscHelpers/Common/Finder.h"
-#include "../../../API/Windows/ProcessHacker.h"
 
 
 CRunObjView::CRunObjView(QWidget *parent)
@@ -73,61 +72,19 @@ CRunObjView::~CRunObjView()
 
 void CRunObjView::Refresh()
 {
-	IRunningObjectTable* iRunningObjectTable = NULL;
-    IEnumMoniker* iEnumMoniker = NULL;
-    IMoniker* iMoniker = NULL;
-    IBindCtx* iBindCtx = NULL;
-    IMalloc* iMalloc = NULL;
-    ULONG count = 0;
-
-    if (!SUCCEEDED(CoGetMalloc(1, &iMalloc)))
-        return;
-
 	m_RunObjs.clear();
 
-    // Query the running object table address
-    if (SUCCEEDED(GetRunningObjectTable(0, &iRunningObjectTable)))
-    {
-        // Enum the objects registered
-        if (SUCCEEDED(IRunningObjectTable_EnumRunning(iRunningObjectTable, &iEnumMoniker)))
-        {
-            while (IEnumMoniker_Next(iEnumMoniker, 1, &iMoniker, &count) == S_OK)
-            {
-                if (SUCCEEDED(CreateBindCtx(0, &iBindCtx)))
-                {
-                    OLECHAR* displayName = NULL;
+	foreach(const QString& Name, theSystem->EnumRunningObjects())
+	{
+		QVariantMap Item;
+		Item["ID"] = m_RunObjs.size();
 
-                    // Query the object name
-                    if (SUCCEEDED(IMoniker_GetDisplayName(iMoniker, iBindCtx, NULL, &displayName)))
-                    {
-						QString DisplayName = QString::fromWCharArray(displayName);
+		QVariantMap Values;
+		Values.insert(QString::number(eName), Name);
 
-						QVariantMap Item;
-						Item["ID"] = m_RunObjs.size();
-		
-						QVariantMap Values;
-						Values.insert(QString::number(eName), DisplayName);
-
-						Item["Values"] = Values;
-						m_RunObjs.append(Item);
-
-                        // Free the object name
-                        IMalloc_Free(iMalloc, displayName);
-                    }
-
-                    IBindCtx_Release(iBindCtx);
-                }
-
-                IEnumMoniker_Release(iMoniker);
-            }
-
-            IEnumMoniker_Release(iEnumMoniker);
-        }
-
-        IRunningObjectTable_Release(iRunningObjectTable);
-    }
-
-    IMalloc_Release(iMalloc);
+		Item["Values"] = Values;
+		m_RunObjs.append(Item);
+	}
 
 	m_pRunObjModel->Sync(m_RunObjs);
 }

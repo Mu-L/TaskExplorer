@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../mischelpers_global.h"
+#include "../corehelpers_global.h"
 
 #include <QNetworkAccessManager>
 
-class MISCHELPERS_EXPORT CNetworkAccessManager : public QNetworkAccessManager
+class COREHELPERS_EXPORT CNetworkAccessManager : public QNetworkAccessManager
 {
     Q_OBJECT
 public:

@@ -1,12 +1,8 @@
 #include "stdafx.h"
 #include "../TaskExplorer.h"
+#include "../TaskStrings.h"
 #include "WindowModel.h"
 #include "../../../MiscHelpers/Common/Common.h"
-#ifdef WIN32
-#include "../../API/Windows/WinWnd.h"
-#endif
-
-
 CWindowModel::CWindowModel(QObject *parent)
 :CTreeItemModel(parent)
 {
@@ -89,7 +85,7 @@ QSet<quint64> CWindowModel::Sync(const QHash<quint64, CWndPtr>& WindowList)
 		// Note: icons are loaded asynchroniusly
 		/*if (m_bUseIcons && !pNode->Icon.isValid() && !m_ColumnsOff.contains(eHandle))
 		{
-			QPixmap Icon = pNode->pWindow->GetFileIcon();
+			QPixmap Icon = ::MakeIcon(pNode->pWindow->GetFileIcon());
 			if (!Icon.isNull()) {
 				Changed = true; // set change for first column
 				pNode->Icon = Icon;
@@ -101,11 +97,6 @@ QSet<quint64> CWindowModel::Sync(const QHash<quint64, CWndPtr>& WindowList)
 			pNode->IsGray = !pWindow->IsVisible();
 			Changed = 2; // update all columns for this item
 		}
-
-#ifdef WIN32
-		CWinWnd* pWinWnd = qobject_cast<CWinWnd*>(pWindow.data());
-#endif
-
 		for(int section = 0; section < columnCount(); section++)
 		{
 			if (m_ColumnsOff.contains(section))
@@ -115,14 +106,10 @@ QSet<quint64> CWindowModel::Sync(const QHash<quint64, CWndPtr>& WindowList)
 			switch(section)
 			{
 				case eHandle:		Value = pWindow->GetHWnd(); break;
-#ifdef WIN32
-				case eClass:		Value = pWinWnd->GetWindowClass(); break;
-#endif
+				case eClass:		Value = pWindow->GetWindowClass(); break;
                 case eText:			Value = pWindow->GetWindowTitle(); break;
                 case eThread:		Value = pWindow->GetThreadId(); break;
-#ifdef WIN32
-				case eModule:		Value = pWinWnd->GetModuleString(); break;
-#endif
+				case eModule:		Value = pWindow->GetModuleString(); break;
 			}
 
 			SWindowNode::SValue& ColValue = pNode->Values[section];
@@ -136,7 +123,7 @@ QSet<quint64> CWindowModel::Sync(const QHash<quint64, CWndPtr>& WindowList)
 				switch (section)
 				{
 					case eThread:		if (m_bExtThreadId)
-											ColValue.Formatted = tr("%1 (%2): %3").arg(pWindow->GetProcessName()).arg(theGUI->FormatID(pWindow->GetProcessId())).arg(theGUI->FormatID(pWindow->GetThreadId()));
+											ColValue.Formatted = tr("%1 (%2): %3").arg(::LocalizeName(pWindow->GetProcessName())).arg(theGUI->FormatID(pWindow->GetProcessId())).arg(theGUI->FormatID(pWindow->GetThreadId()));
 										else
 											ColValue.Formatted = theGUI->FormatID(pWindow->GetThreadId());
 										break;
@@ -188,14 +175,10 @@ QVariant CWindowModel::headerData(int section, Qt::Orientation orientation, int 
 		switch(section)
 		{
 			case eHandle:				return tr("Handle");
-#ifdef WIN32
 			case eClass:				return tr("Class");
-#endif
 			case eText:					return tr("Text");
 			case eThread:				return tr("Thread");
-#ifdef WIN32
 			case eModule:				return tr("Module");
-#endif
 		}
 	}
     return QVariant();

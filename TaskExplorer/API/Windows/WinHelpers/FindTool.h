@@ -1,6 +1,8 @@
 #ifndef FINDTOOL_INCLUDED
 #define FINDTOOL_INCLUDED
 
+#include "../../../taskcore_global.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -22,9 +24,9 @@ typedef UINT (CALLBACK * WNDFINDPROC) (HWND hwndTool, UINT uCode, HWND hwnd);
 
 #define WFN_CAPTURE     8   // Capture key pressed
 
-BOOL MakeFinderTool    (HWND hwnd, WNDFINDPROC wfp);
-void InvertWindow      (HWND hwnd, BOOL fShowHidden);
-void FlashWindowBorder (HWND hwnd, BOOL fShowHidden);
+TASKCORE_EXPORT BOOL MakeFinderTool    (HWND hwnd, WNDFINDPROC wfp);
+TASKCORE_EXPORT void InvertWindow      (HWND hwnd, BOOL fShowHidden);
+TASKCORE_EXPORT void FlashWindowBorder (HWND hwnd, BOOL fShowHidden);
 
 #ifdef __cplusplus
 }

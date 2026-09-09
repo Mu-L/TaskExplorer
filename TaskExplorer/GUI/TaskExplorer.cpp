@@ -1,15 +1,16 @@
 #include "stdafx.h"
 #include "TaskExplorer.h"
+#include "../../TaskCommon/Support.h"
+#include "../API/Cluster.h"
+#include <QInputDialog>
+#include "TaskStrings.h"
 #include "version.h"
 #ifdef WIN32
 #include "../API/Windows/WindowsAPI.h"
-#include "../API/Windows/ProcessHacker.h"
-#include "../API/Windows/ProcessHacker/RunAs.h"
 #include "SecurityExplorer.h"
 #include "DriverWindow.h"
 #include "../API/Windows/WinAdmin.h"
 extern "C" {
-#include <winsta.h>
 }
 #else
 // For OnElevate(): relaunching through a graphical privilege escalation helper.
@@ -20,8 +21,13 @@ extern "C" {
 #include "../../MiscHelpers/Common/ExitDialog.h"
 #include "../../MiscHelpers/Common/HistoryGraph.h"
 #include "NewService.h"
+#include "SecurityDialog.h"
 #include "RunDialog.h"
 #include "RunAsDialog.h"
+#include "ConnectDialog.h"
+#include "../API/RemoteApi.h"
+#include "UnlockDialog.h"
+#include "../../MiscHelpers/Common/CredentialStore.h"
 #include "../SVC/TaskService.h"
 #include "GraphBar.h"
 #include "SettingsWindow.h"
@@ -70,9 +76,8 @@ public:
 			//	qDebug() << msg->message;
 			if (msg->message == WM_NOTIFY) 
 			{
-				LRESULT ret;
-				if (PhMwpOnNotify((NMHDR *)msg->lParam, &ret))
-					*result = ret;
+				if (theSystem->HandleNativeNotify((void*)msg->lParam, result))
+					return true;
 				return true;
 			}
 			else if (msg->message == WM_DEVICECHANGE) 
@@ -91,7 +96,7 @@ public:
 					}
 					break;*/
 				case DBT_DEVNODES_CHANGED: // hardware changed
-					theAPI->NotifyHardwareChanged();
+					theSystem->NotifyHardwareChanged();
 					break;
 				}
 			}
@@ -102,11 +107,46 @@ public:
 #endif
 
 
+CViewSystemLink::CViewSystemLink(QObject* pReceiver, const char* pSignal, const char* pSlot)
+	: QObject(pReceiver), m_pReceiver(pReceiver), m_Signal(pSignal), m_Slot(pSlot)
+{
+	connect(theGUI, SIGNAL(ViewSystemChanged()), this, SLOT(Relink()));
+	Relink();
+}
+
+void CViewSystemLink::Relink()
+{
+	QObject* pSystem = CCluster::GetViewSystem().data();
+	if (pSystem == m_pLinked)
+		return;
+
+	//
+	// Through a QPointer, because the machine this was attached to may have
+	// been disconnected and deleted between the two calls - which is precisely
+	// when this runs.
+	//
+	if (!m_pLinked.isNull())
+		QObject::disconnect(m_pLinked, m_Signal.constData(), m_pReceiver, m_Slot.constData());
+
+	m_pLinked = pSystem;
+
+	if (pSystem)
+		QObject::connect(pSystem, m_Signal.constData(), m_pReceiver, m_Slot.constData());
+}
+
 CTaskExplorer::CTaskExplorer(QWidget *parent)
 	: QMainWindow(parent)
 {
 	theGUI = this;
 
+	//
+	// Before the title is built, which asks about both.
+	//
+	m_bSelfContained = false;
+	m_bDaemonPresent = false;
+	m_pMenuSwitchMode = NULL;
+
+	qRegisterMetaType<CStatus>("CStatus");
 	qRegisterMetaType<CAssemblyListPtr>("CAssemblyListPtr");
 	qRegisterMetaType<QList<QSharedPointer<QObject>>>("QList<QSharedPointer<QObject>>");
 	qRegisterMetaType<CStackTracePtr>("CStackTracePtr");
@@ -123,38 +163,12 @@ CTaskExplorer::CTaskExplorer(QWidget *parent)
 	CFinder::m_RegExpStrIcon = QIcon(":/Actions/RegExp");
 	CFinder::m_HighlightIcon = QIcon(":/Actions/Highlight");
 
-	CSystemAPI::InitAPI();
+	CSystemAPI::InitLocalSystem();
 
-	QString appTitle = tr("TaskExplorer v%1").arg(GetVersion());
-
-#ifdef WIN32
-	if (KphCommsIsConnected())
-	{
-		QString sLevel;
-		KPH_LEVEL level = KphLevelEx(FALSE);
-		switch (level)
-		{
-			case KphLevelNone: sLevel = tr("---"); break;
-			case KphLevelMin: sLevel =	tr("--"); break;
-			case KphLevelLow: sLevel =	tr("-"); break;
-			case KphLevelMed: sLevel =	tr("~"); break;
-			case KphLevelHigh: sLevel = tr("+"); break;
-			case KphLevelMax: sLevel =	tr("++"); break;
-		}
-		appTitle.append(tr(" - [%1KTE%2]").arg(g_KsiDynDataLoaded ? "" : tr("Limited ")).arg(sLevel));
-	}
-#endif
-
-	if (theAPI->RootAvaiable())
-#ifdef WIN32
-		appTitle.append(tr(" (Administrator)"));
-#else
-		appTitle.append(tr(" (root)"));
-#endif
-	this->setWindowTitle(appTitle);
+	UpdateTitle();
 
 #if defined(Q_OS_WIN)
-	PhMainWndHandle = (HWND)QWidget::winId();
+	theSystem->SetMainWindow((quint64)QWidget::winId());
 
     QApplication::instance()->installNativeEventFilter(new CNativeEventFilter);
 #endif
@@ -170,6 +184,14 @@ CTaskExplorer::CTaskExplorer(QWidget *parent)
 	InitColors();
 
 	m_pGraphBar = NULL;
+
+	//
+	// Null until the toolbar is built, which happens after the menus that
+	// UpdateMachineLabels can already be reached from.
+	//
+	m_pMenuClusterMode = NULL;
+	m_pMachineBox = NULL;
+	m_pMachineBoxAction = NULL;
 
 	SetUITheme();
 
@@ -224,12 +246,11 @@ CTaskExplorer::CTaskExplorer(QWidget *parent)
 	connect(m_pProcessTree, SIGNAL(ProcessesSelected(const QList<CProcessPtr>&)), m_pTaskInfo, SLOT(ShowProcesses(const QList<CProcessPtr>&)));
 
 
-#ifdef WIN32
-	connect(qobject_cast<CWindowsAPI*>(theAPI)->GetSymbolProvider(), SIGNAL(StatusMessage(const QString&)), this, SLOT(OnStatusMessage(const QString&)));
-#endif
+	connect(theSystem.data(), SIGNAL(StatusMessage(const QString&)), this, SLOT(OnStatusMessage(const QString&)));
 
 
 	m_pMenuProcess = menuBar()->addMenu(tr("&Tasks"));
+	connect(m_pMenuProcess, SIGNAL(aboutToShow()), this, SLOT(OnTaskMenu()));
 		m_pMenuRun = m_pMenuProcess->addAction(MakeActionIcon(":/Actions/Run"), tr("Run..."), this, SLOT(OnRun()));
 		m_pMenuRun->setShortcut(QKeySequence("Ctrl+R"));
 		m_pMenuRunAs = m_pMenuProcess->addAction(MakeActionIcon(":/Actions/RunAs"), tr("Run as..."), this, SLOT(OnRunAs()));
@@ -239,6 +260,43 @@ CTaskExplorer::CTaskExplorer(QWidget *parent)
 		m_pMenuRunSys->setShortcut(QKeySequence("Ctrl+Alt+R"));
 #endif
 		m_pMenuProcess->addSeparator();
+
+		//
+		// Connecting to another machine sits under Tasks beside the other
+		// things one *does*, rather than under View, because it changes what is
+		// being watched and not how it is drawn.
+		//
+		m_pMenuConnect = m_pMenuProcess->addAction(MakeActionIcon(":/Actions/Connect"), tr("Connect to machine..."), this, SLOT(OnConnect()));
+		m_pMenuDisconnect = m_pMenuProcess->addAction(MakeActionIcon(":/Actions/Disconnect"), tr("Disconnect machine..."), this, SLOT(OnDisconnect()));
+		m_pMenuDisconnect->setEnabled(false);
+
+		//
+		// Greyed rather than hidden when this installation has no TaskRemote,
+		// with the reason in the tooltip.
+		//
+		// Hidden would be tidier and is wrong: somebody who has used this
+		// before, or read that it exists, would look for it and conclude the
+		// build is broken. An entry that is there and says why it cannot be
+		// used answers the question it raises.
+		//
+		if (!CRemoteLoader::IsAvailable())
+		{
+			m_pMenuConnect->setEnabled(false);
+			m_pMenuConnect->setToolTip(tr("This installation cannot connect to other machines: %1")
+				.arg(CRemoteLoader::GetError()));
+			m_pMenuProcess->setToolTipsVisible(true);
+		}
+
+		//
+		// Whether this machine is read directly or through its own daemon is
+		// decided at startup, so changing it means starting again. Said in the
+		// entry rather than implied - a menu item that silently closes the
+		// window and opens another one is worse than one that says it will.
+		//
+		m_pMenuSwitchMode = m_pMenuProcess->addAction(QString(), this, SLOT(OnSwitchMode()));
+		m_pMenuSwitchMode->setVisible(false);
+
+		m_pMenuProcess->addSeparator();
 		m_pMenuComputer = m_pMenuProcess->addMenu(MakeActionIcon(":/Actions/Computer"), tr("Computer"));
 		m_pMenuUsers = m_pMenuProcess->addMenu(MakeActionIcon(":/Actions/Users"), tr("Users"));
 		m_pMenuProcess->addSeparator();
@@ -247,7 +305,7 @@ CTaskExplorer::CTaskExplorer(QWidget *parent)
 		m_pMenuProcess->addSeparator();
 #endif
 		m_pMenuElevate = m_pMenuProcess->addAction(MakeActionIcon(":/Icons/Shield.png"), tr("Restart Elevated"), this, SLOT(OnElevate()));
-		m_pMenuElevate->setVisible(!theAPI->RootAvaiable());
+		m_pMenuElevate->setVisible(!theSystem->RootAvaiable());
 #ifndef WIN32
 		//
 		// The lighter alternative to restarting the whole GUI as root: keep this
@@ -263,7 +321,7 @@ CTaskExplorer::CTaskExplorer(QWidget *parent)
 		m_pMenuUseHelper = m_pMenuProcess->addAction(MakeActionIcon(":/Icons/Shield.png"), tr("Use Privileged Helper"), this, SLOT(OnUseHelper()));
 		m_pMenuUseHelper->setCheckable(true);
 		m_pMenuUseHelper->setChecked(theConf->GetBool("Options/UseTaskHelper", false));
-		m_pMenuUseHelper->setVisible(!theAPI->RootAvaiable());
+		m_pMenuUseHelper->setVisible(!theSystem->RootAvaiable());
 		m_pMenuUseHelper->setToolTip(tr("Ask an elevated helper process for the details this user is not allowed to read, instead of running all of Task Explorer as root."));
 #endif
 		m_pMenuExit = m_pMenuProcess->addAction(MakeActionIcon(":/Actions/Exit"), tr("Exit"), this, SLOT(OnExit()));
@@ -289,7 +347,7 @@ CTaskExplorer::CTaskExplorer(QWidget *parent)
 		m_pMenuSysTabs = m_pMenuView->addMenu(tr("System Tabs"));
 		for (int i = 0; i < m_pSystemInfo->GetTabCount(); i++)
 		{
-			QAction* pAction = m_pMenuSysTabs->addAction(m_pSystemInfo->GetTabLabel(i), this, SLOT(OnSysTab()));
+			QAction* pAction = m_pMenuSysTabs->addAction(TabMenuLabel(m_pSystemInfo, i), this, SLOT(OnSysTab()));
 			pAction->setCheckable(true);
 			pAction->setChecked(m_pSystemInfo->IsTabVisible(i));
 			m_Act2Tab[pAction] = i;
@@ -303,10 +361,17 @@ CTaskExplorer::CTaskExplorer(QWidget *parent)
 		OnKernelServices();
 #endif*/
 
+		//
+		// A tab whose name belongs to the machine being looked at can be renamed
+		// later - the service list is called Services or Daemons depending on
+		// the target. These actions carry the same words, so they follow.
+		//
+		connect(m_pSystemInfo, SIGNAL(TabLabelsChanged()), this, SLOT(UpdateTabMenus()));
+
 		m_pMenuTaskTabs = m_pMenuView->addMenu(tr("Task Tabs"));
 		for (int i = 0; i < m_pTaskInfo->GetTabCount(); i++)
 		{
-			QAction* pAction = m_pMenuTaskTabs->addAction(m_pTaskInfo->GetTabLabel(i), this, SLOT(OnTaskTab()));
+			QAction* pAction = m_pMenuTaskTabs->addAction(TabMenuLabel(m_pTaskInfo, i), this, SLOT(OnTaskTab()));
 			pAction->setCheckable(true);
 			pAction->setChecked(m_pTaskInfo->IsTabVisible(i));
 			m_Act2Tab[pAction] = i;
@@ -324,6 +389,39 @@ CTaskExplorer::CTaskExplorer(QWidget *parent)
 		m_pMenuShowTree = m_pMenuView->addAction(MakeActionIcon(":/Actions/Tree"), tr("Tree/List"), this, SLOT(OnTreeButton()));
 		m_pMenuShowTree->setCheckable(true);
 		m_pMenuShowTree->setShortcut(QKeySequence("Ctrl+T"));
+		//
+		// The icons are the ones the branches themselves are drawn with - see
+		// CProcessModel::data - so a button says which kind of branch it makes
+		// rather than being told apart by its position.
+		//
+		m_pMenuMultiUser = m_pMenuView->addAction(MakeActionIcon(":/Actions/Users"), tr("Group by User"), this, SLOT(OnMultiUserButton()));
+		m_pMenuMultiUser->setCheckable(true);
+		m_pMenuMultiUser->setShortcut(QKeySequence("Ctrl+U"));
+
+		//
+		// Cluster mode lives here rather than in the settings, next to the other
+		// switch that changes how the tree is arranged. It is not a preference
+		// that is set once - it is the answer to "one machine or all of them",
+		// which is asked while looking at the tree, not while in a dialog.
+		//
+		// Without TaskRemote it is disabled rather than hidden: the stored value
+		// is left alone so that adding the module later restores the choice, and
+		// a greyed switch says the feature exists and this build cannot reach it,
+		// which an absent one does not - see CCluster::ClusterModeWanted.
+		//
+		m_pMenuClusterMode = m_pMenuView->addAction(MakeActionIcon(":/Actions/Computer"), tr("Cluster Mode"), this, SLOT(OnClusterModeButton()));
+		m_pMenuClusterMode->setCheckable(true);
+		m_pMenuClusterMode->setToolTip(tr("Show a branch per machine, so that several connected machines can be watched in one tree. The local machine gets a branch of its own like any other."));
+		m_pMenuClusterMode->setEnabled(CRemoteLoader::IsAvailable());
+		//
+		// The socket lists are network views, as they are on Windows. A Linux
+		// machine also has unix domain sockets - hundreds of them - and this
+		// says whether they belong there too. Offered on every platform because
+		// what matters is the machine being watched, not the one watching.
+		//
+		m_pMenuShowUnixSockets = m_pMenuView->addAction(tr("Show Unix Sockets"), this, SLOT(OnShowUnixSockets()));
+		m_pMenuShowUnixSockets->setCheckable(true);
+		m_pMenuShowUnixSockets->setChecked(theConf->GetBool("Options/ShowUnixSockets", false));
 		m_pMenuExpandAll = m_pMenuView->addAction(MakeActionIcon(":/Actions/Expand"), tr("Expand Process Tree"), m_pProcessTree, SLOT(OnExpandAll()));
 		m_pMenuExpandAll->setShortcut(QKeySequence("Ctrl+E"));
 		m_pMenuView->addSeparator();
@@ -334,12 +432,9 @@ CTaskExplorer::CTaskExplorer(QWidget *parent)
 			connect(m_pMenuFilterWindows, SIGNAL(triggered(bool)), this, SLOT(OnViewFilter()));
 			m_pMenuFilterSystem = MakeActionCheck(m_pMenuFilterMenu, tr("System Processes"), QVariant(), true);
 			connect(m_pMenuFilterSystem, SIGNAL(triggered(bool)), this, SLOT(OnViewFilter()));
-#ifdef WIN32
-			m_pMenuFilterService = MakeActionCheck(m_pMenuFilterMenu, tr("Service Processes"), QVariant(), true);
-#else
-			// Named to match the Daemons tab; these are the same processes.
-			m_pMenuFilterService = MakeActionCheck(m_pMenuFilterMenu, tr("Daemon Processes"), QVariant(), true);
-#endif
+			// Named to match what the target calls them; the same processes either way.
+			m_pMenuFilterService = MakeActionCheck(m_pMenuFilterMenu, theSystem->GetOsType() == CSystemAPI::eOsWindows
+				? tr("Service Processes") : tr("Daemon Processes"), QVariant(), true);
 			connect(m_pMenuFilterService, SIGNAL(triggered(bool)), this, SLOT(OnViewFilter()));
 			m_pMenuFilterOther = MakeActionCheck(m_pMenuFilterMenu, tr("Processes of Other Logged-In Users"), QVariant(), true);
 			connect(m_pMenuFilterOther, SIGNAL(triggered(bool)), this, SLOT(OnViewFilter()));
@@ -360,10 +455,10 @@ CTaskExplorer::CTaskExplorer(QWidget *parent)
 		m_pMenuSettings = m_pMenuOptions->addAction(MakeActionIcon(":/Actions/Settings"), tr("Settings"), this, SLOT(OnSettings()));
 #ifdef WIN32
 		m_pMenuDriverConf = m_pMenuOptions->addAction(MakeActionIcon(":/Actions/Driver"), tr("Driver Options"), this, SLOT(OnDriverConf()));
-		m_pMenuDriverConf->setEnabled(theAPI->RootAvaiable());
+		m_pMenuDriverConf->setEnabled(theSystem->RootAvaiable());
 
 		//m_pMenuUseDriver = m_pMenuOptions->addAction(tr("Use KSystemInformer"), this, SLOT(OnUseDriver()));
-		//m_pMenuUseDriver->setEnabled(theAPI->RootAvaiable());
+		//m_pMenuUseDriver->setEnabled(theSystem->RootAvaiable());
 		//m_pMenuUseDriver->setCheckable(true);
 		//m_pMenuUseDriver->setChecked(theConf->GetBool("OptionsKSI/KsiEnable", true));
 
@@ -373,17 +468,18 @@ CTaskExplorer::CTaskExplorer(QWidget *parent)
         m_pMenuAutoRun->setChecked(IsAutorunEnabled());
 		m_pMenuUAC = m_pMenuOptions->addAction(tr("Skip UAC"), this, SLOT(OnSkipUAC()));
 		m_pMenuUAC->setCheckable(true);
-		m_pMenuUAC->setEnabled(theAPI->RootAvaiable());
+		m_pMenuUAC->setEnabled(theSystem->RootAvaiable());
 		m_pMenuUAC->setChecked(SkipUacRun(true));
 #endif
 
 	m_pMenuTools = menuBar()->addMenu(tr("&Tools"));
 		m_pMenuServices = m_pMenuTools->addMenu(MakeActionIcon(":/Actions/Services"), tr("&Services"));
 			m_pMenuCreateService = m_pMenuServices->addAction(tr("Create new Service"), this, SLOT(OnCreateService()));
-			m_pMenuCreateService->setEnabled(theAPI->RootAvaiable());
+			m_pMenuCreateService->setEnabled(theSystem->RootAvaiable());
 			m_pMenuUpdateServices = m_pMenuServices->addAction(tr("ReLoad all Service"), this, SLOT(OnReloadService()));
 #ifdef WIN32
 			m_pMenuSCMPermissions = m_pMenuServices->addAction(tr("Service Control Manager Permissions"), this, SLOT(OnSCMPermissions()));
+			m_pMenuSCMPermissions->setEnabled(theSystem->HasCapability(CSystemAPI::eCapSecurityEditor));
 
 		m_pMenuFree = m_pMenuTools->addMenu(MakeActionIcon(":/Actions/FreeMem"), tr("&Free Memory"));
 			m_pMenuFreeWorkingSet = m_pMenuFree->addAction(tr("Empty Working set"), this, SLOT(OnFreeMemory()));
@@ -397,7 +493,7 @@ CTaskExplorer::CTaskExplorer(QWidget *parent)
 		m_pMenuPersistence = m_pMenuTools->addAction(MakeActionIcon(":/Actions/Persistence"), tr("Persistence Options"), this, SLOT(OnPersistenceOptions()));
 		m_pMenuPersistence->setShortcut(QKeySequence("Ctrl+P"));
 
-		m_pMenuFlushDns = m_pMenuTools->addAction(MakeActionIcon(":/Actions/Flush"), tr("Flush Dns Cache"), theAPI, SLOT(FlushDnsCache()));
+		m_pMenuFlushDns = m_pMenuTools->addAction(MakeActionIcon(":/Actions/Flush"), tr("Flush Dns Cache"), theSystem.data(), SLOT(FlushDnsCache()));
 #ifdef WIN32
 		m_pMenuSecurityExplorer = m_pMenuTools->addAction(MakeActionIcon(":/Actions/Security"), tr("Security Explorer"), this, SLOT(OnSecurityExplorer()));
 #endif
@@ -410,29 +506,29 @@ CTaskExplorer::CTaskExplorer(QWidget *parent)
 
 		m_pMenuMonitorETW = m_pMenuTools->addAction(MakeActionIcon(":/Actions/MonitorETW"), tr("Monitor ETW Events"), this, SLOT(OnMonitorETW()));
 		m_pMenuMonitorETW->setCheckable(true);
-		m_pMenuMonitorETW->setChecked(((CWindowsAPI*)theAPI)->IsMonitoringETW());
-		m_pMenuMonitorETW->setEnabled(theAPI->RootAvaiable());
+		m_pMenuMonitorETW->setChecked(theSystem->IsMonitoringETW());
+		m_pMenuMonitorETW->setEnabled(theSystem->RootAvaiable());
 
 		m_pMenuMonitorFW = m_pMenuTools->addAction(MakeActionIcon(":/Actions/MonitorFW"), tr("Monitor Windows Firewall"), this, SLOT(OnMonitorFW()));
 		m_pMenuMonitorFW->setCheckable(true);
-		m_pMenuMonitorFW->setChecked(((CWindowsAPI*)theAPI)->IsMonitoringFW());
-		//m_pMenuMonitorFW->setEnabled(theAPI->RootAvaiable());
+		m_pMenuMonitorFW->setChecked(theSystem->IsMonitoringFW());
+		//m_pMenuMonitorFW->setEnabled(theSystem->RootAvaiable());
 
-		int DbgMode = ((CWindowsAPI*)theAPI)->GetDbgMonitor();
+		int DbgMode = theSystem->GetDebugMonitor();
 		m_pMenuMonitorDbgMenu = m_pMenuTools->addMenu(MakeActionIcon(":/Actions/MonitorDbg"), tr("Monitor Debug Output"));
 		m_pMenuMonitorDbgLocal = m_pMenuMonitorDbgMenu->addAction("Local", this, SLOT(OnMonitorDbg()));
 		m_pMenuMonitorDbgLocal->setCheckable(true);
-		m_pMenuMonitorDbgLocal->setChecked((DbgMode & CWinDbgMonitor::eLocal) != 0);
-		m_pMenuMonitorDbgLocal->setProperty("Mode", (int)CWinDbgMonitor::eLocal);
+		m_pMenuMonitorDbgLocal->setChecked((DbgMode & CSystemAPI::eDbgLocal) != 0);
+		m_pMenuMonitorDbgLocal->setProperty("Mode", (int)CSystemAPI::eDbgLocal);
 		m_pMenuMonitorDbgGlobal = m_pMenuMonitorDbgMenu->addAction("Global", this, SLOT(OnMonitorDbg()));
 		m_pMenuMonitorDbgGlobal->setCheckable(true);
-		m_pMenuMonitorDbgGlobal->setChecked((DbgMode & CWinDbgMonitor::eGlobal) != 0);
-		m_pMenuMonitorDbgGlobal->setProperty("Mode", (int)CWinDbgMonitor::eGlobal);
-		m_pMenuMonitorDbgGlobal->setEnabled(theAPI->RootAvaiable());
+		m_pMenuMonitorDbgGlobal->setChecked((DbgMode & CSystemAPI::eDbgGlobal) != 0);
+		m_pMenuMonitorDbgGlobal->setProperty("Mode", (int)CSystemAPI::eDbgGlobal);
+		m_pMenuMonitorDbgGlobal->setEnabled(theSystem->RootAvaiable());
 		m_pMenuMonitorDbgKernel = m_pMenuMonitorDbgMenu->addAction("Kernel", this, SLOT(OnMonitorDbg()));
 		m_pMenuMonitorDbgKernel->setCheckable(true);
-		m_pMenuMonitorDbgKernel->setChecked((DbgMode & CWinDbgMonitor::eKernel) != 0);
-		m_pMenuMonitorDbgKernel->setProperty("Mode", (int)CWinDbgMonitor::eKernel);
+		m_pMenuMonitorDbgKernel->setChecked((DbgMode & CSystemAPI::eDbgKernel) != 0);
+		m_pMenuMonitorDbgKernel->setProperty("Mode", (int)CSystemAPI::eDbgKernel);
 #endif
 
 	m_pMenuHelp = menuBar()->addMenu(tr("&Help"));
@@ -499,6 +595,7 @@ CTaskExplorer::CTaskExplorer(QWidget *parent)
 
 	m_pToolBar->addSeparator();
 	m_pToolBar->addAction(m_pMenuShowTree);
+	m_pToolBar->addAction(m_pMenuMultiUser);
 
 	m_pMenuFilterButton = new QToolButton();
 	m_pMenuFilterButton->setIcon(MakeActionIcon(":/Actions/Filter"));
@@ -525,7 +622,7 @@ CTaskExplorer::CTaskExplorer(QWidget *parent)
 	//QObject::connect(m_pMenuMonitorDbgButton, SIGNAL(triggered(QAction*)), , SLOT());
 	QObject::connect(m_pMenuMonitorDbgButton, SIGNAL(pressed()), this, SLOT(OnMonitorDbg()));
 	m_pMenuMonitorDbgButton->setCheckable(true);
-	m_pMenuMonitorDbgButton->setChecked((DbgMode & CWinDbgMonitor::eAll) != 0);
+	m_pMenuMonitorDbgButton->setChecked((DbgMode & CSystemAPI::eDbgAll) != 0);
 	m_pToolBar->addWidget(m_pMenuMonitorDbgButton);
 
 	m_pToolBar->addSeparator();
@@ -572,7 +669,33 @@ CTaskExplorer::CTaskExplorer(QWidget *parent)
 	*/
 
 	m_pToolBar->addAction(m_pMenuPersistence);
-	//m_pToolBar->addSeparator();
+
+	m_pToolBar->addSeparator();
+	m_pToolBar->addAction(m_pMenuClusterMode);
+
+	//
+	// Which machine the window is about, and the only place it can be said
+	// outside cluster mode - there the tree holds one machine and has no row
+	// to click. In cluster mode the tree still holds them all and this moves
+	// what the graph bar and the system tabs report.
+	//
+	// Hidden while there is only the local machine. A list of one is not a
+	// choice, and a control that cannot be used is worse than no control.
+	//
+	//
+	// A hair of air, so the box does not read as part of the button.
+	//
+	QWidget* pMachineGap = new QWidget();
+	pMachineGap->setFixedWidth(4);
+	m_pToolBar->addWidget(pMachineGap);
+
+	m_pMachineBox = new QComboBox();
+	m_pMachineBox->setToolTip(tr("The machine the graphs, the system tabs and the status line report on."));
+	m_pMachineBox->setSizeAdjustPolicy(QComboBox::AdjustToContents);
+	m_pMachineBox->setMinimumWidth(120);
+	connect(m_pMachineBox, SIGNAL(activated(int)), this, SLOT(OnMachineBoxChanged(int)));
+	m_pMachineBoxAction = m_pToolBar->addWidget(m_pMachineBox);
+	m_pMachineBoxAction->setVisible(false);
 
 	QWidget* pSpacer = new QWidget();
 	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -580,13 +703,27 @@ CTaskExplorer::CTaskExplorer(QWidget *parent)
 
 	m_pToolBar->addAction(m_pMenuElevate);
 
-	m_pToolBar->addSeparator();
-	m_pToolBar->addWidget(new QLabel("        "));
-	m_pUpdateLabel = new QLabel("<a href=\"https://xanasoft.com/go.php?to=patreon\">Support TaskExplorer on Patreon</a>");
+	//
+	// The separator, the padding either side and the label itself are kept as
+	// four actions rather than four widgets, because hiding an action is what
+	// takes something out of a toolbar's layout - hiding the widget alone
+	// leaves its slot behind, and a separator with nothing after it is a line
+	// at the end of the bar with no reason to be there.
+	//
+	m_UpdateLabelItems.append(m_pToolBar->addSeparator());
+	m_UpdateLabelItems.append(m_pToolBar->addWidget(new QLabel("        ")));
+
+	m_pUpdateLabel = new QLabel();
 	m_pUpdateLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
-	connect(m_pUpdateLabel, SIGNAL(linkActivated(const QString&)), this, SLOT(OnHelp()));
-	m_pToolBar->addWidget(m_pUpdateLabel);
-	m_pToolBar->addWidget(new QLabel("        "));
+	m_UpdateLabelItems.append(m_pToolBar->addWidget(m_pUpdateLabel));
+
+	m_UpdateLabelItems.append(m_pToolBar->addWidget(new QLabel("        ")));
+
+	//
+	// Filled in rather than built with a message in it, so that a supported
+	// copy never shows the appeal for the moment before the first update.
+	//
+	UpdateLabel();
 
 	
 
@@ -624,6 +761,14 @@ CTaskExplorer::CTaskExplorer(QWidget *parent)
 
 	m_pTrayGraph = NULL;
 
+	//
+	// First, so it sits at the left of the permanent group and reads as a
+	// heading for the numbers that follow - which are the local machine's, as
+	// is the graph bar above them, whatever the panels are showing.
+	//
+	m_pStausMachine = new QLabel();
+	statusBar()->addPermanentWidget(m_pStausMachine);
+
 	m_pStausCPU	= new QLabel();
 	statusBar()->addPermanentWidget(m_pStausCPU);
 	m_pStausGPU	= new QLabel();
@@ -639,16 +784,15 @@ CTaskExplorer::CTaskExplorer(QWidget *parent)
 	if (!bAutoRun)
 		show();
 
-#ifdef WIN32
-	if (KphCommsIsConnected())
+	if (theSystem->GetKernelDriver().Connected)
 	{
 		statusBar()->showMessage(tr("TaskExplorer with kernel driver is ready..."), 30000);
 	}
-	//else if (((CWindowsAPI*)theAPI)->HasDriverFailed() && theAPI->RootAvaiable())
+	//else if (((CWindowsAPI*)theSystem.data())->HasDriverFailed() && theSystem->RootAvaiable())
 	//{
 	//	QString Message = tr("Failed to load %1 driver, this could have various causes.\r\n"
 	//		"Currently the driver is not signed, pelase enable test signing (bcdedit /set testsigning on) to use kernel features."
-	//	).arg(((CWindowsAPI*)theAPI)->GetDriverFileName());
+	//	).arg(((CWindowsAPI*)theSystem.data())->GetDriverFileName());
 
 	//	bool State = false;
 	//	CCheckableMessageBox::question(this, "TaskExplorer", Message
@@ -657,13 +801,18 @@ CTaskExplorer::CTaskExplorer(QWidget *parent)
 	//	if (State)
 	//		theConf->SetValue("Options/UseDriver", false);
 
-	//	statusBar()->showMessage(tr("TaskExplorer failed to load driver %1").arg(((CWindowsAPI*)theAPI)->GetDriverFileName()), 180000);
+	//	statusBar()->showMessage(tr("TaskExplorer failed to load driver %1").arg(((CWindowsAPI*)theSystem.data())->GetDriverFileName()), 180000);
 	//}
 	else
-#endif
 		statusBar()->showMessage(tr("TaskExplorer is ready..."), 30000);
 
 	ApplyOptions();
+
+	//
+	// After ApplyOptions, because whether the machine layer is drawn decides
+	// whether a daemon for *this* machine has anywhere sensible to go.
+	//
+	TryLocalDaemon();
 
 	// Initialize Online Updater
 	m_pUpdater = new COnlineUpdater(this);
@@ -688,7 +837,7 @@ CTaskExplorer::~CTaskExplorer()
 	theConf->SetBlob("MainWindow/Panel_Splitter",m_pPanelSplitter->saveState());
 	theConf->SetBlob("MainWindow/Graph_Splitter",m_pGraphSplitter->saveState());
 
-	theAPI->deleteLater();
+	theSystem.clear(); // the deleter posts the actual destruction to its own thread
 
 	theGUI = NULL;
 }
@@ -752,6 +901,692 @@ void CTaskExplorer::OnTreeButton()
 	m_pProcessTree->SetTree(m_pMenuShowTree->isChecked());
 }
 
+void CTaskExplorer::OnMultiUserButton()
+{
+	m_pProcessTree->SetMultiUser(m_pMenuMultiUser->isChecked());
+}
+
+//
+// Turning the machine layer on or off while running.
+//
+// Through the stored value and ApplyOptions rather than by calling
+// CCluster::SetClusterMode here, because the switch is three things at once -
+// the cluster has to exist, the tree has to gain or lose its machine level,
+// and the menus have to be re-asked what they apply to - and that sequence is
+// already written down in one place.
+//
+void CTaskExplorer::OnClusterModeButton()
+{
+	theConf->SetValue("Options/ClusterMode", m_pMenuClusterMode->isChecked());
+	ApplyOptions();
+}
+
+//
+// The machine picked in the toolbar becomes the one the window is about.
+//
+// The same thing clicking a row in the tree does, and it goes through the same
+// call, so whichever way it was said the other agrees with it.
+//
+void CTaskExplorer::OnMachineBoxChanged(int Index)
+{
+	if (Index < 0)
+		return;
+
+	//
+	// Looked up in the live list rather than trusted: the box is rebuilt
+	// whenever a machine joins or leaves, and what it holds is the address a
+	// machine had when the row was written. A machine that has since gone
+	// simply matches nothing, which is the right answer.
+	//
+	const quintptr Chosen = (quintptr)m_pMachineBox->itemData(Index).toULongLong();
+	foreach(const CSystemPtr& pSystem, CCluster::GetSystems())
+	{
+		if ((quintptr)pSystem.data() == Chosen)
+		{
+			//
+			// In cluster mode this moves the graphs and nothing else: the tree
+			// holds every machine and the panels follow the row that is
+			// selected there, which is a separate question with a separate
+			// answer. Out of cluster mode there is one machine on screen and
+			// the box chooses it outright - panels, tree and graphs together.
+			//
+			if (CCluster::IsClusterMode())
+				CCluster::SetGraphSystem(pSystem.data());
+			else
+				CCluster::SetViewSystem(pSystem.data());
+			return;
+		}
+	}
+}
+
+void CTaskExplorer::OnShowUnixSockets()
+{
+	theConf->SetValue("Options/ShowUnixSockets", m_pMenuShowUnixSockets->isChecked());
+
+	//
+	// The lists rebuild themselves on the next round either way - what is no
+	// longer given to Sync is dropped, exactly as a closed socket would be - so
+	// nothing has to be torn down here.
+	//
+}
+
+//
+// Connect to a TaskServer.
+//
+// The address doubles as the entry's name for now - a pipe name on one machine,
+// host:port once the network listener exists. A proper dialog with a display
+// name of its own belongs here when there is more to fill in than one field.
+//
+void CTaskExplorer::OnConnect()
+{
+	//
+	// The cluster has to exist before the dialog does: it is what knows the
+	// machines already saved, which is what the dialog offers to pick from.
+	// Creating it is not the same as turning cluster mode on - that is the tree
+	// switch below - it only means the target list is loaded.
+	//
+	EnsureCluster();
+
+	//
+	// Switched on here as well as in the settings dialog, because this is the
+	// other place somebody expresses an interest in other machines - and the
+	// setting may have been made in an earlier session, when there was no
+	// cluster to start it on.
+	//
+	if (theConf->GetBool("Options/Discover", false) && !theCluster->IsDiscovering())
+	{
+		QString Error;
+		theCluster->StartDiscovery(&Error);
+	}
+
+	//
+	// The dialog is asked again after every failure, and it is the same dialog.
+	//
+	// A wrong password or a mistyped address used to close it, put the reason in
+	// a message box, and leave whoever was connecting to open it again and fill
+	// in all four fields from memory - which is the moment people give up. exec()
+	// on the same instance brings back exactly what was typed, so the fix is one
+	// field and Return.
+	//
+	// Cancel still cancels, so there is always a way out; nothing here loops
+	// without somebody pressing something.
+	//
+	CConnectDialog Dialog(this);
+	for (;;)
+	{
+	if (Dialog.exec() != QDialog::Accepted)
+		return;
+
+	const QString Name = Dialog.GetName();
+	const QString Address = Dialog.GetAddress();
+
+	const SCredentials Cred = Dialog.GetCredentials();
+
+	STATUS Status;
+	CSystemPtr pSystem = theCluster->Connect(Name, Address, &Status, Cred);
+
+	//
+	// Something answered, and it is not the machine this entry was saved for.
+	//
+	// Asked rather than decided, and asked with both ids on screen, because
+	// there are two entirely ordinary reasons for it and they want opposite
+	// answers: the machine was rebuilt or the daemon reinstalled, in which case
+	// yes; or this address now reaches something else, in which case no, and
+	// quietly attaching the saved name to it is how a person ends up reading one
+	// machine while believing they are looking at another.
+	//
+	// Defaulting to No: an unread dialog dismissed with Return should leave
+	// things as they were.
+	//
+	if (pSystem.isNull() && Status.GetMsgCode() == TE_MachineIdMismatch)
+	{
+		const QVariantList Args = Status.GetArgs();
+		const QString Was = Args.count() > 1 ? Args[1].toString() : QString();
+		const QString Now = Args.count() > 2 ? Args[2].toString() : QString();
+
+		const QString Question = tr(
+			"%1 answered, but it is not the machine saved as \"%2\".\n\n"
+			"Saved machine:   %3\n"
+			"Answered now:    %4\n\n"
+			"This is what you would expect if the machine was rebuilt or the "
+			"server reinstalled. If it was not, something else is now reachable "
+			"at this address.\n\n"
+			"Accept this machine under that name?")
+			.arg(Address).arg(Name)
+			.arg(Was)
+			.arg(Now.isEmpty() ? tr("did not say") : Now);
+
+		//
+		// Back to the dialog rather than out of it: somebody who refuses this
+		// machine under that name usually wants to correct the name or the
+		// address, not to abandon connecting.
+		//
+		if (QMessageBox::warning(this, "TaskExplorer", Question,
+				QMessageBox::Yes | QMessageBox::No, QMessageBox::No) != QMessageBox::Yes)
+			continue;
+
+		//
+		// A second call rather than a flag on the first: accepting is a decision
+		// about *this* machine that somebody has just made, and it should not be
+		// possible to express it before the question has been asked.
+		//
+		pSystem = theCluster->Connect(Name, Address, &Status, Cred, CCluster::eAcceptNew);
+	}
+
+	if (pSystem.isNull())
+	{
+		CheckErrors(QList<STATUS>() << Status);
+		continue;
+	}
+
+	//
+	// Saved only now, and only because it worked.
+	//
+	// Storing what was typed before the connection was tried would fill the
+	// store with keys that do not open anything, and the first symptom would be
+	// a reconnection that fails for a reason nobody could see - the field would
+	// look right, because it would be exactly what was typed.
+	//
+	if (Dialog.GetRemember() && Cred.IsValid())
+	{
+		if (CUnlockDialog::Open(this))
+		{
+			STATUS Saved = CCredentialStore::Instance()->Set(Name, Cred);
+			if (Saved.IsError())
+				CheckErrors(QList<STATUS>() << Saved);
+		}
+	}
+
+	//
+	// Without the machine layer the window becomes this machine's - the tree
+	// shows its processes, the panels its detail, the title bar its name. That
+	// is CCluster::Connect's doing: it made the new node the view system, which
+	// is what everything here follows.
+	//
+	UpdateTargetMenu();
+	UpdateAll();
+	return;
+	}
+}
+
+CCluster* CTaskExplorer::EnsureCluster()
+{
+	if (!theCluster)
+	{
+		theCluster = new CCluster(this);
+		theCluster->LoadTargets();
+
+		//
+		// And connect what was saved.
+		//
+		// TryUnlock first, which is the silent half: where the platform can hold
+		// the master key - DPAPI on Windows, the keyring on Linux - the store
+		// opens without asking anybody anything, and the machines come back on
+		// their own. Where it cannot, this does nothing and the entries sit in
+		// the list until the store is opened, which is the honest behaviour:
+		// nothing can connect without a key.
+		//
+		// Loading the list was never the missing part - see ConnectSavedTargets.
+		//
+		CCredentialStore::Instance()->TryUnlock();
+		theCluster->ConnectSavedTargets();
+		connect(theCluster, SIGNAL(TargetsChanged()), this, SLOT(UpdateTargetMenu()));
+
+		//
+		// Relayed rather than connected to directly by the views: theCluster
+		// may not exist when they are built, theGUI always does.
+		//
+		connect(theCluster, SIGNAL(ViewSystemChanged()), this, SLOT(OnViewSystemChanged()));
+		connect(theCluster, SIGNAL(ActiveSystemChanged()), this, SLOT(OnActiveSystemChanged()));
+
+		//
+		// A machine going away, which was emitted and listened to by nobody.
+		//
+		// The panels hold their selection by shared pointer, so a process from a
+		// disconnected machine stays alive in whatever is showing it and goes on
+		// being drawn - a frozen page claiming to be a machine that is not there.
+		// Worse, it used to be a crash: see NEXT.md 5.44 and
+		// CAbstractInfo::GetSystem, which is why holding one is now merely wrong
+		// rather than fatal. This is what makes it not wrong either.
+		//
+		connect(theCluster, SIGNAL(NodeRemoved(const CSystemPtr&)),
+			this, SLOT(OnNodeRemoved(const CSystemPtr&)));
+	}
+	return theCluster;
+}
+
+//
+// A machine has gone. Anything still showing it stops.
+//
+// Only the task panel is told: it is the one place that holds a selection
+// across refreshes. The process tree rebuilds itself from the cluster every
+// round, so a departed machine's rows leave on their own - and the system panel
+// follows CCluster::GetViewSystem, which Disconnect() has already changed.
+//
+// Not a crash any more either way - see CAbstractInfo::GetSystem - but a panel
+// that goes on drawing a machine nobody is connected to is a lie that looks
+// like data.
+//
+void CTaskExplorer::OnNodeRemoved(const CSystemPtr& pSystem)
+{
+	if (m_pTaskInfo)
+		m_pTaskInfo->DropSystem(pSystem);
+}
+
+//
+// The panels are now looking at a different machine.
+//
+// Order matters. The views re-point their subscriptions on ViewSystemChanged,
+// then ReloadPanels throws away what they were holding, and only then is
+// anything asked again - the other way round would refill the models from the
+// machine that is being left.
+//
+//
+// Re-read the tab names into the View menu.
+//
+// Only the text: which action maps to which tab is fixed at construction and
+// does not move, so m_Act2Tab stays as it is.
+//
+//
+// What one tab is called in the View menu.
+//
+// The tab's own name, and for a tab that is about the other kind of system, the
+// name of that system after it.
+//
+// Every tab is built on every platform, because a viewer watching another
+// machine needs the tabs that machine has - so this menu offers a Windows
+// viewer the control group and security tabs, which will be blank on everything
+// it can see locally. Somebody turning one on should be told that before they
+// wonder why, and the answer is not "you cannot have it" but "this is for the
+// other sort of machine": there is nothing wrong with turning it on if what you
+// are here for is a Linux box across the network.
+//
+// Only in the menu. The tab keeps its own name - the panel is already showing
+// whichever machine is selected, and its title bar is not the place to argue
+// about platforms.
+//
+QString CTaskExplorer::TabMenuLabel(CTabPanel* pPanel, int Index)
+{
+	const QString Name = pPanel->GetTabLabel(Index);
+
+	const int Platform = pPanel->GetTabPlatform(Index);
+	if (Platform == CTabPanel::eAnyPlatform)
+		return Name;
+
+	//
+	// Against the platform this program runs on rather than the machine being
+	// looked at: the menu is a lasting choice about which tabs exist, while the
+	// selection moves from row to row. A note that changed as the user clicked
+	// about would say nothing.
+	//
+#ifdef WIN32
+	const int OwnPlatform = CSystemAPI::eOsWindows;
+#else
+	const int OwnPlatform = CSystemAPI::eOsLinux;
+#endif
+	if (Platform == OwnPlatform)
+		return Name;
+
+	return tr("%1 (%2)").arg(Name).arg(Platform == CSystemAPI::eOsWindows ? tr("Windows") : tr("Linux"));
+}
+
+void CTaskExplorer::UpdateTabMenus()
+{
+	for (QMap<QAction*, int>::const_iterator I = m_Act2Tab.begin(); I != m_Act2Tab.end(); ++I)
+	{
+		CTabPanel* pPanel = (I.key()->parentWidget() == m_pMenuSysTabs)
+			? (CTabPanel*)m_pSystemInfo : (CTabPanel*)m_pTaskInfo;
+		I.key()->setText(TabMenuLabel(pPanel, I.value()));
+	}
+}
+
+//
+// The graphs are about a different machine now.
+//
+// Deliberately much less than OnViewSystemChanged does: nothing that holds a
+// list has to throw anything away, because no list is about this machine. The
+// graph bar clears itself on the relayed signal, the status line is rewritten
+// on the next tick anyway, and the labels say which machine is meant.
+//
+void CTaskExplorer::OnActiveSystemChanged()
+{
+	emit ActiveSystemChanged();
+	UpdateMachineLabels();
+}
+
+void CTaskExplorer::OnViewSystemChanged()
+{
+	//
+	// Not ReloadPanels. That one also clears the process tree - which holds
+	// *every* machine, not the one being looked at - and rebuilding it drops
+	// the selection, which is what moved the view system in the first place.
+	// The panels that hold machine-scoped lists clear themselves on this
+	// signal instead.
+	//
+	emit ViewSystemChanged();
+
+	UpdateMachineLabels();
+	UpdateAll();
+}
+
+//
+// Read this machine directly, or through a daemon running on it.
+//
+// The point of the daemon is that it can be privileged where the viewer is not,
+// so when one is there it is the better source and is used. What stops that
+// being a surprise is the title bar, which says which of the two is in force.
+//
+// The escape hatch is a command-line switch rather than a setting, because the
+// choice is made once at startup and cannot be changed while running: the
+// window is either reading a local collector or a socket, and everything from
+// the process tree to the graph bar is built on that. A setting would suggest
+// otherwise.
+//
+// Only without the machine layer. With it on, this machine already has a branch
+// of its own read directly, and a daemon for the same machine would be a second
+// branch for it - two rows for one computer, disagreeing about the details.
+//
+void CTaskExplorer::TryLocalDaemon()
+{
+	m_bSelfContained = QCoreApplication::arguments().contains("-self-contained");
+	m_bDaemonPresent = false;
+
+	if (CCluster::IsClusterMode())
+		return;
+
+	m_bDaemonPresent = CCluster::IsLocalDaemonPresent();
+	if (!m_bDaemonPresent || m_bSelfContained)
+	{
+		UpdateTargetMenu();
+		UpdateTitle();
+		return;
+	}
+
+	STATUS Status;
+	if (EnsureCluster()->ConnectLocalDaemon(&Status).isNull())
+	{
+		//
+		// Something is listening on the endpoint but it is not a daemon this
+		// viewer can talk to. Said in the status bar rather than in a box: the
+		// window works perfectly well without it, and a modal error before the
+		// window is even shown is a poor way to start.
+		//
+		m_bSelfContained = true;
+		statusBar()->showMessage(tr("Could not use the local daemon: %1").arg(FormatError(Status)), 30000);
+	}
+
+	//
+	// Both of these ran before the probe did - ApplyOptions calls them - so the
+	// Tasks entry offering the other mode does not exist yet and the title does
+	// not know which mode this is. Nothing calls them again on its own when
+	// nothing connected.
+	//
+	UpdateTargetMenu();
+	UpdateTitle();
+}
+
+void CTaskExplorer::OnSwitchMode()
+{
+	const bool bToSelfContained = CCluster::IsLocalDaemon(CCluster::GetActiveSystem().data());
+
+	if (QMessageBox::question(this, "TaskExplorer",
+		bToSelfContained ? tr("Restart TaskExplorer without the local daemon?")
+		                 : tr("Restart TaskExplorer using the local daemon?"),
+		QMessageBox::Yes | QMessageBox::No, QMessageBox::No) != QMessageBox::Yes)
+		return;
+
+	//
+	// -multi because this instance has not exited yet, and without it the new
+	// process would signal this one and quit. The same reason OnElevate passes
+	// it on Linux.
+	//
+	QStringList Args;
+	Args << "-multi";
+	if (bToSelfContained)
+		Args << "-self-contained";
+
+	if (!QProcess::startDetached(QCoreApplication::applicationFilePath(), Args))
+	{
+		QMessageBox::warning(this, "TaskExplorer", tr("Could not start a new instance."));
+		return;
+	}
+
+	OnExit();
+}
+
+//
+// The window's name for itself.
+//
+// Rebuilt rather than set once, because what the window is about can change
+// while it is open: with the machine layer off, connecting to a machine makes
+// the whole window that machine's, and the name goes first because it is the
+// one thing that says so at a glance.
+//
+// The kernel-driver badge and the elevation suffix stay behind in that case.
+// Both describe *this* process - what its own driver can do, and what account
+// it is running as - and neither says anything about the machine being watched,
+// so they would read as claims about the wrong computer.
+//
+void CTaskExplorer::UpdateTitle()
+{
+	CSystemPtr pActive = CCluster::GetActiveSystem();
+
+	//
+	// Never a machine name in cluster mode. The window holds all of them there,
+	// and naming the one whose graphs happen to be shown would claim the whole
+	// window is about it. Out of cluster mode there is exactly one machine on
+	// screen and the title is where it is said.
+	//
+	const bool bRemote = !CCluster::IsClusterMode() && !pActive.isNull() && pActive != theSystem;
+
+	//
+	// The daemon is a remote system by every mechanism, but it is not another
+	// machine - it is this one, seen through something else. Naming the machine
+	// would put this computer's own name in the title as though it were
+	// somewhere else, so the mode is named instead.
+	//
+	const bool bDaemon = bRemote && CCluster::IsLocalDaemon(pActive.data());
+
+	QString appTitle;
+	if (bRemote && !bDaemon)
+		appTitle = tr("%1 - TaskExplorer v%2").arg(::GetMachineDisplayName(pActive.data())).arg(GetVersion());
+	else
+	{
+		appTitle = tr("TaskExplorer v%1").arg(GetVersion());
+
+		//
+		// Which of the two ways this machine is being read. Said only when
+		// there is a choice to have made: with no daemon on the machine there
+		// is one way to do it, and naming it would be answering a question
+		// nobody asked.
+		//
+		if (bDaemon)
+			appTitle.append(tr(" - [local daemon]"));
+		else if (m_bDaemonPresent)
+			appTitle.append(tr(" - [self-contained]"));
+
+		//
+		// The driver's trust level, as a short badge in the title bar - and
+		// only while this process is the one doing the collecting. In daemon
+		// mode the driver that matters is the daemon's, which this viewer has
+		// not asked about; showing its own would describe something nobody is
+		// looking at.
+		//
+		if (!bDaemon)
+		{
+			const QString Badge = GetKernelBadge(theSystem->GetKernelDriver());
+			if (!Badge.isEmpty())
+				appTitle.append(" - " + Badge);
+		}
+
+		if (theSystem->RootAvaiable())
+			appTitle.append(theSystem->GetOsType() == CSystemAPI::eOsWindows ? tr(" (Administrator)") : tr(" (root)"));
+	}
+
+	this->setWindowTitle(appTitle);
+}
+
+//
+// Who is who, on screen.
+//
+// The status line reports the local machine whatever the panels are showing, as
+// does the graph bar directly above it, so it says which one that is - but only
+// while there is another machine it could be confused with. The panel names the
+// one it is showing for the same reason.
+//
+//
+// Refills the toolbar's machine list and points it at the current one.
+//
+// Rebuilt rather than patched, because the two things that would have to be
+// kept in step - which machines exist and which one is selected - both change
+// from outside this window, and a list of at most a handful of rows is not
+// worth the bookkeeping.
+//
+// Signals are blocked while it happens: setCurrentIndex on a box being rebuilt
+// would otherwise report a selection nobody made, and moving the view system
+// is not a thing to do by accident.
+//
+void CTaskExplorer::UpdateMachineBox()
+{
+	if (!m_pMachineBox || !m_pMachineBoxAction)
+		return;
+
+	const QList<CSystemPtr> Systems = CCluster::GetSystems();
+
+	//
+	// One machine is not a choice. The title bar already names it.
+	//
+	m_pMachineBoxAction->setVisible(Systems.count() > 1);
+	if (Systems.count() < 2) {
+		m_pMachineBox->clear();
+		return;
+	}
+
+	const CSystemPtr pActive = CCluster::GetActiveSystem();
+
+	const bool bWas = m_pMachineBox->blockSignals(true);
+	m_pMachineBox->clear();
+	foreach(const CSystemPtr& pSystem, Systems)
+	{
+		if (pSystem.isNull())
+			continue;
+
+		//
+		// The same name the machine branch is drawn with, so that the box and
+		// the tree are plainly talking about the same computer.
+		//
+		m_pMachineBox->addItem(::GetMachineDisplayName(pSystem.data()), (qulonglong)(quintptr)pSystem.data());
+		if (pSystem == pActive)
+			m_pMachineBox->setCurrentIndex(m_pMachineBox->count() - 1);
+	}
+	m_pMachineBox->blockSignals(bWas);
+}
+
+void CTaskExplorer::UpdateMachineLabels()
+{
+	//
+	// Only in cluster mode. With the machine layer off there is one machine on
+	// screen and the title bar names it, so a second label would be repeating
+	// what the window is already called.
+	//
+	const bool bNeeded = CCluster::IsClusterMode() && CCluster::GetSystems().count() > 1;
+
+	//
+	// The machine the bar above it is plotting, which since the graphs began
+	// following the selection is not always the local one - see
+	// CCluster::GetActiveSystem.
+	//
+	if (m_pStausMachine)
+		m_pStausMachine->setText(bNeeded ? CCluster::GetActiveSystem()->GetHostName() + "    " : QString());
+
+	UpdateMachineBox();
+	if (m_pSystemInfo)
+		m_pSystemInfo->UpdateMachineLabel();
+
+	UpdateTitle();
+}
+
+void CTaskExplorer::OnDisconnect()
+{
+	if (!theCluster)
+		return;
+
+	QStringList Names;
+	foreach(const STarget& Target, theCluster->GetTargets())
+	{
+		if (Target.State == STarget::eConnected)
+			Names.append(Target.Name);
+	}
+	if (Names.isEmpty())
+		return;
+
+	bool bOk = false;
+	QString Name = Names.count() == 1 ? Names.first()
+		: QInputDialog::getItem(this, tr("Disconnect"), tr("Machine to disconnect:"), Names, 0, false, &bOk);
+	if (Names.count() > 1 && !bOk)
+		return;
+
+	theCluster->Disconnect(Name);
+	UpdateTargetMenu();
+	UpdateAll();
+}
+
+//
+// Whether disconnecting is something that can be done at all.
+//
+void CTaskExplorer::UpdateTargetMenu()
+{
+	int Connected = 0;
+	if (theCluster)
+	{
+		foreach(const STarget& Target, theCluster->GetTargets())
+			if (Target.State == STarget::eConnected)
+				Connected++;
+	}
+	//
+	// Whether the machines have to be named at all is a property of how many
+	// are in view, not of which one is selected - so it is answered here, where
+	// a machine joining or leaving is already being reacted to, as well as when
+	// the selection moves.
+	//
+	UpdateMachineLabels();
+
+	//
+	// The other way of reading this machine, offered only when there is one -
+	// which means a daemon has to be there, and the machine layer has to be off
+	// for it to have anywhere to go.
+	//
+	if (m_pMenuSwitchMode)
+	{
+		//
+		// Which way round it reads follows what is in force *now*, not what was
+		// asked for at startup - the daemon can also be dropped from the
+		// Disconnect entry, and after that this run is self-contained whatever
+		// it set out to be.
+		//
+		const bool bUsingDaemon = CCluster::IsLocalDaemon(CCluster::GetActiveSystem().data());
+
+		m_pMenuSwitchMode->setVisible(m_bDaemonPresent && !CCluster::IsClusterMode());
+		m_pMenuSwitchMode->setText(bUsingDaemon ? tr("Restart self-contained...")
+		                                        : tr("Restart using the local daemon..."));
+	}
+
+	if (m_pMenuDisconnect)
+	{
+		//
+		// Hidden entirely in cluster mode rather than merely disabled: with
+		// several machines drawn side by side a single global "disconnect" has
+		// no obvious subject, and the answer - which machine? - is already
+		// asked and answered by right-clicking the one meant. Outside cluster
+		// mode there is one connection and the global entry is the only place
+		// to end it.
+		//
+		const bool bCluster = m_pProcessTree && m_pProcessTree->IsMultiMachine();
+		m_pMenuDisconnect->setVisible(!bCluster);
+		m_pMenuDisconnect->setEnabled(Connected > 0);
+	}
+}
+
 void CTaskExplorer::OnChangePersistence(QAction* pAction)
 {
 	quint64 Persistence = pAction->data().toULongLong();
@@ -801,17 +1636,6 @@ size_t getHeapUsage()
 	return usedMemory;
 }
 
-FORCEINLINE ULONG PhpGetObjectTypeObjectCount(
-	_In_ PPH_OBJECT_TYPE ObjectType
-)
-{
-	PH_OBJECT_TYPE_INFORMATION info;
-
-	memset(&info, 0, sizeof(PH_OBJECT_TYPE_INFORMATION));
-	if (ObjectType) PhGetObjectTypeInformation(ObjectType, &info);
-
-	return info.NumberOfObjects;
-}
 
 #endif
 
@@ -833,60 +1657,7 @@ void CTaskExplorer::timerEvent(QTimerEvent* pEvent)
 
 
 
-		PH_STRING_BUILDER stringBuilder;
-		PhInitializeStringBuilder(&stringBuilder, 50);
-		PhAppendStringBuilder2(&stringBuilder, L"OBJECT INFORMATION\r\n");
-
-#define OBJECT_TYPE_COUNT(Type) PhAppendFormatStringBuilder(&stringBuilder, \
-    TEXT(#Type) L": %lu objects\r\n", PhpGetObjectTypeObjectCount(Type))
-
-		// ref
-		OBJECT_TYPE_COUNT(PhObjectTypeObject);
-
-		// basesup
-		OBJECT_TYPE_COUNT(PhStringType);
-		OBJECT_TYPE_COUNT(PhBytesType);
-		OBJECT_TYPE_COUNT(PhListType);
-		OBJECT_TYPE_COUNT(PhPointerListType);
-		OBJECT_TYPE_COUNT(PhHashtableType);
-		OBJECT_TYPE_COUNT(PhFileStreamType);
-
-		// ph
-		OBJECT_TYPE_COUNT(PhSymbolProviderType);
-
-#ifdef DEBUG
-		PhAppendStringBuilder2(&stringBuilder, L"STATISTIC INFORMATION\r\n");
-
-#define PRINT_STATISTIC(Name) PhAppendFormatStringBuilder(&stringBuilder, \
-    TEXT(#Name) L": %u\r\n", PhLibStatisticsBlock.Name)
-
-		PRINT_STATISTIC(BaseThreadsCreated);
-		PRINT_STATISTIC(BaseThreadsCreateFailed);
-		PRINT_STATISTIC(BaseStringBuildersCreated);
-		PRINT_STATISTIC(BaseStringBuildersResized);
-		PRINT_STATISTIC(RefObjectsCreated);
-		PRINT_STATISTIC(RefObjectsDestroyed);
-		PRINT_STATISTIC(RefObjectsAllocated);
-		PRINT_STATISTIC(RefObjectsFreed);
-		PRINT_STATISTIC(RefObjectsAllocatedFromSmallFreeList);
-		PRINT_STATISTIC(RefObjectsFreedToSmallFreeList);
-		PRINT_STATISTIC(RefObjectsAllocatedFromTypeFreeList);
-		PRINT_STATISTIC(RefObjectsFreedToTypeFreeList);
-		PRINT_STATISTIC(RefObjectsDeleteDeferred);
-		PRINT_STATISTIC(RefAutoPoolsCreated);
-		PRINT_STATISTIC(RefAutoPoolsDestroyed);
-		PRINT_STATISTIC(RefAutoPoolsDynamicAllocated);
-		PRINT_STATISTIC(RefAutoPoolsDynamicResized);
-		PRINT_STATISTIC(QlBlockSpins);
-		PRINT_STATISTIC(QlBlockWaits);
-		PRINT_STATISTIC(QlAcquireExclusiveBlocks);
-		PRINT_STATISTIC(QlAcquireSharedBlocks);
-		PRINT_STATISTIC(WqWorkQueueThreadsCreated);
-		PRINT_STATISTIC(WqWorkQueueThreadsCreateFailed);
-		PRINT_STATISTIC(WqWorkItemsQueued);
-#endif
-
-		DbgPrint(L"%s\n", CastPhString(PhFinalStringBuilderString(&stringBuilder)).utf16());
+		theSystem->DumpObjectCounts();
 	}
 #endif
 
@@ -897,14 +1668,18 @@ void CTaskExplorer::timerEvent(QTimerEvent* pEvent)
 	UpdateUserMenu();
 
 	m_pMenuShowTree->setChecked(m_pProcessTree->IsTree());
-	m_pMenuExpandAll->setEnabled(m_pProcessTree->IsTree());
+	m_pMenuMultiUser->setChecked(m_pProcessTree->IsMultiUser());
+	//
+	// Expanding is worth offering whenever there is anything to expand, and
+	// grouping by user makes branches even in list mode.
+	//
+	m_pMenuExpandAll->setEnabled(m_pProcessTree->IsTree() || m_pProcessTree->IsMultiUser());
 
-#ifdef WIN32
-	// The system monitor toggle is driven by the KSystemInformer driver
-	// connection, which has no Linux counterpart.
-	if (KphCommsIsConnected()) {
+#ifdef WIN32	// the driver-backed system monitor
+	// The system monitor toggle is driven by the kernel driver, where there is one.
+	if (theSystem->GetKernelDriver().Connected) {
 		m_pMenuMonitorSYS->setEnabled(true);
-		m_pMenuMonitorSYS->setChecked(KphGetSystemMon());
+		m_pMenuMonitorSYS->setChecked(theSystem->IsSystemMonitorOn());
 	}
 	else if (m_pMenuMonitorSYS->isEnabled()) {
 		m_pMenuMonitorSYS->setEnabled(false);
@@ -939,7 +1714,19 @@ void CTaskExplorer::timerEvent(QTimerEvent* pEvent)
 
 void CTaskExplorer::UpdateAll()
 {
-	QTimer::singleShot(0, theAPI, SLOT(UpdateAll()));
+	//
+	// Every connected machine, not only the local one. Each refreshes in its own
+	// thread, so the slow one does not hold up the others.
+	//
+	foreach(const CSystemPtr& pSystem, CCluster::GetSystems())
+		QTimer::singleShot(0, pSystem.data(), SLOT(UpdateAll()));
+
+	//
+	// And one attempt at any whose connection died. Here because this is the one
+	// place that runs on a clock; the attempts themselves are posted and do not
+	// hold this up.
+	//
+	CCluster::RetryLostNodes();
 
 	if (!isVisible() || windowState().testFlag(Qt::WindowMinimized))
 		return;
@@ -954,7 +1741,7 @@ void CTaskExplorer::UpdateAll()
 void CTaskExplorer::RefreshAll()
 {
 	if(m_pHoldButton->isChecked())
-		QTimer::singleShot(0, theAPI, SLOT(ClearPersistence()));
+		QTimer::singleShot(0, theSystem.data(), SLOT(ClearPersistence()));
 
 	UpdateAll();
 }
@@ -1000,52 +1787,68 @@ void CTaskExplorer::OnViewFilter()
 
 void CTaskExplorer::UpdateStatus()
 {
-	m_pStausCPU->setText(tr("CPU: %1%    ").arg(int(100 * theAPI->GetCpuUsage())));
-	m_pStausCPU->setToolTip(theAPI->GetCpuModel());
+	m_pStausCPU->setText(tr("CPU: %1%    ").arg(int(100 * CCluster::GetActiveSystem()->GetCpuUsage())));
+	m_pStausCPU->setToolTip(CCluster::GetActiveSystem()->GetCpuModel());
 
-	QMap<QString, CGpuMonitor::SGpuInfo> GpuList = theAPI->GetGpuMonitor()->GetAllGpuList();
-
+	//
+	// A machine this process is not collecting from has no device monitors -
+	// only aggregate counters cross the wire - so these read empty rather than
+	// wrong. See CSystemAPI's constructor.
+	//
 	QString GPU;
 	QStringList GpuInfos;
-	int i = 0;
-	foreach(const CGpuMonitor::SGpuInfo &GpuInfo, GpuList)
+	if (CGpuMonitor* pGpuMonitor = CCluster::GetActiveSystem()->GetGpuMonitor())
 	{
-		GPU.append(tr("GPU-%1: %2%    ").arg(i).arg(int(100 * GpuInfo.TimeUsage)));
-		GpuInfos.append(GpuInfo.Description);
-		i++;
+		int i = 0;
+		foreach(const CGpuMonitor::SGpuInfo &GpuInfo, pGpuMonitor->GetAllGpuList())
+		{
+			GPU.append(tr("GPU-%1: %2%    ").arg(i).arg(int(100 * GpuInfo.TimeUsage)));
+			GpuInfos.append(GpuInfo.Description);
+			i++;
+		}
 	}
 	m_pStausGPU->setToolTip(GpuInfos.join("\r\n"));
 	m_pStausGPU->setText(GPU);
 
-	quint64 RamUsage = theAPI->GetPhysicalUsed();
-	quint64 SwapedMemory = theAPI->GetSwapedOutMemory();
-	quint64 CommitedMemory = theAPI->GetCommitedMemory();
+	quint64 RamUsage = CCluster::GetActiveSystem()->GetPhysicalUsed();
+	quint64 SwapedMemory = CCluster::GetActiveSystem()->GetSwapedOutMemory();
+	quint64 CommitedMemory = CCluster::GetActiveSystem()->GetCommitedMemory();
 
-	quint64 InstalledMemory = theAPI->GetInstalledMemory();
-	quint64 TotalSwap = theAPI->GetTotalSwapMemory();
+	quint64 InstalledMemory = CCluster::GetActiveSystem()->GetInstalledMemory();
+	quint64 TotalSwap = CCluster::GetActiveSystem()->GetTotalSwapMemory();
 
-#ifdef WIN32
-	quint64 TotalMemory = Max(theAPI->GetInstalledMemory(), theAPI->GetCommitedMemory()); // theAPI->GetMemoryLimit();
-	quint64 CommitScale = TotalMemory;
-#else
 	//
-	// On Linux the commit charge (Committed_AS) counts virtual reservations and
-	// routinely exceeds installed RAM under the default overcommit policy.
+	// How the commit charge relates to installed memory differs by system.
 	//
-	// Folding it into the scale the way the Windows path does would make
-	// Max() select the commit charge itself, so the commit bar would divide by
-	// its own value and sit permanently at 100% - and the physical bars would
-	// be squashed against it.
+	// On Linux Committed_AS counts virtual reservations and routinely exceeds
+	// installed RAM under the default overcommit policy; folding it into the
+	// scale would make Max() pick the commit charge itself, so the commit bar
+	// would divide by its own value and sit permanently at 100%.
 	//
-	// So the physical bars are scaled against installed RAM, and the commit bar
-	// against the commit limit, which is what it is actually bounded by. This
-	// matches how the memory graph in GraphBar.cpp already scales it.
-	//
-	quint64 TotalMemory = theAPI->GetInstalledMemory();
-	quint64 CommitScale = theAPI->GetMemoryLimit();
-	if (CommitScale == 0)
+	quint64 TotalMemory;
+	quint64 CommitScale;
+	if (CCluster::GetActiveSystem()->GetOsType() == CSystemAPI::eOsWindows)
+	{
+		TotalMemory = Max(CCluster::GetActiveSystem()->GetInstalledMemory(), CCluster::GetActiveSystem()->GetCommitedMemory());
 		CommitScale = TotalMemory;
-#endif
+	}
+	else
+	{
+		//
+		// The physical bars are scaled against installed RAM and the commit bar
+		// against the commit limit, which is what it is actually bounded by -
+		// the same way the memory graph in GraphBar.cpp already scales it.
+		//
+		// Assigned, not declared. Declaring them here again made two more
+		// variables of the same name that died with this block, leaving the
+		// ones read further down uninitialised. It never showed while the
+		// status line could only ever report the local, Windows machine.
+		//
+		TotalMemory = CCluster::GetActiveSystem()->GetInstalledMemory();
+		CommitScale = CCluster::GetActiveSystem()->GetMemoryLimit();
+		if (CommitScale == 0)
+			CommitScale = TotalMemory;
+	}
 
 	if(TotalSwap > 0)
 		m_pStausMEM->setText(tr("Memory: %1/%2/(%3 + %4)    ").arg(FormatSize(RamUsage)).arg(FormatSize(CommitedMemory)).arg(FormatSize(InstalledMemory)).arg(FormatSize(TotalSwap)));
@@ -1060,7 +1863,7 @@ void CTaskExplorer::UpdateStatus()
 	m_pStausMEM->setToolTip(MemInfo.join("\r\n"));
 
 
-	SSysStats SysStats = theAPI->GetStats();
+	SSysStats SysStats = CCluster::GetActiveSystem()->GetStats();
 
 	QString IO;
 	IO += tr("R: %1").arg(FormatRate(qMax(SysStats.Io.ReadRate.Get(), qMax(SysStats.MMapIo.ReadRate.Get(), SysStats.Disk.ReadRate.Get()))));
@@ -1072,15 +1875,32 @@ void CTaskExplorer::UpdateStatus()
 	IOInfo.append(tr("FileIO; Read: %1; Write: %2; Other: %3").arg(FormatRate(SysStats.Io.ReadRate.Get())).arg(FormatRate(SysStats.Io.WriteRate.Get())).arg(FormatRate(SysStats.Io.OtherRate.Get())));
 	IOInfo.append(tr("MMapIO; Read: %1; Write: %2").arg(FormatRate(SysStats.MMapIo.ReadRate.Get())).arg(FormatRate(SysStats.MMapIo.WriteRate.Get())));
 #ifdef WIN32
-	if(((CWindowsAPI*)theAPI)->HasExtProcInfo() || ((CWindowsAPI*)theAPI)->IsMonitoringETW())
+	if(CCluster::GetActiveSystem()->HasCapability(CSystemAPI::eCapExtProcInfo) || CCluster::GetActiveSystem()->IsMonitoringETW())
 		IOInfo.append(tr("DiskIO; Read: %1; Write: %2").arg(FormatRate(SysStats.Disk.ReadRate.Get())).arg(FormatRate(SysStats.Disk.WriteRate.Get())));
 #endif
 	m_pStausIO->setToolTip(IOInfo.join("\r\n"));
 
-	CNetMonitor* pNetMonitor = theAPI->GetNetMonitor();
+	CNetMonitor* pNetMonitor = CCluster::GetActiveSystem()->GetNetMonitor();
 
-	CNetMonitor::SDataRates NetRates = pNetMonitor->GetTotalDataRate(CNetMonitor::eNet);
-	CNetMonitor::SDataRates RasRates = pNetMonitor->GetTotalDataRate(CNetMonitor::eRas);
+	CNetMonitor::SDataRates NetRates;
+	CNetMonitor::SDataRates RasRates;
+	if (pNetMonitor)
+	{
+		NetRates = pNetMonitor->GetTotalDataRate(CNetMonitor::eNet);
+		RasRates = pNetMonitor->GetTotalDataRate(CNetMonitor::eRas);
+	}
+	else
+	{
+		//
+		// No adapter list from a machine this process does not collect from, but
+		// its total throughput does cross the wire - see API_SYS_NETRECVBYTES.
+		// A different measurement of the same thing, and closer to the truth
+		// than a flat zero next to a machine that is plainly busy. RAS has no
+		// such counter and stays empty.
+		//
+		NetRates.ReceiveRate = SysStats.Net.ReceiveRate.Get();
+		NetRates.SendRate = SysStats.Net.SendRate.Get();
+	}
 
 	QString Net;
 	Net += tr("D: %1").arg(FormatRate(NetRates.ReceiveRate));
@@ -1098,7 +1918,7 @@ void CTaskExplorer::UpdateStatus()
 	if (!m_pTrayIcon->isVisible())
 		return;
 
-	QString TrayInfo = tr("Task Explorer\r\nCPU: %1%\r\nRam: %2%").arg(int(100 * theAPI->GetCpuUsage()))
+	QString TrayInfo = tr("Task Explorer\r\nCPU: %1%\r\nRam: %2%").arg(int(100 * CCluster::GetActiveSystem()->GetCpuUsage()))
 		.arg(InstalledMemory > 0 ? (int)100 * RamUsage / InstalledMemory : 0);
 	if (TotalSwap > 0)
 		TrayInfo.append(tr("\r\nSwap: %1%").arg((int)100 * SwapedMemory / TotalSwap));
@@ -1144,7 +1964,7 @@ void CTaskExplorer::UpdateStatus()
 			offset = 6;
 			qp.fillRect(0, 0, offset, TrayIcon.height(), Qt::black);
 
-			float used_x = hVal * theAPI->GetPhysicalUsed() / InstalledMemory;
+			float used_x = hVal * CCluster::GetActiveSystem()->GetPhysicalUsed() / InstalledMemory;
 
 			qp.setPen(QPen(Qt::cyan, 2));
 			qp.drawLine(3, (hVal+1), 3, (hVal+1) - used_x);
@@ -1159,7 +1979,7 @@ void CTaskExplorer::UpdateStatus()
 			offset = 3;
 			qp.fillRect(0, 0, offset, TrayIcon.height(), Qt::black);
 
-			float used_x = hVal * theAPI->GetPhysicalUsed() / InstalledMemory;
+			float used_x = hVal * CCluster::GetActiveSystem()->GetPhysicalUsed() / InstalledMemory;
 
 			qp.setPen(QPen(Qt::cyan, 2));
 			qp.drawLine(1, (hVal+1), 1, (hVal+1) - used_x);
@@ -1199,9 +2019,9 @@ void CTaskExplorer::UpdateStatus()
 		}
 
 		// Note: we may add an cuttof show 0 below 10%
-		m_pTrayGraph->SetValue(0, theAPI->GetCpuUsage());
-		m_pTrayGraph->SetValue(1, theAPI->GetCpuKernelUsage());
-		m_pTrayGraph->SetValue(2, theAPI->GetCpuDPCUsage());
+		m_pTrayGraph->SetValue(0, CCluster::GetActiveSystem()->GetCpuUsage());
+		m_pTrayGraph->SetValue(1, CCluster::GetActiveSystem()->GetCpuKernelUsage());
+		m_pTrayGraph->SetValue(2, CCluster::GetActiveSystem()->GetCpuDPCUsage());
 
 		m_pTrayGraph->Update(TrayIcon.height(), TrayIcon.width() - offset);
 
@@ -1218,62 +2038,188 @@ void CTaskExplorer::UpdateStatus()
 
 bool CTaskExplorer::CheckErrors(QList<STATUS> Errors)
 {
-	if (Errors.isEmpty())
+	//
+	// Keep only what actually went wrong.
+	//
+	// This used to test whether the list was empty, which is not the same
+	// question: callers pass the result of an operation, not a list of
+	// failures, so the list was never empty and a successful call raised an
+	// error box reporting "0x00000000 STATUS_SUCCESS" with no message. Doing it
+	// here rather than at each call site because three of the six callers hand
+	// over an unfiltered status.
+	//
+	// A cancellation goes too. The user declining a prompt is an answer, and
+	// telling them what they just chose is noise; see TE_UserCanceled.
+	//
+	QList<STATUS> Real;
+	foreach(const STATUS& Status, Errors)
+	{
+		if (Status.IsError() && Status.GetMsgCode() != TE_UserCanceled)
+			Real.append(Status);
+	}
+
+	if (Real.isEmpty())
 		return true;
 
-	CMultiErrorDialog Dialog(tr("Operation failed for %1 item(s).").arg(Errors.size()), Errors);
+	//
+	// One failure is a sentence, not a table.
+	//
+	// The list earns its place when several things went wrong and have to be
+	// compared - which of five processes refused, and why each. For a single
+	// status it is a header row, one line, and an empty grid around it, with
+	// the message itself cut off at whatever width the column happened to
+	// take. A message box says the same thing and says it plainly.
+	//
+	if (Real.count() == 1)
+	{
+		const STATUS& Error = Real.first();
+		QString Text = FormatError(Error);
+
+		//
+		// And the platform's own words underneath, where there are any at all.
+		// ERROR_UNDEFINED means the failure was decided here rather than
+		// reported by the machine - see CMultiErrorDialog, which draws its two
+		// native columns on the same condition.
+		//
+		if (Error.GetStatus() != ERROR_UNDEFINED)
+		{
+			const QString Native = theSystem->GetStatusMessage(Error.GetStatus());
+			Text += "\n\n" + tr("0x%1: %2")
+				.arg((quint32)Error.GetStatus(), 8, 16, QChar('0')).arg(Native);
+		}
+
+		QMessageBox::warning(theGUI, tr("TaskExplorer - Error"), Text);
+		return true;
+	}
+
+	CMultiErrorDialog Dialog(tr("Operation failed for %1 item(s).").arg(Real.size()), Real);
 	return !!Dialog.exec();
 }
 
 QString CTaskExplorer::FormatID(quint64 ID) const
 {
-	return QString("%1 [0x%2]").arg(ID).arg(ID, 0, 16);
+	return ::FormatID(ID);
 }
 
-/*
+//
+// The API reports the driver's trust level as a number and its complaints as
+// flags; the wording lives here so it is in the reader's language rather than
+// the collector's.
+//
+//
+// [KTE++] and its lesser forms.
+//
+// The badge says two things at once: how far the driver trusts this process,
+// and whether it knows this kernel build well enough to be useful. A driver
+// that loaded but could not be given the version-specific offsets answers a
+// fraction of what it otherwise would, which is worth a word rather than a
+// silently smaller number.
+//
+QString CTaskExplorer::GetKernelBadge(const CSystemAPI::SKernelDriver& Driver)
+{
+	if (!Driver.Connected)
+		return QString();
+
+	static const char* Badges[] = { "---", "--", "-", "~", "+", "++" };
+	const QString Level = Badges[qBound(0, Driver.Level, 5)];
+	return tr("[%1KTE%2]").arg(Driver.DynDataLoaded ? QString() : tr("Limited ")).arg(Level);
+}
+
+QString CTaskExplorer::GetKernelLevelString(int Level)
+{
+	switch (Level)
+	{
+	case CSystemAPI::eKernelLevelNone:	return tr("None");
+	case CSystemAPI::eKernelLevelMin:	return tr("Minimal");
+	case CSystemAPI::eKernelLevelLow:	return tr("Low");
+	case CSystemAPI::eKernelLevelMed:	return tr("Medium");
+	case CSystemAPI::eKernelLevelHigh:	return tr("High");
+	case CSystemAPI::eKernelLevelMax:	return tr("Maximum");
+	}
+	return tr("N/A");
+}
+
+QStringList CTaskExplorer::GetKernelWeaknessStrings(quint32 Weaknesses)
+{
+	QStringList Info;
+	if (Weaknesses & CSystemAPI::eKsiNotSecurelyCreated)	Info.append(tr("not securely created"));
+	if (Weaknesses & CSystemAPI::eKsiUnverifiedImage)	Info.append(tr("unverified primary image"));
+	if (Weaknesses & CSystemAPI::eKsiInactiveProtections) Info.append(tr("inactive protections"));
+	if (Weaknesses & CSystemAPI::eKsiUntrustedImages)	Info.append(tr("unsigned images (likely an unsigned plugin)"));
+	if (Weaknesses & CSystemAPI::eKsiBeingDebugged)		Info.append(tr("process is being debugged"));
+	if (Weaknesses & CSystemAPI::eKsiWritableFileObject)Info.append(tr("writable file object"));
+	if (Weaknesses & CSystemAPI::eKsiNoCreateNotification) Info.append(tr("missing create notification"));
+	if (Weaknesses & CSystemAPI::eKsiTamperedImage)		Info.append(tr("tampered primary image"));
+	return Info;
+}
+
+
+//
+// The machine the machine-level menus act on.
+//
+// Checked against the cluster rather than trusted: a connection can be dropped
+// while its menu is open, and a pointer to a system that has gone would be a
+// crash where an obvious fallback exists. The local machine is always there.
+//
+CSystemAPI* CTaskExplorer::GetActionSystem() const
+{
+	if (m_pActionSystem)
+	{
+		foreach(const CSystemPtr& pSystem, CCluster::GetSystems())
+		{
+			if (pSystem.data() == m_pActionSystem)
+				return m_pActionSystem;
+		}
+	}
+	return theSystem.data();
+}
+
+QMenu* CTaskExplorer::GetComputerMenu(CSystemAPI* pSystem)
+{
+	SetActionSystem(pSystem);
+	return m_pMenuComputer;
+}
+
+QMenu* CTaskExplorer::GetUsersMenu(CSystemAPI* pSystem)
+{
+	SetActionSystem(pSystem);
+
+	//
+	// Rebuilt here rather than left to the refresh timer, because the menu is
+	// about to be shown for a machine it may not currently be describing.
+	//
+	UpdateUserMenu();
+	return m_pMenuUsers;
+}
+
+//
+// The Tasks menu is this computer's, so opening it says so.
+//
+// Without this the target would still be whichever machine branch was last
+// right-clicked, and "Shutdown" in the menu bar would shut down that one - the
+// exact confusion the branch menu used to avoid by hiding itself.
+//
+void CTaskExplorer::OnTaskMenu()
+{
+	SetActionSystem(NULL);
+	UpdateUserMenu();
+}
+
 void CTaskExplorer::OnRun()
 {
-#ifdef WIN32
-    SelectedRunAsMode = 0;
-    PhShowRunFileDialog(PhMainWndHandle, NULL, NULL, NULL, NULL, RFF_OPTRUNAS);
-#endif
-}
-
-void CTaskExplorer::OnRunAdmin()
-{
-#ifdef WIN32
-    SelectedRunAsMode = RUNAS_MODE_ADMIN;
-    PhShowRunFileDialog(PhMainWndHandle, NULL, NULL, NULL, L"Type the name of a program that will be opened under alternate credentials.", 0);
-#endif
-}
-
-void CTaskExplorer::OnRunUser()
-{
-#ifdef WIN32
-    SelectedRunAsMode = RUNAS_MODE_LIMITED;
-    PhShowRunFileDialog(PhMainWndHandle, NULL, NULL, NULL, L"Type the name of a program that will be opened under standard user privileges.", 0);
-#endif
-}
-*/
-
-void CTaskExplorer::OnRun()
-{
-	CRunDialog* pWnd = new CRunDialog();
+	CRunDialog* pWnd = new CRunDialog(GetActionSystem());
 	pWnd->show();
 }
 
 void CTaskExplorer::OnRunAs()
 {
-	CRunAsDialog* pWnd = new CRunAsDialog();
+	CRunAsDialog* pWnd = new CRunAsDialog(GetActionSystem());
 	pWnd->show();
 }
 
 void CTaskExplorer::OnRunSys()
 {
-#ifdef WIN32
-    SelectedRunAsMode = RUNAS_MODE_SYS;
-    PhShowRunFileDialog(PhMainWndHandle, NULL, NULL, NULL, (PWSTR)L"Type the name of a program that will be opened as system with the TrustedInstaller token.", 0);
-#endif
+	CheckErrors(QList<STATUS>() << theSystem->ShowRunDialog(CSystemAPI::eRunAsTrustedInstaller));
 }
 
 #ifndef WIN32
@@ -1316,8 +2262,19 @@ void CTaskExplorer::OnUseHelper()
 void CTaskExplorer::OnElevate()
 {
 #ifdef WIN32
-	if (PhShellProcessHackerEx(NULL, NULL, (PWSTR)L"", SW_SHOW, PH_SHELL_EXECUTE_ADMIN, 0, 0, NULL))
-		OnExit();
+	STATUS Status = theSystem->RestartElevated();
+	if (Status.IsError())
+	{
+		//
+		// Declining the UAC prompt is an answer, not a fault, and a box telling
+		// the user what they just chose is noise. Anything else is worth saying
+		// out loud.
+		//
+		if (Status.GetMsgCode() != TE_UserCanceled)
+			QMessageBox::warning(this, "TaskExplorer", CTaskExplorer::FormatError(Status));
+		return;
+	}
+	OnExit();
 #else
 	//
 	// Relaunch ourselves through a graphical privilege escalation helper.
@@ -1330,7 +2287,7 @@ void CTaskExplorer::OnElevate()
 	                                 QStringList() << "-multi", &Pid);
 	if (Status.IsError())
 	{
-		QMessageBox::warning(this, "TaskExplorer", Status.GetText());
+		QMessageBox::warning(this, "TaskExplorer", CTaskExplorer::FormatError(Status));
 		return;
 	}
 
@@ -1440,99 +2397,131 @@ void CTaskExplorer::OnComputerAction()
 	if (QApplication::keyboardModifiers() & Qt::ControlModifier)
 		SoftForce = 0;
 
-#ifdef WIN32
-	bool bSuccess = false;
+	//
+	// Which action, and how hard to push it; the platform layer does the rest.
+	//
+	CSystemAPI::EPowerAction Action;
+	bool bForce = false;
 
 	if (sender() == m_pMenuLock || sender() == m_pComputerButton)
-		bSuccess = LockWorkStation();
+		Action = CSystemAPI::ePowerLock;
 	else if (sender() == m_pMenuLogOff)
-		bSuccess = ExitWindowsEx(EWX_LOGOFF, 0);
-	else if(sender() == m_pMenuSleep)
-		bSuccess = NT_SUCCESS(NtInitiatePowerAction(PowerActionSleep, PowerSystemSleeping1, 0, FALSE));
-	else if(sender() == m_pMenuHibernate)
-		bSuccess = NT_SUCCESS(NtInitiatePowerAction(PowerActionHibernate, PowerSystemSleeping1, 0, FALSE));
-	else if(sender() == m_pMenuRestart)
-		bSuccess = ExitWindowsEx(EWX_REBOOT, 0);
+		Action = CSystemAPI::ePowerLogOff;
+	else if (sender() == m_pMenuSleep)
+		Action = CSystemAPI::ePowerSleep;
+	else if (sender() == m_pMenuHibernate)
+		Action = CSystemAPI::ePowerHibernate;
+	else if (sender() == m_pMenuRestart)
+		Action = CSystemAPI::ePowerRestart;
 	else if (sender() == m_pMenuForceRestart)
-	{
-		switch(SoftForce)
-		{
-		case 1:	// Don't send the WM_QUERYENDSESSION message (This flag has no effect if terminal services is enabled.)
-			bSuccess = ExitWindowsEx(EWX_REBOOT | EWX_FORCE, 0); 
-			break;
-		case 2:	// Terminate processes not responding to the WM_QUERYENDSESSION or WM_ENDSESSION message.
-			bSuccess = ExitWindowsEx(EWX_REBOOT | EWX_FORCEIFHUNG, 0); 
-			break;
-		default:
-			bSuccess = NtShutdownSystem(ShutdownReboot);
-		}
-	}
-	else if(sender() == m_pMenuRestartEx)
-		bSuccess = ExitWindowsEx(EWX_REBOOT | EWX_BOOTOPTIONS, 0);
-	else if(sender() == m_pMenuShutdown)
-		// Note: EWX_SHUTDOWN does not power off
-		bSuccess = (ExitWindowsEx(EWX_POWEROFF, 0) || ExitWindowsEx(EWX_SHUTDOWN, 0));
+		{ Action = CSystemAPI::ePowerRestart; bForce = true; }
+	else if (sender() == m_pMenuRestartEx)
+		Action = CSystemAPI::ePowerRestartToOptions;
+	else if (sender() == m_pMenuShutdown)
+		Action = CSystemAPI::ePowerShutdown;
 	else if (sender() == m_pMenuForceShutdown)
-	{
-		switch (SoftForce)
-		{
-		case 1:	// Don't send the WM_QUERYENDSESSION message (This flag has no effect if terminal services is enabled.)
-			bSuccess = ExitWindowsEx(EWX_POWEROFF | EWX_FORCE, 0) || ExitWindowsEx(EWX_SHUTDOWN | EWX_FORCE, 0);
-			break;
-		case 2:	// Terminate processes not responding to the WM_QUERYENDSESSION or WM_ENDSESSION message.
-			bSuccess = ExitWindowsEx(EWX_POWEROFF | EWX_FORCEIFHUNG, 0) || ExitWindowsEx(EWX_SHUTDOWN | EWX_FORCEIFHUNG, 0);
-			break;
-		default:
-			bSuccess = NtShutdownSystem(ShutdownPowerOff);
-		}
-	}
+		{ Action = CSystemAPI::ePowerShutdown; bForce = true; }
 	else if (sender() == m_pMenuHybridShutdown)
-		bSuccess = ExitWindowsEx(EWX_POWEROFF | EWX_HYBRID_SHUTDOWN, 0);
+		Action = CSystemAPI::ePowerHybridShutdown;
+	else
+		return;
 
-	if (!bSuccess)
-		QMessageBox::critical(NULL, "TaskExplorer", tr("Failed to %1, due to: %2").arg(((QAction*)sender())->text()).arg(CastPhString(PhGetWin32Message(GetLastError()))));
-#else
-	// linux-todo:
-#endif
+	STATUS Status = GetActionSystem()->PowerAction(Action, bForce, SoftForce);
+	if (Status.IsError())
+		QMessageBox::critical(NULL, "TaskExplorer", tr("Failed to %1, due to: %2")
+			.arg(((QAction*)sender())->text()).arg(CTaskExplorer::FormatError(Status)));
 }
 
 void CTaskExplorer::UpdateUserMenu()
 {
-	QList<CSystemAPI::SUser> Users = theAPI->GetUsers();
+	//
+	// Of whichever machine the menu currently stands for. The submenu is
+	// borrowed by the machine branches in the tree, so between one being opened
+	// and the Tasks menu being opened again this is somebody else's session
+	// list - which is the point.
+	//
+	CSystemAPI* pSystem = GetActionSystem();
+
+	QList<CSystemAPI::SUser> Users = pSystem->GetUsers();
 	QSet<QString> UserNames;
 
 	m_pMenuUsers->setTitle(tr("Users (%1)").arg(Users.size()));
 
-	QMap<int, QMenu*> OldMenus = m_UserMenus;
-	
+	QMap<QString, QMenu*> OldMenus = m_UserMenus;
+	m_UserMenus.clear();
+
 	foreach(const CSystemAPI::SUser& User, Users)
 	{
 		UserNames.insert(User.UserName);
 
-		QMenu* pMenu = OldMenus.take(User.SessionId);
+		//
+		// What the platform calls this session, falling back to the number for a
+		// server too old to send it. Suffixed with the name, so that even two
+		// sessions a platform reports identically get one entry each rather than
+		// one entry twice.
+		//
+		const QString Key = (User.SessionKey.isEmpty()
+			? QString::number(User.SessionId) : User.SessionKey) + "/" + User.UserName;
+
+		//
+		// Rebuilt into a fresh map rather than edited in place, so a key that
+		// somehow repeats cannot overwrite a menu that is still in the widget and
+		// leave it untracked - which is exactly how this leaked one menu per
+		// refresh. A repeat now reuses the entry and the list stays the length
+		// the machine says it is.
+		//
+		QMenu* pMenu = OldMenus.take(Key);
+		if (!pMenu)
+			pMenu = m_UserMenus.value(Key);
 		if (!pMenu)
 		{
 			pMenu = m_pMenuUsers->addMenu(MakeActionIcon(":/Actions/User"), QString());
-			pMenu->setProperty("SessionId", User.SessionId);
 
-			pMenu->addAction(MakeActionIcon(":/Actions/Connect"), tr("Connect"), this, SLOT(OnUserAction()))->setProperty("Action", eUserConnect);
-			pMenu->addAction(MakeActionIcon(":/Actions/Disconnect"), tr("Disconnect"), this, SLOT(OnUserAction()))->setProperty("Action", eUserDisconnect);
-			pMenu->addAction(MakeActionIcon(":/Actions/Logoff"), tr("Logoff"), this, SLOT(OnUserAction()))->setProperty("Action", eUserLogoff);
+			pMenu->addAction(MakeActionIcon(":/Actions/Connect"), tr("Connect"), this, SLOT(OnUserAction()))->setProperty("Action", CSystemAPI::eUserConnect);
+			pMenu->addAction(MakeActionIcon(":/Actions/Disconnect"), tr("Disconnect"), this, SLOT(OnUserAction()))->setProperty("Action", CSystemAPI::eUserDisconnect);
+			pMenu->addAction(MakeActionIcon(":/Actions/Logoff"), tr("Logoff"), this, SLOT(OnUserAction()))->setProperty("Action", CSystemAPI::eUserLogoff);
 			/*pMenu->addSeparator();
 			pMenu->addAction(MakeActionIcon(":/Actions/SendMsg"), tr("Send message..."), this, SLOT(OnUserAction()))->setProperty("Action", eSendMessage);
 			pMenu->addAction(MakeActionIcon(":/Actions/UserInfo"), tr("Properties"), this, SLOT(OnUserAction()))->setProperty("Action", eUserInfo);*/
 
-			m_UserMenus.insert(User.SessionId, pMenu);
 		}
 
-		pMenu->setTitle(tr("%1: %2 (%3)").arg(User.SessionId).arg(User.UserName).arg(User.Status));
+		m_UserMenus.insert(Key, pMenu);
+
+		//
+		// Set every round, not only when the menu is made: it is what
+		// UserSessionAction is given, and a reused menu whose session was
+		// renumbered would otherwise act on the number it had when it was first
+		// seen.
+		//
+		pMenu->setProperty("SessionId", User.SessionId);
+
+		//
+		// Titled with what the platform calls the session, not with the number:
+		// "c1" is the answer on a machine that says c1, and 0 is not.
+		//
+		pMenu->setTitle(tr("%1: %2 (%3)")
+			.arg(User.SessionKey.isEmpty() ? QString::number(User.SessionId) : User.SessionKey)
+			.arg(User.UserName).arg(::GetSessionStateString(User)));
 	}
 
-	foreach(int SessionId, OldMenus.keys())
-		delete m_UserMenus.take(SessionId);
+	//
+	// Whatever was not claimed above belongs to a session that has gone.
+	//
+	foreach(QMenu* pOld, OldMenus)
+		delete pOld;
+
+	//
+	// The filter is about the tree, which is about this computer's accounts
+	// whatever the menu happens to be showing - so it is fed from theSystem and
+	// not from the target.
+	//
+	QSet<QString> LocalNames;
+	foreach(const CSystemAPI::SUser& User, theSystem->GetUsers())
+		LocalNames.insert(User.UserName);
 
 	CProcessFilterModel* pFilter = (CProcessFilterModel*)m_pProcessTree->GetModel();
-	pFilter->UpdateUsers(UserNames);
+	pFilter->UpdateUsers(LocalNames);
 }
 
 void CTaskExplorer::OnUserAction()
@@ -1540,45 +2529,25 @@ void CTaskExplorer::OnUserAction()
 	QAction* pAction = (QAction*)sender();
 	int SessionId = pAction->parent()->property("SessionId").toInt();
 
-#ifdef WIN32
-	bool bSuccess = false;
+	CSystemAPI::EUserAction Action = (CSystemAPI::EUserAction)pAction->property("Action").toInt();
 
-	switch (pAction->property("Action").toInt())
+	//
+	// Connecting is tried without a password first; most of the time there is
+	// none, and asking for one that is not needed is worse than one retry.
+	//
+	CSystemAPI* pSystem = GetActionSystem();
+
+	STATUS Status = pSystem->UserSessionAction(SessionId, Action);
+	if (Status.IsError() && Action == CSystemAPI::eUserConnect)
 	{
-		case eUserConnect:
-		{
-			// Try once with no password.
-			if (WinStationConnectW(NULL, SessionId, LOGONID_CURRENT, L"", TRUE))
-				bSuccess = true;
-			else
-			{
-				QString Password = QInputDialog::getText(this, "TaskExplorer", tr("Connect to session, enter Password:"), QLineEdit::Password);
-				if (!Password.isEmpty())
-					bSuccess = WinStationConnectW(NULL, SessionId, LOGONID_CURRENT, (wchar_t*)Password.toStdWString().c_str(), TRUE);
-			}
-			break;
-		}
-		case eUserDisconnect:	
-			bSuccess = WinStationDisconnect(NULL, SessionId, FALSE);
-			break;
-		case eUserLogoff:
-			bSuccess = WinStationReset(NULL, SessionId, FALSE);
-			break;
-		/*case eSendMessage:
-		{
-			//bSuccess = WinStationSendMessageW(NULL, SessionId, title->Buffer, (ULONG)title->Length, text->Buffer, (ULONG)text->Length, icon, (ULONG)timeout, &response, TRUE);
-			break;
-		}
-		case eUserInfo:	
-		{
-
-			break;
-		}*/
+		QString Password = QInputDialog::getText(this, "TaskExplorer", tr("Connect to session, enter Password:"), QLineEdit::Password);
+		if (!Password.isEmpty())
+			Status = pSystem->UserSessionAction(SessionId, Action, Password);
 	}
 
-	if (!bSuccess)
-		QMessageBox::critical(NULL, "TaskExplorer", tr("Failed to %1, due to: %2").arg(((QAction*)sender())->text()).arg(CastPhString(PhGetWin32Message(GetLastError()))));
-#endif
+	if (Status.IsError())
+		QMessageBox::critical(NULL, "TaskExplorer", tr("Failed to %1, due to: %2")
+			.arg(pAction->text()).arg(CTaskExplorer::FormatError(Status)));
 }
 
 void CTaskExplorer::OnSysTray(QSystemTrayIcon::ActivationReason Reason)
@@ -1626,7 +2595,7 @@ void CTaskExplorer::OnSysTray(QSystemTrayIcon::ActivationReason Reason)
 						return;
 					}
 					setWindowState(Qt::WindowActive);
-					SetForegroundWindow(PhMainWndHandle);
+					SetForegroundWindow((HWND)winId());
 				} );
 			}
 #else
@@ -1703,7 +2672,7 @@ void CTaskExplorer::OnMessage(const QString& Message)
 			show();
 		setWindowState(Qt::WindowActive);
 #ifdef WIN32
-		SetForegroundWindow(PhMainWndHandle);
+		SetForegroundWindow((HWND)winId());
 #else
 		raise();
 		activateWindow();
@@ -1724,11 +2693,68 @@ void CTaskExplorer::ApplyOptions()
 	CPanelView::SetSimpleFormat(theConf->GetBool("Options/PanelCopySimple", false));
 	CPanelView::SetMaxCellWidth(theConf->GetInt("Options/PanelCopyMaxCellWidth", 0));
 	CPanelView::SetCellSeparator(UnEscape(theConf->GetString("Options/PanelCopyCellSeparator", "\\t")));
+
+	//
+	// The view modes, here rather than in UpdateOptions so that they also apply
+	// at startup - UpdateOptions calls this first.
+	//
+	m_pProcessTree->SetMultiUser(theConf->GetBool("Options/MultiUser", false));
+
+	//
+	// Cluster mode is two things at once: the tree gains a machine level, and
+	// theCluster starts existing so that GetSystems() can answer with more than
+	// the local machine. Turning it off does not disconnect anything - the
+	// connections stay, they simply stop being drawn separately - so that
+	// flipping the switch is not a destructive act.
+	//
+	//
+	// The mode before the connections, because CCluster::Connect asks for it:
+	// without the machine layer a new connection is what the window is now
+	// about, with it on the selection is left alone. EnsureCluster reconnects
+	// everything saved, so doing it the other way round meant every machine
+	// restored at startup moved the selection - which in cluster mode it is
+	// not supposed to do, and which left the graph bar and the status line
+	// reporting whichever machine happened to connect last.
+	//
+	const bool bCluster = CCluster::ClusterModeWanted();
+	CCluster::SetClusterMode(bCluster);
+	if (bCluster)
+		EnsureCluster();
+	m_pProcessTree->SetMultiMachine(bCluster);
+
+	//
+	// The button shows what is in force, not what was asked for. Without
+	// TaskRemote the two differ - the stored value is kept and ignored - and
+	// a switch that stays down while nothing happened would be a lie.
+	//
+	if (m_pMenuClusterMode)
+	{
+		m_pMenuClusterMode->setChecked(bCluster);
+		m_pMenuClusterMode->setEnabled(CRemoteLoader::IsAvailable());
+	}
+
+	UpdateTargetMenu();
+
+	//
+	// The status line's machine label and the panel's follow whether there is
+	// more than one machine to tell apart, which this may just have changed.
+	//
+	OnViewSystemChanged();
 }
 
 void CTaskExplorer::UpdateOptions()
 {
 	ApplyOptions();
+
+	//
+	// The same switch as the View menu entry, so whichever one was used the
+	// other agrees with it. SetMultiUser does nothing when the value has not
+	// changed, which is what keeps a settings apply from rebuilding the tree
+	// for no reason.
+	//
+	if (m_pMenuShowUnixSockets)
+		m_pMenuShowUnixSockets->setChecked(theConf->GetBool("Options/ShowUnixSockets", false));
+
 
 	ReloadColors();
 
@@ -1749,7 +2775,7 @@ void CTaskExplorer::UpdateOptions()
 
 void CTaskExplorer::ResetAll()
 {
-	theAPI->ResetAll();
+	theSystem->ResetAll();
 
 	emit ReloadPanels();
 
@@ -1783,27 +2809,12 @@ void CTaskExplorer::OnCreateService()
 
 void CTaskExplorer::OnReloadService()
 {
-	QMetaObject::invokeMethod(theAPI, "UpdateServiceList", Qt::QueuedConnection, Q_ARG(bool, true));
+	QMetaObject::invokeMethod(theSystem.data(), "UpdateServiceList", Qt::QueuedConnection, Q_ARG(bool, true));
 }
-
-#ifdef WIN32
-NTSTATUS NTAPI CTaskExplorer_OpenServiceControlManager(_Out_ PHANDLE Handle, _In_ ACCESS_MASK DesiredAccess, _In_opt_ PVOID Context)
-{
-    SC_HANDLE serviceHandle;
-    if (serviceHandle = OpenSCManager(NULL, NULL, DesiredAccess))
-    {
-        *Handle = serviceHandle;
-        return STATUS_SUCCESS;
-    }
-    return PhGetLastWin32ErrorAsNtStatus();
-}
-#endif
 
 void CTaskExplorer::OnSCMPermissions()
 {
-#ifdef WIN32
-	PhEditSecurity(NULL, L"Service Control Manager", L"SCManager", CTaskExplorer_OpenServiceControlManager, NULL, NULL);
-#endif
+	ShowSecurity(theSystem->GetSecurityObject(CSystemAPI::eSecServiceManager, QString()), this);
 }
 
 void CTaskExplorer::OnPersistenceOptions()
@@ -1822,51 +2833,25 @@ void CTaskExplorer::OnSecurityExplorer()
 
 void CTaskExplorer::OnFreeMemory()
 {
-#ifdef WIN32
-	SYSTEM_MEMORY_LIST_COMMAND command = MemoryCommandMax;
+	CSystemAPI::EMemoryCommand Command = CSystemAPI::eMemCombinePages;
 
+#ifdef WIN32	// freeing memory goes through the driver
 	if (sender() == m_pMenuFreeWorkingSet)
-		command = MemoryEmptyWorkingSets;
+		Command = CSystemAPI::eMemEmptyWorkingSets;
 	else if (sender() == m_pMenuFreeModPages)
-		command = MemoryFlushModifiedList;
+		Command = CSystemAPI::eMemFlushModifiedList;
 	else if (sender() == m_pMenuFreeStandby)
-		command = MemoryPurgeStandbyList;
+		Command = CSystemAPI::eMemPurgeStandbyList;
 	else if (sender() == m_pMenuFreePriority0)
-		command = MemoryPurgeLowPriorityStandbyList;
-	
+		Command = CSystemAPI::eMemPurgeLowPriorityStandby;
+#endif
+
 	QApplication::setOverrideCursor(Qt::WaitCursor);
-
-	NTSTATUS status;
-	if (command == MemoryCommandMax)
-	{
-		MEMORY_COMBINE_INFORMATION_EX combineInfo = { 0 };
-		status = NtSetSystemInformation(SystemCombinePhysicalMemoryInformation, &combineInfo, sizeof(MEMORY_COMBINE_INFORMATION_EX));
-	}
-	else
-	{
-		status = NtSetSystemInformation(SystemMemoryListInformation, &command, sizeof(SYSTEM_MEMORY_LIST_COMMAND));
-		if (status == STATUS_PRIVILEGE_NOT_HELD)
-		{
-			QString SocketName = CTaskService::RunWorker();
-			if (!SocketName.isEmpty())
-			{
-				QVariantMap Parameters;
-				Parameters["Command"] = (int)command;
-
-				QVariantMap Request;
-				Request["Command"] = "FreeMemory";
-				Request["Parameters"] = Parameters;
-
-				status = CTaskService::SendCommand(SocketName, Request).toInt();
-			}
-		}
-	}
-
+	STATUS Status = theSystem->MemoryCommand(Command);
 	QApplication::restoreOverrideCursor();
 
-	if (!NT_SUCCESS(status)) 
-		QMessageBox::warning(NULL, "TaskExplorer", tr("Memory opertion failed; Error: %1").arg(status));
-#endif
+	if (Status.IsError())
+		QMessageBox::warning(NULL, "TaskExplorer", tr("Memory operation failed; Error: %1").arg(CTaskExplorer::FormatError(Status)));
 }
 
 void CTaskExplorer::OnFindProcess()
@@ -1875,7 +2860,7 @@ void CTaskExplorer::OnFindProcess()
 	CAbstractInfoEx::SetPersistenceTime(60*60*1000);*/
 
 #ifdef WIN32
-	int count = ((CWindowsAPI*)theAPI)->FindHiddenProcesses();
+	int count = theSystem->FindHiddenProcesses();
 	if(count > 0)
 		QMessageBox::warning(NULL, "TaskExplorer", tr("Found %1 hidden processes and added them to the process std::list.").arg(count));
 	else
@@ -1903,11 +2888,10 @@ void CTaskExplorer::OnFindMemory()
 
 void CTaskExplorer::OnMonitorSys()
 {
-#ifdef WIN32
-	if (!KphCommsIsConnected())
+#ifdef WIN32	// the menu entry that reaches this only exists where the driver does
+	if (theSystem->SetSystemMonitor(m_pMenuMonitorSYS->isChecked()).IsError())
 		return;
 
-	KphSetSystemMon(m_pMenuMonitorSYS->isChecked());
 	theConf->SetValue("Options/MonitorSys", m_pMenuMonitorSYS->isChecked());
 #endif
 }
@@ -1917,11 +2901,11 @@ void CTaskExplorer::OnMonitorETW()
 #ifdef WIN32
 	if (m_pMenuMonitorETW->isChecked())
 	{
-		((CWindowsAPI*)theAPI)->MonitorETW(true);
-		m_pMenuMonitorETW->setChecked(((CWindowsAPI*)theAPI)->IsMonitoringETW());
+		theSystem->MonitorETW(true);
+		m_pMenuMonitorETW->setChecked(theSystem->IsMonitoringETW());
 	}
 	else
-		((CWindowsAPI*)theAPI)->MonitorETW(false);
+		theSystem->MonitorETW(false);
 	theConf->SetValue("Options/MonitorETW", m_pMenuMonitorETW->isChecked());
 #endif
 }
@@ -1931,11 +2915,11 @@ void CTaskExplorer::OnMonitorFW()
 #ifdef WIN32
 	if (m_pMenuMonitorFW->isChecked())
 	{
-		((CWindowsAPI*)theAPI)->MonitorFW(true);
-		m_pMenuMonitorFW->setChecked(((CWindowsAPI*)theAPI)->IsMonitoringFW());
+		theSystem->MonitorFW(true);
+		m_pMenuMonitorFW->setChecked(theSystem->IsMonitoringFW());
 	}
 	else
-		((CWindowsAPI*)theAPI)->MonitorFW(false);
+		theSystem->MonitorFW(false);
 	theConf->SetValue("Options/MonitorFirewall", m_pMenuMonitorFW->isChecked());
 #endif
 }
@@ -1944,17 +2928,17 @@ void CTaskExplorer::OnMonitorDbg()
 {
 #ifdef WIN32
 	bool bChecked = false;
-	int Mode = CWinDbgMonitor::eAll;
+	int Mode = CSystemAPI::eDbgAll;
 	if (sender() == m_pMenuMonitorDbgButton)
 	{
 		bChecked = !m_pMenuMonitorDbgButton->isChecked();
 		if (bChecked)
 		{
-			Mode = CWinDbgMonitor::eLocal;
-			if (theAPI->RootAvaiable())
-				Mode |= CWinDbgMonitor::eGlobal;
-			if (KphCommsIsConnected())
-				Mode |= CWinDbgMonitor::eKernel;
+			Mode = CSystemAPI::eDbgLocal;
+			if (theSystem->RootAvaiable())
+				Mode |= CSystemAPI::eDbgGlobal;
+			if (theSystem->GetKernelDriver().Connected)
+				Mode |= CSystemAPI::eDbgKernel;
 		}
 	}
 	else
@@ -1964,25 +2948,25 @@ void CTaskExplorer::OnMonitorDbg()
 		Mode = pAction->property("Mode").toInt();
 	}
 
-	int NewMode = ((CWindowsAPI*)theAPI)->GetDbgMonitor();
+	int NewMode = theSystem->GetDebugMonitor();
 	if (bChecked)
 		NewMode |= Mode;
 	else
 		NewMode &= ~Mode;
 
-	STATUS Status = ((CWindowsAPI*)theAPI)->MonitorDbg((CWinDbgMonitor::EModes)NewMode);
+	STATUS Status = theSystem->SetDebugMonitor(NewMode);
 	if(Status.IsError())
 		CTaskExplorer::CheckErrors(QList<STATUS>() << Status);
 
-	int DbgMode = ((CWindowsAPI*)theAPI)->GetDbgMonitor();
+	int DbgMode = theSystem->GetDebugMonitor();
 	if (sender() != m_pMenuMonitorDbgButton)
-		m_pMenuMonitorDbgButton->setChecked((DbgMode & CWinDbgMonitor::eAll) != 0);
-	m_pMenuMonitorDbgLocal->setChecked((DbgMode & CWinDbgMonitor::eLocal) != 0);
-	m_pMenuMonitorDbgGlobal->setChecked((DbgMode & CWinDbgMonitor::eGlobal) != 0);
-	m_pMenuMonitorDbgKernel->setChecked((DbgMode & CWinDbgMonitor::eKernel) != 0);
+		m_pMenuMonitorDbgButton->setChecked((DbgMode & CSystemAPI::eDbgAll) != 0);
+	m_pMenuMonitorDbgLocal->setChecked((DbgMode & CSystemAPI::eDbgLocal) != 0);
+	m_pMenuMonitorDbgGlobal->setChecked((DbgMode & CSystemAPI::eDbgGlobal) != 0);
+	m_pMenuMonitorDbgKernel->setChecked((DbgMode & CSystemAPI::eDbgKernel) != 0);
 
-	m_Act2Tab.key(CTaskInfoView::eDebugView)->setChecked(DbgMode != CWinDbgMonitor::eNone);
-	m_pTaskInfo->ShowTab(CTaskInfoView::eDebugView, DbgMode != CWinDbgMonitor::eNone);
+	m_Act2Tab.key(CTaskInfoView::eDebugView)->setChecked(DbgMode != CSystemAPI::eDbgNone);
+	m_pTaskInfo->ShowTab(CTaskInfoView::eDebugView, DbgMode != CSystemAPI::eDbgNone);
 
 	theConf->SetValue("Options/MonitorDbg", DbgMode);
 #endif
@@ -1990,7 +2974,7 @@ void CTaskExplorer::OnMonitorDbg()
 
 void CTaskExplorer::OpenTaskInfoWnd(quint64 PID)
 {
-	CTaskInfoWindow* pTaskInfoWindow = new CTaskInfoWindow(QList<CProcessPtr>() << theAPI->GetProcessByID(PID));
+	CTaskInfoWindow* pTaskInfoWindow = new CTaskInfoWindow(QList<CProcessPtr>() << theSystem->GetProcessByID(PID));
 	pTaskInfoWindow->show();
 }
 
@@ -2118,20 +3102,33 @@ void CTaskExplorer::InitColors()
 #else
 	m_Colors.insert(eService, SColor("ServiceProcess", tr("Daemon processes"), "#80FFFF"));
 #endif
-#ifdef WIN32
 	m_Colors.insert(eSandBoxed, SColor("SandBoxed", tr("Sandboxed processes"), "#FFFF00"));
 	m_Colors.insert(eJob, SColor("JobProcess", tr("Job processes"), "#D49C5C"));
 	m_Colors.insert(ePico, SColor("PicoProcess", tr("Pico processes"), "#42A0FF"));
 	m_Colors.insert(eImmersive, SColor("ImmersiveProcess", tr("Immersive processes"), "#FFE6FF"));
 	m_Colors.insert(eDotNet, SColor("NetProcess", tr(".NET processes"), "#DCFF00"));
-#endif
 	m_Colors.insert(eElevated, SColor("ElevatedProcess", tr("Elevated processes"), "#FFBB30"));
+
+	//
+	// The settings keys stay as they are on both platforms so an existing
+	// colour choice survives; only the labels differ where the same idea has
+	// two names.
+	//
 #ifdef WIN32
 	m_Colors.insert(eDriver, SColor("KernelServices", tr("Kernel Services (Driver)"), "#FFC880"));
+#else
+	m_Colors.insert(eDriver, SColor("KernelServices", tr("Kernel modules"), "#FFC880"));
+#endif
+	//
+	// A violet, because nothing else in this list is one. It has to be legible
+	// with black text like the rest, so it is a light one rather than the colour
+	// the name suggests.
+	//
+	m_Colors.insert(eWine, SColor("WineProcess", tr("Wine processes"), "#D0B0E8"));
+
 	m_Colors.insert(eGuiThread, SColor("GuiThread", tr("Gui threads"), "#AACCFF"));
 	m_Colors.insert(eIsInherited, SColor("IsInherited", tr("Inherited handles"), "#77FFFF"));
 	m_Colors.insert(eIsProtected, SColor("IsProtected", tr("Protected handles/Critical tasks"), "#FF77FF"));
-#endif
 
 	m_Colors.insert(eExecutable, SColor("Executable", tr("Executable memory"), "#FF90E0"));
 	//
@@ -2241,15 +3238,39 @@ void CTaskExplorer::OnCheckForUpdates()
 	m_pUpdater->CheckForUpdates(true);
 }
 
+//
+// The one line of the toolbar that is not about a process.
+//
+// It carries whichever of two things is worth saying, and sometimes neither: an
+// update is waiting, or this copy is not supported yet. Somebody who *has*
+// supported it should not be asked again every time they look at the toolbar -
+// so with a valid certificate the label is empty unless there is an update, and
+// the space it took goes back to the toolbar.
+//
 void CTaskExplorer::UpdateLabel()
 {
 	QString PendingUpdate = theConf->GetString("Updater/PendingUpdate");
 
+	//
+	// Supported already and nothing to announce: the label, its padding and the
+	// separator in front of it all go, so the bar closes up rather than ending
+	// in a line with a gap after it.
+	//
+	SCertInfo Cert;
+	Cert.State = CRemoteLoader::CertificateState();
+	const bool bShow = !PendingUpdate.isEmpty() || !Cert.active;
+	foreach(QAction* pItem, m_UpdateLabelItems)
+		pItem->setVisible(bShow);
+
 	if (!PendingUpdate.isEmpty()) {
-		// Show update available message
+		// An update is waiting - that is worth the space whoever is running this.
 		m_pUpdateLabel->setText(tr("<a href=\"#update\">Update to TaskExplorer %1 available!</a>").arg(PendingUpdate));
 		m_pUpdateLabel->disconnect();
 		connect(m_pUpdateLabel, SIGNAL(linkActivated(const QString&)), this, SLOT(OnCheckForUpdates()));
+	}
+	else if (!bShow) {
+		m_pUpdateLabel->clear();
+		m_pUpdateLabel->disconnect();
 	}
 	else {
 		// Show default Patreon support message
@@ -2280,6 +3301,19 @@ void CTaskExplorer::OnHelp()
 		QDesktopServices::openUrl(QUrl("https://xanasoft.com/go.php?to=patreon"));
 }
 
+void CTaskExplorer::ShowSecurity(const CSecurityEditablePtr& pObject, QWidget* parent)
+{
+	if (!pObject)
+	{
+		QMessageBox::information(parent, "TaskExplorer",
+			tr("Permissions cannot be shown for this object."));
+		return;
+	}
+
+	CSecurityDialog* pWnd = new CSecurityDialog(pObject, parent);
+	pWnd->show();
+}
+
 void CTaskExplorer::OnAbout()
 {
 	if (sender() == m_pMenuAbout)
@@ -2298,7 +3332,7 @@ void CTaskExplorer::OnAbout()
 		QString AboutCaption = tr(
 			"<h3>About TaskExplorer</h3>"
 			"<p>Version %1</p>"
-			"<p>Copyright (C) 2019-2025 David Xanatos (xanasoft.com)</p>"
+			"<p>Copyright (C) 2019-2026 David Xanatos (xanasoft.com)</p>"
 		).arg(GetVersion());
 		QString AboutText = tr(
 			"<p>TaskExplorer is a powerfull multi-purpose Task Manager that helps you monitor system resources, debug software and detect malware.</p>"
@@ -2336,7 +3370,46 @@ void CTaskExplorer::OnAbout()
 	}
 #ifdef WIN32
 	else if (sender() == m_pMenuAboutPH)
-		PhShowAbout(this);
+	{
+		QString AboutCaption = QString(
+			"<h3>System Informer</h3>"
+			"<p>Licensed Under the MIT License</p>"
+			"<p>Copyright (c) 2022</p>"
+		);
+		QString AboutText = QString(
+			"<p>Thanks to:<br>"
+			"    <a href=\"https://github.com/wj32\">wj32</a> - Wen Jia Liu<br>"
+			"    <a href=\"https://github.com/dmex\">dmex</a> - Steven G<br>"
+			"    <a href=\"https://github.com/jxy-s\">jxy-s</a> - Johnny Shaw<br>"
+			"    <a href=\"https://github.com/ionescu007\">ionescu007</a> - Alex Ionescu<br>"
+			"    <a href=\"https://github.com/yardenshafir\">yardenshafir</a> - Yarden Shafir<br>"
+			"    <a href=\"https://github.com/winsiderss/systeminformer/graphs/contributors\">Contributors</a> - thank you for your additions!<br>"
+			"    Donors - thank you for your support!</p>"
+			"<p>System Informer uses the following components:<br>"
+			"    <a href=\"https://github.com/michaelrsweet/mxml\">Mini-XML</a> by Michael Sweet<br>"
+			"    <a href=\"https://www.pcre.org\">PCRE</a><br>"
+			"    <a href=\"https://github.com/json-c/json-c\">json-c</a><br>"
+			"    MD5 code by Jouni Malinen<br>"
+			"    SHA1 code by Filip Navara, based on code by Steve Reid<br>"
+			"    <a href=\"http://www.famfamfam.com/lab/icons/silk\">Silk icons</a><br>"
+			"    <a href=\"https://www.fatcow.com/free-icons\">Farm-fresh web icons</a><br></p>"
+			"<p></p>"
+			"<p>Visit <a href=\"https://github.com/winsiderss/systeminformer\">System Informer on github</a> for more information.</p>"
+		);
+		QMessageBox *msgBox = new QMessageBox(this);
+		msgBox->setAttribute(Qt::WA_DeleteOnClose);
+		msgBox->setWindowTitle(QString("About ProcessHacker Library"));
+		msgBox->setText(AboutCaption);
+		msgBox->setInformativeText(AboutText);
+
+		QIcon ico(QLatin1String(":/ProcessHacker.png"));
+		msgBox->setIconPixmap(ico.pixmap(64, 64));
+#if defined(Q_WS_WINCE)
+		msgBox->setDefaultButton(msgBox->addButton(QMessageBox::Ok));
+#endif
+
+		msgBox->exec();
+	}
 #endif
 	else if (sender() == m_pMenuAboutQt)
 		QMessageBox::aboutQt(this);

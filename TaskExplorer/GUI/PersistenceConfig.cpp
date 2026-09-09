@@ -1,10 +1,8 @@
 #include "stdafx.h"
 #include "../../MiscHelpers/Common/Settings.h"
 #include "PersistenceConfig.h"
+#include "../API/SystemAPI.h"
 #include <QStyledItemDelegate>
-#ifdef WIN32
-#include "../API/Windows/ProcessHacker/PhSvc.h"
-#endif
 #include "AffinityDialog.h"
 
 class QStyledItemDelegateEx : public QStyledItemDelegate
@@ -110,18 +108,23 @@ void CPersistenceConfig::LoadPersistent(const CPersistentPresetDataPtr& pPreset,
 	//m_pPresets->horizontalHeader()->resizeSection(Column, pPerm->width()+1);
 	Column++;
 
+	//
+	// Priority classes are a property of the machine the preset applies to,
+	// not of the machine the GUI was built on.
+	//
+	bool bWindows = theSystem->GetOsType() == CSystemAPI::eOsWindows;
+
 	QComboBox* pCPUPrio = new QComboBox();
 	pCPUPrio->addItem(tr("Unconfigured")	, (qint32)-1);
-#ifdef WIN32
-	pCPUPrio->addItem(tr("Real time")		, (qint32)PROCESS_PRIORITY_CLASS_REALTIME);
-	pCPUPrio->addItem(tr("High")			, (qint32)PROCESS_PRIORITY_CLASS_HIGH);
-	pCPUPrio->addItem(tr("Above normal")	, (qint32)PROCESS_PRIORITY_CLASS_ABOVE_NORMAL);
-	pCPUPrio->addItem(tr("Normal")			, (qint32)PROCESS_PRIORITY_CLASS_NORMAL);
-	pCPUPrio->addItem(tr("Below normal")	, (qint32)PROCESS_PRIORITY_CLASS_BELOW_NORMAL);
-	pCPUPrio->addItem(tr("Idle")			, (qint32)PROCESS_PRIORITY_CLASS_IDLE);
-#else
-	// linux-todo:
-#endif
+	if (bWindows)
+	{
+		pCPUPrio->addItem(tr("Real time")		, (qint32)CProcessInfo::eProcessPriorityRealTime);
+		pCPUPrio->addItem(tr("High")			, (qint32)CProcessInfo::eProcessPriorityHigh);
+		pCPUPrio->addItem(tr("Above normal")	, (qint32)CProcessInfo::eProcessPriorityAboveNormal);
+		pCPUPrio->addItem(tr("Normal")			, (qint32)CProcessInfo::eProcessPriorityNormal);
+		pCPUPrio->addItem(tr("Below normal")	, (qint32)CProcessInfo::eProcessPriorityBelowNormal);
+		pCPUPrio->addItem(tr("Idle")			, (qint32)CProcessInfo::eProcessPriorityIdle);
+	}
 	if(pPreset->bPriority) pCPUPrio->setCurrentIndex(pCPUPrio->findData((qint32)pPreset->iPriority));
 	connect(pCPUPrio, SIGNAL(activated(int)), this, SLOT(OnCPUPriority(int)));
 	m_pPresets->setCellWidget(RowCounter, Column, pCPUPrio);
@@ -135,15 +138,14 @@ void CPersistenceConfig::LoadPersistent(const CPersistentPresetDataPtr& pPreset,
 
 	QComboBox* pIOPrio = new QComboBox();
 	pIOPrio->addItem(tr("Unconfigured")		, (qint32)-1);
-#ifdef WIN32
-	pIOPrio->addItem(tr("Critical")			, (qint32)IoPriorityCritical);
-	pIOPrio->addItem(tr("High")				, (qint32)IoPriorityHigh);
-	pIOPrio->addItem(tr("Normal")			, (qint32)IoPriorityNormal);
-	pIOPrio->addItem(tr("Low")				, (qint32)IoPriorityLow);
-	pIOPrio->addItem(tr("Very low")			, (qint32)IoPriorityVeryLow);
-#else
-	// linux-todo:
-#endif
+	if (bWindows)
+	{
+		pIOPrio->addItem(tr("Critical")			, (qint32)CProcessInfo::eIoPriorityCritical);
+		pIOPrio->addItem(tr("High")				, (qint32)CProcessInfo::eIoPriorityHigh);
+		pIOPrio->addItem(tr("Normal")			, (qint32)CProcessInfo::eIoPriorityNormal);
+		pIOPrio->addItem(tr("Low")				, (qint32)CProcessInfo::eIoPriorityLow);
+		pIOPrio->addItem(tr("Very low")			, (qint32)CProcessInfo::eIoPriorityVeryLow);
+	}
 	if(pPreset->bIOPriority) pIOPrio->setCurrentIndex(pIOPrio->findData(pPreset->iIOPriority));
 	connect(pIOPrio, SIGNAL(activated(int)), this, SLOT(OnIOPriority(int)));
 	m_pPresets->setCellWidget(RowCounter, Column, pIOPrio);
@@ -152,16 +154,15 @@ void CPersistenceConfig::LoadPersistent(const CPersistentPresetDataPtr& pPreset,
 
 	QComboBox* pPagePrio = new QComboBox();
 	pPagePrio->addItem(tr("Unconfigured")	, (qint32)-1);
-#ifdef WIN32
-	pPagePrio->addItem(tr("Normal")			, (qint32)MEMORY_PRIORITY_NORMAL);
-	pPagePrio->addItem(tr("Below normal")	, (qint32)MEMORY_PRIORITY_BELOW_NORMAL);
-	pPagePrio->addItem(tr("Medium")			, (qint32)MEMORY_PRIORITY_MEDIUM);
-	pPagePrio->addItem(tr("Low")			, (qint32)MEMORY_PRIORITY_LOW);
-	pPagePrio->addItem(tr("Very low")		, (qint32)MEMORY_PRIORITY_VERY_LOW);
-	pPagePrio->addItem(tr("Lowest")			, (qint32)MEMORY_PRIORITY_LOWEST);
-#else
-	// linux-todo:
-#endif
+	if (bWindows)
+	{
+		pPagePrio->addItem(tr("Normal")			, (qint32)CProcessInfo::ePagePriorityNormal);
+		pPagePrio->addItem(tr("Below normal")	, (qint32)CProcessInfo::ePagePriorityBelowNormal);
+		pPagePrio->addItem(tr("Medium")			, (qint32)CProcessInfo::ePagePriorityMedium);
+		pPagePrio->addItem(tr("Low")			, (qint32)CProcessInfo::ePagePriorityLow);
+		pPagePrio->addItem(tr("Very low")		, (qint32)CProcessInfo::ePagePriorityVeryLow);
+		pPagePrio->addItem(tr("Lowest")			, (qint32)CProcessInfo::ePagePriorityLowest);
+	}
 	if(pPreset->bPagePriority) pPagePrio->setCurrentIndex(pPagePrio->findData(pPreset->iPagePriority));
 	connect(pPagePrio, SIGNAL(activated(int)), this, SLOT(OnPagePriority(int)));
 	m_pPresets->setCellWidget(RowCounter, Column, pPagePrio);
@@ -193,7 +194,7 @@ void CPersistenceConfig::LoadPersistentList()
 		m_pPresets->setItem(0, i, pItem);
 	}
 
-	m_PersistentPreset = theAPI->GetPersistentPresets();
+	m_PersistentPreset = theSystem->GetPersistentPresets();
 	int RowCounter = 0;
 	foreach(const CPersistentPresetDataPtr& pPreset, m_PersistentPreset)
 	{
@@ -251,7 +252,7 @@ void CPersistenceConfig::OnCPUAffinity()
 	if (!ppPreset)
 		return;
 
-	int iCount = theAPI->GetCpuCount();
+	int iCount = theSystem->GetCpuCount();
 
 	QVector<int> Affinity(64, 0);
 	for (int j = 0; j < iCount; j++)
@@ -327,5 +328,5 @@ void CPersistenceConfig::OnAddPreset()
 
 void CPersistenceConfig::StorePersistentList()
 {
-	theAPI->SetPersistentPresets(m_PersistentPreset);
+	theSystem->SetPersistentPresets(m_PersistentPreset);
 }

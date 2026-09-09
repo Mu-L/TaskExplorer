@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "AbstractFinder.h"
+#include "../SystemAPI.h"
 
 #ifdef WIN32
 #include "../Windows/Finders/WinHandleFinder.h"
@@ -14,6 +15,7 @@
 CAbstractFinder::CAbstractFinder(QObject* parent) : QThread(parent) 
 {
 	m_bCancel = false;
+	m_pSystem = theSystem;
 }
 
 CAbstractFinder::~CAbstractFinder() 

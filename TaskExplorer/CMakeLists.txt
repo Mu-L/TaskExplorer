@@ -1,35 +1,55 @@
 #
-# TaskExplorer - the application itself.
+# TaskExplorer - the core library and the application that drives it.
 #
-# Sources are split three ways:
-#   TE_SOURCES        - portable core + GUI
-#   TE_SOURCES_WIN    - the Win32/ProcessHacker backend and the GUI views that
-#                       have no meaning outside Windows
-#   TE_SOURCES_LINUX  - the /proc + systemd backend (API/Linux)
+# TaskCore is a shared library holding the portable object model and the two
+# native backends; TaskExplorer is the Qt front end that links it. The same
+# split as TaskCore.vcxproj / TaskExplorer.vcxproj on the MSVC side.
+#
+# Sources are named by target and platform:
+#   TE_CORE / TE_GUI              - portable
+#   TE_CORE_WIN / TE_GUI_WIN      - Windows only
+#   TE_CORE_LINUX / TE_GUI_LINUX  - Linux only
 #
 # A GUI file counts as "portable" if it already carries #ifdef WIN32 guards
 # around its Windows-specific parts; files that are Windows top to bottom are
-# listed under TE_SOURCES_WIN instead of being guarded wholesale.
+# listed under the _WIN lists instead of being guarded wholesale.
 #
 
-set(TE_SOURCES
-    main.cpp
+set(TE_CORE
+    # portable object model and both backends behind it
+
     stdafx.cpp
     stdafx.h
     version.h
 
     SVC/TaskService.cpp
     SVC/TaskService.h
+    SVC/ServerSetup.cpp
+    SVC/ServerSetup.h
 
-    # ---- portable API layer (abstract bases + shared logic) ----
+    API/AccessRights.h
+    API/Placeholders.h
     API/AbstractInfo.cpp
     API/AbstractInfo.h
     API/AbstractTask.cpp
     API/AbstractTask.h
     API/AssemblyList.cpp
     API/AssemblyList.h
+    API/CGroupInfo.h
+    API/GdiInfo.cpp
+    API/GdiInfo.h
+    API/RpcInfo.cpp
+    API/RpcInfo.h
+    API/PoolInfo.cpp
+    API/PoolInfo.h
+    API/ProcessSecurity.h
+    API/Cluster.cpp
+    API/RemoteApi.cpp
+    API/RemoteApi.h
+    API/Cluster.h
     API/DNSEntry.cpp
     API/DNSEntry.h
+    API/DotNetPerf.h
     API/DriverInfo.cpp
     API/DriverInfo.h
     API/HandleInfo.cpp
@@ -47,6 +67,9 @@ set(TE_SOURCES
     API/PersistentPreset.h
     API/ProcessInfo.cpp
     API/ProcessInfo.h
+    API/SecurityInfo.h
+    API/TaskStatus.h
+    API/StatusEx.h
     API/ServiceInfo.cpp
     API/ServiceInfo.h
     API/SocketInfo.cpp
@@ -58,8 +81,18 @@ set(TE_SOURCES
     API/SystemAPI.h
     API/ThreadInfo.cpp
     API/ThreadInfo.h
+    API/TokenInfo.cpp
+    API/TokenInfo.h
+    API/JobInfo.h
     API/WndInfo.cpp
     API/WndInfo.h
+    #
+    # The remote filling of the object model. Portable by construction: it is
+    # what a viewer uses whichever platform it or the target is on.
+    #
+    SVC/WndAgents.cpp
+    SVC/WndAgents.h
+
     API/Finders/AbstractFinder.cpp
     API/Finders/AbstractFinder.h
     API/Monitors/DiskMonitor.cpp
@@ -69,17 +102,16 @@ set(TE_SOURCES
     API/Monitors/NetMonitor.cpp
     API/Monitors/NetMonitor.h
 
-    # ---- portable support code ----
-    Common/Buffer.cpp
-    Common/IncrementalPlot.cpp
-    Common/IncrementalPlot.h
-    Common/Strings.cpp
-    Common/TabPanel.cpp
-    Common/TabPanel.h
-    Common/Variant.cpp
-    Common/XVariant.cpp
+)
 
-    # ---- GUI ----
+set(TE_GUI
+    # the views, dialogs and models
+
+    main.cpp
+    stdafx.cpp
+    stdafx.h
+    version.h
+
     GUI/AffinityDialog.cpp
     GUI/AffinityDialog.h
     GUI/CustomItemDelegate.h
@@ -91,10 +123,22 @@ set(TE_SOURCES
     GUI/MultiErrorDialog.h
     GUI/OnlineUpdater.cpp
     GUI/OnlineUpdater.h
+    GUI/PrincipalPicker.cpp
+    GUI/PrincipalPicker.h
+    GUI/DesktopActions.cpp
+    GUI/DesktopActions.h
+    GUI/TaskStrings.cpp
+    GUI/TaskStrings.h
+    GUI/SecurityDialog.cpp
+    GUI/SecurityDialog.h
     GUI/NewService.cpp
     GUI/NewService.h
     GUI/PersistenceConfig.cpp
     GUI/PersistenceConfig.h
+    GUI/ConnectDialog.cpp
+    GUI/ConnectDialog.h
+    GUI/UnlockDialog.cpp
+    GUI/UnlockDialog.h
     GUI/ProcessPicker.cpp
     GUI/ProcessPicker.h
     GUI/ProcessTree.cpp
@@ -103,7 +147,9 @@ set(TE_SOURCES
     GUI/RunAsDialog.h
     GUI/RunDialog.cpp
     GUI/RunDialog.h
+    ../TaskCommon/Support.h
     GUI/SettingsWindow.cpp
+    GUI/ServerUserDialog.cpp
     GUI/SettingsWindow.h
     GUI/StatsView.cpp
     GUI/StatsView.h
@@ -111,14 +157,14 @@ set(TE_SOURCES
     GUI/TaskExplorer.h
     GUI/TaskView.cpp
     GUI/TaskView.h
-
     GUI/Filters/ProcessFilterModel.cpp
     GUI/Filters/ProcessFilterModel.h
-
     GUI/Models/DnsModel.cpp
     GUI/Models/DnsModel.h
     GUI/Models/DriverModel.cpp
     GUI/Models/DriverModel.h
+    GUI/Models/GDIModel.cpp
+    GUI/Models/GDIModel.h
     GUI/Models/HandleModel.cpp
     GUI/Models/HandleModel.h
     GUI/Models/HeapModel.cpp
@@ -139,7 +185,6 @@ set(TE_SOURCES
     GUI/Models/ThreadModel.h
     GUI/Models/WindowModel.cpp
     GUI/Models/WindowModel.h
-
     GUI/Search/HandleSearch.cpp
     GUI/Search/HandleSearch.h
     GUI/Search/MemorySearch.cpp
@@ -150,7 +195,6 @@ set(TE_SOURCES
     GUI/Search/SearchWindow.h
     GUI/Search/StringView.cpp
     GUI/Search/StringView.h
-
     GUI/SystemInfo/CPUView.cpp
     GUI/SystemInfo/CPUView.h
     GUI/SystemInfo/DiskView.cpp
@@ -175,9 +219,35 @@ set(TE_SOURCES
     GUI/SystemInfo/SystemView.h
     GUI/SystemInfo/KernelInfo/DriversView.cpp
     GUI/SystemInfo/KernelInfo/DriversView.h
-
     GUI/TaskInfo/EnvironmentView.cpp
     GUI/TaskInfo/EnvironmentView.h
+    #
+    # The per-task views, every one of them on every platform.
+    #
+    # Which tabs make sense is a property of the machine being *looked at*, not
+    # of the machine doing the looking - a Windows viewer watching a Linux box
+    # wants the control group and security tabs, and a Linux viewer watching
+    # Windows wants the token, job, heap and .NET ones. None of these touch a
+    # platform API: they read CProcessInfo and CTokenInfo virtuals, which is
+    # what makes building them everywhere possible at all.
+    #
+    GUI/TaskInfo/CGroupView.cpp
+    GUI/TaskInfo/CGroupView.h
+    GUI/TaskInfo/DebugView.cpp
+    GUI/TaskInfo/DebugView.h
+    GUI/TaskInfo/DotNetStats.cpp
+    GUI/TaskInfo/DotNetView.cpp
+    GUI/TaskInfo/DotNetView.h
+    GUI/TaskInfo/GDIView.cpp
+    GUI/TaskInfo/GDIView.h
+    GUI/TaskInfo/HeapView.cpp
+    GUI/TaskInfo/HeapView.h
+    GUI/TaskInfo/JobView.cpp
+    GUI/TaskInfo/JobView.h
+    GUI/TaskInfo/SecurityView.cpp
+    GUI/TaskInfo/SecurityView.h
+    GUI/TaskInfo/TokenView.cpp
+    GUI/TaskInfo/TokenView.h
     GUI/TaskInfo/HandlesView.cpp
     GUI/TaskInfo/HandlesView.h
     GUI/TaskInfo/MemoryView.cpp
@@ -199,20 +269,23 @@ set(TE_SOURCES
     GUI/TaskInfo/WindowsView.cpp
     GUI/TaskInfo/WindowsView.h
 
-    # ---- forms & resources ----
     Forms/NewService.ui
     Forms/RunAsDialog.ui
     Forms/RunDialog.ui
     Forms/SettingsWindow.ui
+
     Resources/TaskExplorer.qrc
 )
+
 
 #
 # Windows-only: the entire Win32 backend plus the GUI surfaces that expose
 # Windows concepts with no Linux counterpart (tokens, jobs, GDI, .NET, RPC,
 # kernel pool/atom/object tables, Sandboxie, the KTaskExplorer driver UI).
 #
-set(TE_SOURCES_WIN
+set(TE_CORE_WIN
+    # the Win32/ProcessHacker backend
+
     API/Windows/DnsResolver.cpp
     API/Windows/DnsResolver.h
     API/Windows/ProcessHacker.cpp
@@ -254,6 +327,14 @@ set(TE_SOURCES_WIN
     API/Windows/WinPoolEntry.cpp
     API/Windows/WinPoolEntry.h
     API/Windows/WinProcess.cpp
+    API/Windows/Monitors/EventMonitor.cpp
+    API/Windows/Monitors/FirewallMonitor.cpp
+    API/Windows/SystemHacker/xphdata.c
+    API/Windows/WinRun.cpp
+    API/Windows/WinSecurity.cpp
+    API/Windows/WinSecurityEditor.cpp
+    API/Windows/WinSecurityEditor.h
+    API/Windows/WinServiceConfig.cpp
     API/Windows/WinProcess.h
     API/Windows/WinService.cpp
     API/Windows/WinService.h
@@ -265,18 +346,15 @@ set(TE_SOURCES_WIN
     API/Windows/WinToken.h
     API/Windows/WinWnd.cpp
     API/Windows/WinWnd.h
-
     API/Windows/Finders/WinHandleFinder.cpp
     API/Windows/Finders/WinModuleFinder.cpp
     API/Windows/Finders/WinStringFinder.cpp
-
     API/Windows/Monitors/EtwEventMonitor.cpp
     API/Windows/Monitors/FwEventMonitor.cpp
     API/Windows/Monitors/WinDbgMonitor.cpp
     API/Windows/Monitors/WinDiskMonitor.cpp
     API/Windows/Monitors/WinGpuMonitor.cpp
     API/Windows/Monitors/WinNetMonitor.cpp
-
     API/Windows/ProcessHacker/appsup.cpp
     API/Windows/ProcessHacker/AssemblyEnum.cpp
     API/Windows/ProcessHacker/clrsup.c
@@ -294,10 +372,8 @@ set(TE_SOURCES_WIN
     API/Windows/ProcessHacker/RunAs.cpp
     API/Windows/ProcessHacker/storage.cpp
     API/Windows/ProcessHacker/syssccpu.cpp
-
     API/Windows/SystemHacker/SystemHacker.cpp
     API/Windows/SystemHacker/xph.c
-
     API/Windows/WinHelpers/FindTool.cpp
     API/Windows/WinHelpers/WindowFromPointEx.cpp
     API/Windows/WinHelpers/FuncHook/HookUtils.cpp
@@ -311,10 +387,15 @@ set(TE_SOURCES_WIN
     API/Windows/WinHelpers/FuncHook/Detours/disolx86.cpp
     API/Windows/WinHelpers/FuncHook/Detours/image.cpp
     API/Windows/WinHelpers/FuncHook/Detours/modules.cpp
-
     API/Windows/WinHelpers/InjectDll/injdll32.c
+)
+
+set(TE_GUI_WIN
+    # views that only have meaning on Windows
 
     GUI/DriverWindow.cpp
+    GUI/DynDataUpdater.cpp
+    GUI/PlatformAbout.cpp
     GUI/DriverWindow.h
     GUI/SecurityExplorer.cpp
     GUI/SecurityExplorer.h
@@ -323,16 +404,12 @@ set(TE_SOURCES_WIN
     GUI/WndFinder.cpp
     GUI/WsWatchDialog.cpp
     GUI/WsWatchDialog.h
-
-    GUI/Models/GDIModel.cpp
-    GUI/Models/GDIModel.h
     GUI/Models/NtObjectModel.cpp
     GUI/Models/NtObjectModel.h
     GUI/Models/PoolModel.cpp
     GUI/Models/PoolModel.h
     GUI/Models/RpcModel.cpp
     GUI/Models/RpcModel.h
-
     GUI/SystemInfo/RpcView.cpp
     GUI/SystemInfo/RpcView.h
     GUI/SystemInfo/WinSvcShutdown.cpp
@@ -349,21 +426,8 @@ set(TE_SOURCES_WIN
     GUI/SystemInfo/KernelInfo/PoolView.h
     GUI/SystemInfo/KernelInfo/RunObjView.cpp
     GUI/SystemInfo/KernelInfo/RunObjView.h
-
-    GUI/TaskInfo/DebugView.cpp
-    GUI/TaskInfo/DebugView.h
-    GUI/TaskInfo/DotNetView.cpp
-    GUI/TaskInfo/DotNetView.h
-    GUI/TaskInfo/GDIView.cpp
-    GUI/TaskInfo/GDIView.h
-    GUI/TaskInfo/HeapView.cpp
-    GUI/TaskInfo/HeapView.h
-    GUI/TaskInfo/JobView.cpp
-    GUI/TaskInfo/JobView.h
     GUI/TaskInfo/SbieView.cpp
     GUI/TaskInfo/SbieView.h
-    GUI/TaskInfo/TokenView.cpp
-    GUI/TaskInfo/TokenView.h
 
     Forms/DriverWindow.ui
     Forms/SecurityExplorer.ui
@@ -372,19 +436,27 @@ set(TE_SOURCES_WIN
     Forms/WinSvcWindow.ui
 )
 
+
 #
 # Linux backend. Mirrors the class layout of API/Windows so the abstract layer
 # in API/*.h stays the single source of truth for both platforms.
 #
-set(TE_SOURCES_LINUX
-    # Linux-only GUI: the counterparts of the Windows Job and Token views.
-    GUI/TaskInfo/CGroupView.cpp
-    GUI/TaskInfo/CGroupView.h
-    GUI/TaskInfo/SecurityView.cpp
-    GUI/TaskInfo/SecurityView.h
+set(TE_CORE_LINUX
+    # the /proc + systemd backend
 
     API/Linux/LinuxAPI.cpp
+    API/Linux/LinuxRun.cpp
     API/Linux/LinuxAPI.h
+    API/Linux/LinuxWineToken.cpp
+    API/Linux/LinuxWineToken.h
+    API/Linux/LinuxWineHandle.cpp
+    API/Linux/LinuxWineHandle.h
+    API/Linux/LinuxWineWnd.cpp
+    API/Linux/LinuxWineWnd.h
+    API/Linux/LinuxWineHelper.cpp
+    API/Linux/LinuxWineHelper.h
+    API/Linux/LinuxWine.cpp
+    API/Linux/LinuxWine.h
     API/Linux/LinuxProcess.cpp
     API/Linux/LinuxProcess.h
     API/Linux/LinuxThread.cpp
@@ -421,14 +493,12 @@ set(TE_SOURCES_LINUX
     API/Linux/SockDiag.h
     API/Linux/UdevMonitor.cpp
     API/Linux/UdevMonitor.h
-
     API/Linux/Finders/LinuxHandleFinder.cpp
     API/Linux/Finders/LinuxHandleFinder.h
     API/Linux/Finders/LinuxModuleFinder.cpp
     API/Linux/Finders/LinuxModuleFinder.h
     API/Linux/Finders/LinuxStringFinder.cpp
     API/Linux/Finders/LinuxStringFinder.h
-
     API/Linux/Monitors/LinuxDiskMonitor.cpp
     API/Linux/Monitors/LinuxDiskMonitor.h
     API/Linux/Monitors/LinuxGpuMonitor.cpp
@@ -437,18 +507,50 @@ set(TE_SOURCES_LINUX
     API/Linux/Monitors/LinuxNetMonitor.h
 )
 
+set(TE_GUI_LINUX
+    #
+    # Empty, and that is the point: there is no longer such a thing as a view
+    # that "only has meaning on Linux" from the build's side of things. Which
+    # tabs a target deserves is decided when it is looked at - see
+    # CTaskInfoView::InitializeTabs.
+    #
+)
+
+
 if(WIN32)
-    list(APPEND TE_SOURCES ${TE_SOURCES_WIN})
+    list(APPEND TE_CORE ${TE_CORE_WIN})
+    list(APPEND TE_GUI  ${TE_GUI_WIN})
 elseif(UNIX AND NOT APPLE)
-    list(APPEND TE_SOURCES ${TE_SOURCES_LINUX})
+    list(APPEND TE_CORE ${TE_CORE_LINUX})
+    list(APPEND TE_GUI  ${TE_GUI_LINUX})
 endif()
 
-qt_add_executable(TaskExplorer WIN32 ${TE_SOURCES})
+#
+# The operating-system logos live with the collector that reads them - see
+# Resources/TaskCore.qrc. TaskServer links this library and needs them too.
+#
+qt_add_library(TaskCore SHARED ${TE_CORE} Resources/TaskCore.qrc)
+
+#
+# TASKCORE_LIB switches taskcore_global.h from dllimport to dllexport. It is
+# PRIVATE: everything that links the library wants the import side.
+#
+target_compile_definitions(TaskCore PRIVATE TASKCORE_LIB)
+
+target_include_directories(TaskCore PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/API"
+)
+
+qt_add_executable(TaskExplorer WIN32 ${TE_GUI})
 
 target_include_directories(TaskExplorer PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${CMAKE_CURRENT_SOURCE_DIR}/API"
 )
+
+set_property(TARGET TaskCore PROPERTY AUTOUIC_SEARCH_PATHS
+    "${CMAKE_CURRENT_SOURCE_DIR}/Forms")
 
 set_property(TARGET TaskExplorer PROPERTY AUTOUIC_SEARCH_PATHS
     "${CMAKE_CURRENT_SOURCE_DIR}/Forms")
@@ -456,13 +558,42 @@ set_property(TARGET TaskExplorer PROPERTY AUTOUIC_SEARCH_PATHS
 set_property(TARGET TaskExplorer PROPERTY AUTORCC_OPTIONS
     --root /)
 
+#
+# No Qt6::Widgets. TaskCore collects and reports; it draws nothing, and saying
+# so here is what makes a widget in the collector a link error rather than
+# something to notice later. The same reason the widget half of stdafx.h and of
+# Common.h are behind TE_WITH_WIDGETS, which this target does not define.
+#
+# CoreHelpers, not GuiHelpers. The two were one library until now, and because a
+# static archive hands its dependencies to whoever links it, that one library
+# was putting QtWidgets on this line no matter how the properties were
+# declared.
+#
+target_link_libraries(TaskCore PUBLIC
+    Qt6::Core
+    Qt6::Network
+    Qt6::Concurrent
+    CoreHelpers
+)
+
+#
+# Qt6::Gui is Windows-only here, and for one thing: turning an icon handle into
+# the bytes of a PNG needs QImage. QImage is a container rather than a drawing
+# surface - it needs no QGuiApplication and no display - so it is safe in a
+# collector, but nothing on Linux has any use for it.
+#
+if(WIN32)
+    target_link_libraries(TaskCore PUBLIC Qt6::Gui)
+endif()
+
 target_link_libraries(TaskExplorer PRIVATE
+    TaskCore
     Qt6::Core
     Qt6::Gui
     Qt6::Widgets
     Qt6::Network
     Qt6::Concurrent
-    MiscHelpers
+    GuiHelpers
     qextwidgets
     qhexedit
     qwt
@@ -471,37 +602,61 @@ target_link_libraries(TaskExplorer PRIVATE
 )
 
 if(WIN32)
-    target_include_directories(TaskExplorer PRIVATE
+    #
+    # phlib is the core's business only. If a change makes the executable need
+    # it again, that is a layering regression, not a missing link line.
+    #
+    target_include_directories(TaskCore PRIVATE
         "${CMAKE_SOURCE_DIR}/ProcessHacker/phlib/include"
         "${CMAKE_SOURCE_DIR}/ProcessHacker/kphlib/include"
         "${CMAKE_SOURCE_DIR}/ProcessHacker/phnt/include"
     )
-    target_link_libraries(TaskExplorer PRIVATE
+    target_link_libraries(TaskCore PRIVATE
         ntdll userenv uxtheme aclui winsta iphlpapi ws2_32 phlib
         netapi32 rasapi32 taskschd shlwapi cfgmgr32 gdi32 wbemuuid
         dnsapi rpcrt4 thirdparty windowscodecs comdlg32
     )
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-        target_sources(TaskExplorer PRIVATE
+        target_sources(TaskCore PRIVATE
             API/Windows/WinHelpers/InjectDll/injdll64.c
             API/Windows/WinHelpers/InjectDll/injdll32_64.c
         )
     else()
-        target_sources(TaskExplorer PRIVATE
+        target_sources(TaskCore PRIVATE
             API/Windows/WinHelpers/InjectDll/injdll32_32.c
         )
     endif()
     target_sources(TaskExplorer PRIVATE Resources/TaskExplorer.rc)
+    target_sources(TaskCore PRIVATE TaskCore.rc)
 elseif(UNIX AND NOT APPLE)
+    target_link_libraries(TaskCore PRIVATE Qt6::DBus)
     target_link_libraries(TaskExplorer PRIVATE Qt6::DBus)
 
     # Optional; see the top-level CMakeLists. Without it X11Helper compiles to
     # stubs and the window views stay empty.
     if(TE_HAVE_X11)
+        target_compile_definitions(TaskCore PRIVATE TE_HAVE_X11)
+        target_link_libraries(TaskCore PRIVATE X11::X11)
         target_compile_definitions(TaskExplorer PRIVATE TE_HAVE_X11)
         target_link_libraries(TaskExplorer PRIVATE X11::X11)
     endif()
 endif()
+
+#
+# The library sits next to the executable rather than on the system path,
+# so the loader has to be told to look beside itself.
+#
+if(UNIX AND NOT APPLE)
+    set_target_properties(TaskExplorer PROPERTIES
+        BUILD_RPATH "$ORIGIN"
+        INSTALL_RPATH "$ORIGIN")
+endif()
+
+target_precompile_headers(TaskCore PRIVATE stdafx.h)
+#
+# Only the front end gets the widget half of stdafx.h; see the header.
+#
+target_compile_definitions(TaskExplorer PRIVATE TE_WITH_WIDGETS)
 
 target_precompile_headers(TaskExplorer PRIVATE stdafx.h)
 

@@ -1,7 +1,9 @@
 #pragma once
+#include "../taskcore_global.h"
 #include <qobject.h>
+#include <QThread>
 
-class CAssemblyList : public QSharedData
+class TASKCORE_EXPORT CAssemblyList : public QSharedData
 {
 public:
 	CAssemblyList();
@@ -34,3 +36,22 @@ protected:
 };
 
 typedef QSharedDataPointer<CAssemblyList> CAssemblyListPtr;
+
+//
+// Collecting the list, which only the machine running the process can do.
+//
+// Walking a CLR's loaded assemblies means reading that process's memory, so it
+// happens on a worker and reports back - the same shape a remote collector will
+// have, where the wait is a round trip rather than a memory read. The view only
+// ever sees this interface, so it does not know which it is talking to.
+//
+class TASKCORE_EXPORT CAssemblyEnumerator : public QThread
+{
+	Q_OBJECT
+public:
+	CAssemblyEnumerator(QObject* parent = nullptr) : QThread(parent) {}
+
+signals:
+	void				Assemblies(const CAssemblyListPtr& List);
+	void				Finished();
+};

@@ -2,9 +2,6 @@
 #include "HandleSearch.h"
 #include "../TaskExplorer.h"
 #include "../../API/Finders/AbstractFinder.h"
-#ifdef WIN32
-#include "../../API/Windows/ProcessHacker.h"
-#endif
 
 CHandleSearch::CHandleSearch(QWidget *parent) 
 	: CSearchWindow(parent)
@@ -13,32 +10,19 @@ CHandleSearch::CHandleSearch(QWidget *parent)
 
 	this->setWindowTitle(tr("Handle search..."));
 
-#ifdef WIN32
-	m_pType->addItem(tr("All"), -1);
-
-	POBJECT_TYPES_INFORMATION objectTypes;
-	if (NT_SUCCESS(PhEnumObjectTypes(&objectTypes)))
+	//
+	// The type filter is whatever the target reports; systems with no notion of
+	// handle types return an empty list and the combo stays at "All".
+	//
+	QList<CSystemAPI::SHandleType> Types = theSystem->GetHandleTypes();
+	if (!Types.isEmpty())
 	{
-		POBJECT_TYPE_INFORMATION objectType = (POBJECT_TYPE_INFORMATION)PH_FIRST_OBJECT_TYPE(objectTypes);
-		for (ULONG i = 0; i < objectTypes->NumberOfTypes; i++)
-		{
-			QString Type = QString::fromWCharArray(objectType->TypeName.Buffer, objectType->TypeName.Length / sizeof(wchar_t));
-
-			int objectIndex;
-			if (WindowsVersion >= WINDOWS_8_1)
-                objectIndex = objectType->TypeIndex;
-            else
-                objectIndex = i + 2;
-
-			m_pType->addItem(Type, objectIndex);
-
-			objectType = (POBJECT_TYPE_INFORMATION)PH_NEXT_OBJECT_TYPE(objectType);
-		}
-		PhFree(objectTypes);
+		m_pType->addItem(tr("All"), -1);
+		foreach(const CSystemAPI::SHandleType& Type, Types)
+			m_pType->addItem(Type.Name, Type.Index);
 	}
 
 	//m_pType->setEditable(true); // just in case we forgot a type
-#endif
 
 	m_pHandleView = new CHandlesView(2, this);
 	m_pMainLayout->addWidget(m_pHandleView);

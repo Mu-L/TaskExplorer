@@ -131,7 +131,7 @@ STATUS CLinuxStringFinder::FindStrings(const CProcessPtr& pProcess)
 			// rest of its regions. Reported with a zero status so the caller
 			// keeps going with the next process rather than aborting the scan.
 			//
-			return ERR(tr("Cannot read memory of process %1").arg(pProcess->GetName()), 0);
+			return ERR(TE_ReadMemoryProc, QVariantList() << pProcess->GetName(), 0);
 		}
 
 		//
@@ -182,11 +182,11 @@ void CLinuxStringFinder::run()
 	{
 		STATUS status = FindStrings(m_pProcess);
 		if (status.IsError())
-			emit Error(status.GetText(), status.GetStatus());
+			emit Error(status);
 	}
 	else
 	{
-		QMap<quint64, CProcessPtr> Processes = theAPI->GetProcessList();
+		QMap<quint64, CProcessPtr> Processes = m_pSystem->GetProcessList();
 		int Modulo = Processes.count() / 100;
 		int i = 0;
 		for (QMap<quint64, CProcessPtr>::iterator I = Processes.begin(); I != Processes.end() && !IsCanceled(); ++I)
@@ -199,7 +199,7 @@ void CLinuxStringFinder::run()
 			// norm when unprivileged - only a real error stops the whole scan.
 			if (status.IsError() && status.GetStatus() > 0)
 			{
-				emit Error(status.GetText(), status.GetStatus());
+				emit Error(status);
 				break;
 			}
 		}

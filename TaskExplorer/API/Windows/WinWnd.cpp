@@ -3,7 +3,6 @@
 #include "WinWnd.h"
 #include "WinThread.h"
 #include "WindowsAPI.h"
-#include "../../GUI/TaskExplorer.h"
 
 #define NOSHLWAPI
 #include <shellapi.h>
@@ -306,6 +305,11 @@ STATUS CWinWnd::Maximize()
 	return OK;
 }
 
+STATUS CWinWnd::Quit()
+{
+	return PostWndMessage(WM_QUIT);
+}
+
 STATUS CWinWnd::Close()
 {
 	QWriteLocker Locker(&m_Mutex);
@@ -396,7 +400,7 @@ BOOL CALLBACK EnumPropsExCallback(_In_ HWND hwnd, _In_ PWSTR lpszString, _In_ HA
 
 	QString Key;
 	if ((ULONG_PTR)lpszString < USHRT_MAX) // This is an integer atom.
-		Key = CWinWnd::tr("#%1").arg((ULONG_PTR)lpszString);
+		Key = QString("#%1").arg((ULONG_PTR)lpszString);
 	else
 		Key = QString::fromWCharArray(lpszString);
     
@@ -427,8 +431,10 @@ CWinWnd::SWndInfo CWinWnd::GetWndInfo() const
 	PhGetWindowTextEx(WindowHandle, 0, &windowText);
 	WndInfo.Text = CastPhString(windowText);
 
-	CThreadPtr pThread = theAPI->GetThreadByID(ThreadId);
-	WndInfo.Thread = tr("%1 (%2): %3").arg(pThread ? pThread->GetStartAddressString() : tr("unknown")).arg(theGUI->FormatID(ProcessId)).arg(theGUI->FormatID(ThreadId));
+	CThreadPtr pThread = GetSystem()->GetThreadByID(ThreadId);
+	WndInfo.ThreadStartAddress = pThread ? pThread->GetStartAddressString() : QString();
+	WndInfo.ThreadProcessId = ProcessId;
+	WndInfo.ThreadId = ThreadId;
 	
     WINDOWINFO windowInfo = { sizeof(WINDOWINFO) };
     WINDOWPLACEMENT windowPlacement = { sizeof(WINDOWPLACEMENT) };
@@ -540,7 +546,7 @@ CWinWnd::SWndInfo CWinWnd::GetWndInfo() const
 		if (GetObject(fontHandle, sizeof(LOGFONT), &logFont))
 			WndInfo.Font = QString::fromWCharArray(logFont.lfFaceName);
 		else
-			WndInfo.Font = tr("N/A");
+			WndInfo.Font.clear();
     }
 
 	///////////////////////////////////////////////////////////////////////////////////////////////
@@ -606,7 +612,7 @@ CWinWnd::SWndInfo CWinWnd::GetWndInfo() const
 	/*
     // Initialization code
 	HRESULT result = -1;
-	if(QThread::currentThread() != theAPI->thread())
+	if(QThread::currentThread() != GetSystem()->thread())
 		result = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
     IPropertyStore *propstore;

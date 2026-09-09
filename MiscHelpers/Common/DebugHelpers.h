@@ -1,27 +1,27 @@
 #pragma once
 
 //#define _TRACE
-#include "../mischelpers_global.h"
+#include "../corehelpers_global.h"
 
-MISCHELPERS_EXPORT bool IsDebuggerAttached();
+COREHELPERS_EXPORT bool IsDebuggerAttached();
 
-MISCHELPERS_EXPORT void WaitForDebugger();
+COREHELPERS_EXPORT void WaitForDebugger();
 
-MISCHELPERS_EXPORT void DbgPrint(const wchar_t* format, ...);
+COREHELPERS_EXPORT void DbgPrint(const wchar_t* format, ...);
 
 #if defined(_DEBUG) || defined(_TRACE)
 
 
-MISCHELPERS_EXPORT void Assert(bool test);
+COREHELPERS_EXPORT void Assert(bool test);
 
  #define TRACE				CTracer()
  #define ASSERT(x)			Assert(x)
  #define VERIFY(f)          ASSERT(f)
  #define DEBUG_ONLY(f)      (f)
 
-MISCHELPERS_EXPORT extern bool g_assert_active;
+COREHELPERS_EXPORT extern bool g_assert_active;
 
-class MISCHELPERS_EXPORT CTracer
+class COREHELPERS_EXPORT CTracer
 {
 public:
 	void operator()(const QString &sLine) const;
@@ -33,7 +33,7 @@ public:
 // Tracers
 ////////////////////////////////////////////////////////////////////////////////////////////
 
-class MISCHELPERS_EXPORT CMemTracer
+class COREHELPERS_EXPORT CMemTracer
 {
 public:
 	//CMemTracer();
@@ -52,14 +52,14 @@ private:
 	std::map<std::string,int>		m_MemoryTrace2;
 };
 
-MISCHELPERS_EXPORT extern CMemTracer memTracer;
+COREHELPERS_EXPORT extern CMemTracer memTracer;
 
  #define TRACE_ALLOC(x)		memTracer.TraceAlloc(x);
  #define TRACE_FREE(x)		memTracer.TraceFree(x);
  #define TRACE_PRE_FREE(x)	memTracer.TracePre(x);
  #define TRACE_MEMORY		memTracer.DumpTrace();
 
-class MISCHELPERS_EXPORT CCpuTracer
+class COREHELPERS_EXPORT CCpuTracer
 {
 public:
 	//CCpuTracer();
@@ -86,7 +86,7 @@ private:
 	std::map<std::string,SCycles>		m_CpuUsageTrace;
 };
 
-MISCHELPERS_EXPORT extern CCpuTracer cpuTracer;
+COREHELPERS_EXPORT extern CCpuTracer cpuTracer;
 
  #define TRACE_RESET	cpuTracer.ResetTrace();
  #define TRACE_START(x)	cpuTracer.TraceStart(x);
@@ -94,7 +94,7 @@ MISCHELPERS_EXPORT extern CCpuTracer cpuTracer;
  #define TRACE_CPU		cpuTracer.DumpTrace();
 
 
-class MISCHELPERS_EXPORT CLockTracer
+class COREHELPERS_EXPORT CLockTracer
 {
 public:
 	//CLockTracer();
@@ -119,13 +119,13 @@ private:
 	std::map<std::string,SLocks>		m_LockTrace;
 };
 
-MISCHELPERS_EXPORT extern CLockTracer lockTracer;
+COREHELPERS_EXPORT extern CLockTracer lockTracer;
 
  #define TRACE_LOCK(x)	lockTracer.TraceLock(x,1);
  #define TRACE_UNLOCK(x)lockTracer.TraceLock(x,-1);
  #define TRACE_LOCKING	lockTracer.DumpTrace();
 
-class MISCHELPERS_EXPORT CLockerTrace
+class COREHELPERS_EXPORT CLockerTrace
 {
 public:
 	CLockerTrace(std::string Name)
@@ -171,6 +171,6 @@ private:
  #define TRACE_LOCKER(x)
 #endif
 
-MISCHELPERS_EXPORT void InitMiniDumpWriter(const wchar_t* Name, const wchar_t* Path);
-MISCHELPERS_EXPORT extern bool g_MyCrashHandlerExceptionFilter_Engaged;
-MISCHELPERS_EXPORT quint64 GetCurCycle();
+COREHELPERS_EXPORT void InitMiniDumpWriter(const wchar_t* Name, const wchar_t* Path);
+COREHELPERS_EXPORT extern bool g_MyCrashHandlerExceptionFilter_Engaged;
+COREHELPERS_EXPORT quint64 GetCurCycle();

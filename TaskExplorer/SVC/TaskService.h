@@ -1,4 +1,6 @@
 #pragma once
+#include "../taskcore_global.h"
+#include "../API/TaskStatus.h"
 
 #define USE_TASK_HELPER
 
@@ -9,9 +11,9 @@
 #define TASK_SERVICE_NAME "TaskExplorerSvc"
 
 #ifdef USE_TASK_HELPER
-class CTaskService : public QObject
+class TASKCORE_EXPORT CTaskService : public QObject
 #else
-class CTaskService : public QObject, public QtServiceBase
+class TASKCORE_EXPORT CTaskService : public QObject, public QtServiceBase
 #endif
 {
 	Q_OBJECT
@@ -29,7 +31,13 @@ public:
 #endif
 	static void Terminate(const QString& socketName) { CTaskService::SendCommand(socketName, "Quit", 500); }
 
-	static QString RunWorker(bool bElevanted = true, bool b32Bit = false);
+	//
+	// pStatus, when given, says why an empty string came back: TE_UserCanceled
+	// if the authentication prompt was refused, otherwise what the platform
+	// reported. Without it a refusal and a failure are indistinguishable, and
+	// the caller shows an error box for something the user chose.
+	//
+	static QString RunWorker(bool bElevanted = true, bool b32Bit = false, STATUS* pStatus = NULL);
 
 	//
 	// The socket of a worker that is *already* running, or an empty string.

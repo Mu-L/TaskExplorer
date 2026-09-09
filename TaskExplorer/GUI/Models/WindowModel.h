@@ -24,14 +24,10 @@ public:
 	enum EColumns
 	{
 		eHandle = 0,
-#ifdef WIN32
 		eClass,
-#endif
 		eText,
 		eThread,
-#ifdef WIN32
 		eModule,
-#endif
 		eCount
 	};
 

@@ -1,38 +1,11 @@
 #pragma once
 #include <qobject.h>
-#include "../../../MiscHelpers/Common/FlexError.h"
+#include "../../../MiscHelpers/Common/Status.h"
 #include "../ProcessInfo.h"
 #include "../AbstractInfo.h"
+#include "../JobInfo.h"
 
-struct SJobStats
-{
-	SJobStats()
-	{
-		LastStatUpdate = GetCurTick();
-	}
-
-	bool UpdateStats()
-	{
-		quint64 curTick = GetCurTick();
-		quint64 time_ms = curTick - LastStatUpdate;
-		LastStatUpdate = curTick;
-
-		Io.UpdateStats(time_ms);
-
-		return true;
-	}
-
-	SDelta64	KernelDelta;
-	SDelta64	UserDelta;
-
-	SDelta32_64 	PageFaultsDelta;
-
-	quint64		LastStatUpdate;
-
-	SIOStatsEx	Io;
-};
-
-class CWinJob : public CAbstractInfo
+class CWinJob : public CJobInfo
 {
 	Q_OBJECT
 
@@ -41,8 +14,8 @@ public:
 	CWinJob(QObject *parent = nullptr);
 	virtual ~CWinJob();
 
-	static CWinJob*	JobFromProcess(void* QueryHandle);
-	static CWinJob*	JobFromHandle(quint64 ProcessId, quint64 HandleId);
+	static CWinJob*	JobFromProcess(const CSystemPtr& pSystem, void* QueryHandle);
+	static CWinJob*	JobFromHandle(const CSystemPtr& pSystem, quint64 ProcessId, quint64 HandleId);
 
 	virtual QString			GetJobName() const { QReadLocker Locker(&m_Mutex); return m_JobName; }
 
@@ -57,38 +30,13 @@ public:
 
 	virtual SJobStats		GetStats() const { QReadLocker Locker(&m_Mutex);  return m_Stats; }
 
-	struct SJobLimit
-	{
-		enum EType
-		{
-			eString,
-			eSize,
-			eTimeMs,
-			eAddress,
-			eNumber,
-			eEnabled,
-			eLimited
-		};
-
-		SJobLimit(const QString& name, EType type, const QVariant& value)
-		{
-			Name = name;
-			Type = type;
-			Value = value;
-		}
-
-		QString Name;
-		EType Type;
-		QVariant Value;
-	};
-	
 	virtual QList<SJobLimit> GetLimits() const { QReadLocker Locker(&m_Mutex);  return m_Limits; }
 
 	virtual STATUS			Terminate();
 	virtual STATUS			Freeze(bool bFreeze);
 	virtual STATUS			AddProcess(quint64 ProcessId);
 
-	virtual void OpenPermissions();
+	virtual CSecurityEditablePtr GetSecurityObject() const;
 
 	enum EQueryType
 	{

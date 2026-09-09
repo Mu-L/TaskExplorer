@@ -1,7 +1,7 @@
 #pragma once
 #include <qwidget.h>
 #include "../MiscHelpers/Common/ListItemModel.h"
-#include "../../API/Windows/WinGDI.h"
+#include "../../API/GdiInfo.h"
 
 class CGDIModel : public CListItemModel
 {
@@ -11,9 +11,9 @@ public:
     CGDIModel(QObject *parent = 0);
 	~CGDIModel();
 
-	void			Sync(QMap<quint64, CWinGDIPtr> List);
+	void			Sync(QMap<quint64, CGdiPtr> List);
 	
-	CWinGDIPtr		GetGDI(const QModelIndex &index) const;
+	CGdiPtr		GetGDI(const QModelIndex &index) const;
 
     int				columnCount(const QModelIndex &parent = QModelIndex()) const;
     QVariant		headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
@@ -33,7 +33,7 @@ protected:
 	{
 		SGDINode(const QVariant& Id) : SListNode(Id), iColor(0) {}
 
-		CWinGDIPtr			pGDI;
+		CGdiPtr			pGDI;
 
 		int					iColor;
 	};

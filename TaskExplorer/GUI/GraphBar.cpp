@@ -2,11 +2,8 @@
 #include "GraphBar.h"
 #include "TaskExplorer.h"
 #include "../../MiscHelpers/Common/ItemChooser.h"
-#ifdef WIN32
-#include "../API/Windows/WindowsAPI.h"
-#else
-#include "../API/Linux/LinuxAPI.h"
-#endif
+#include "../API/SystemAPI.h"
+#include "../API/Cluster.h"
 
 CGraphBar::CGraphBar()
 {
@@ -52,6 +49,16 @@ CGraphBar::CGraphBar()
 	m_PlotLimit = theGUI->GetGraphLimit();
 	connect(theGUI, SIGNAL(ReloadPlots()), this, SLOT(ReConfigurePlots()));
 
+	//
+	// The bar reports whichever machine the window is about, and that changes
+	// when one is selected, connected or dropped. Points already plotted were
+	// measured somewhere else - but only where the machine really did change,
+	// which is what OnViewSystemChanged decides.
+	//
+	m_pPlotted = CCluster::GetActiveSystem();
+	connect(theGUI, SIGNAL(ViewSystemChanged()), this, SLOT(OnViewSystemChanged()));
+	connect(theGUI, SIGNAL(ActiveSystemChanged()), this, SLOT(OnViewSystemChanged()));
+
 	AddGraphs(Graphs, Rows);
 }
 
@@ -84,29 +91,30 @@ QList<CGraphBar::EGraph> CGraphBar::GetDefaultGraphs()
 
 	Graphs.append(eGpuMemPlot);
 	Graphs.append(eMemoryPlot);
-#ifdef WIN32
-	Graphs.append(eObjectPlot);
-	Graphs.append(eWindowsPlot);
-#else
 	//
-	// The GDI/User object and window-object plots have no Linux counterpart and
-	// would render as two permanently empty boxes, so the slot goes to the
-	// pressure plot instead.
+	// The GDI/User object and window-object plots only mean something where the
+	// system accounts for those objects; elsewhere they would be two
+	// permanently empty boxes, so the slot goes to the pressure plot instead.
 	//
-	Graphs.append(ePressurePlot);
-#endif
+	if (CCluster::GetActiveSystem()->GetOsType() == CSystemAPI::eOsWindows)
+	{
+		Graphs.append(eObjectPlot);
+		Graphs.append(eWindowsPlot);
+	}
+	else
+		Graphs.append(ePressurePlot);
 	Graphs.append(eHandledPlot);
 	Graphs.append(eDiskIoPlot);
 	Graphs.append(eMMapIoPlot);
 	Graphs.append(eFileIoPlot);
-#ifdef WIN32
 	//Graphs.append(eSambaPlot);
 	// The Samba and RAS counters come from Windows-specific providers, so on
 	// Linux these three would sit at zero for ever.
+#ifdef WIN32	// no Samba counters outside Windows
 	Graphs.append(eClientPlot);
 	Graphs.append(eServerPlot);
-	Graphs.append(eRasPlot);
 #endif
+	Graphs.append(eRasPlot);
 	Graphs.append(eNetworkPlot);
 	Graphs.append(eGpuPlot);
 	Graphs.append(eCpuPlot);
@@ -206,17 +214,12 @@ void CGraphBar::AddGraph(EGraph Graph, int row, int column)
 		break;
 	}
 	case eObjectPlot:
-#ifdef WIN32
 		pPlot->AddPlot("Gdi", Qt::green, Qt::SolidLine);
 		pPlot->AddPlot("User", Qt::red, Qt::SolidLine);
-#endif
 		break;
 	case eWindowsPlot:
-#ifdef WIN32
 		pPlot->AddPlot("Wnd", Qt::green, Qt::SolidLine);
-#endif
 		break;
-#ifndef WIN32
 	case ePressurePlot:
 		//
 		// All three are percentages of a 10 second window, so they share one
@@ -228,7 +231,6 @@ void CGraphBar::AddGraph(EGraph Graph, int row, int column)
 		pPlot->AddPlot("Memory", Qt::red, Qt::SolidLine);
 		pPlot->AddPlot("IO", Qt::blue, Qt::SolidLine);
 		break;
-#endif
 	case eHandledPlot:
 		pPlot->AddPlot("Handles", Qt::green, Qt::SolidLine);
 		break;
@@ -243,12 +245,11 @@ void CGraphBar::AddGraph(EGraph Graph, int row, int column)
 	case eFileIoPlot:
 		pPlot->AddPlot("Read", Qt::green, Qt::SolidLine);
 		pPlot->AddPlot("Write", Qt::red, Qt::SolidLine);
-#ifdef WIN32
 		// "Other" counts operations that are neither reads nor writes; Linux
 		// keeps no such tally, so the line would be flat at zero for ever.
 		pPlot->AddPlot("Other", Qt::blue, Qt::SolidLine);
-#endif
 		break;
+#ifdef WIN32
 	case eSambaPlot:
 		pPlot->AddPlot("RecvTotal", Qt::green, Qt::SolidLine);
 		pPlot->AddPlot("SentTotal", Qt::red, Qt::SolidLine);
@@ -257,14 +258,19 @@ void CGraphBar::AddGraph(EGraph Graph, int row, int column)
 		pPlot->AddPlot("RecvClient", Qt::green, Qt::DotLine);
 		pPlot->AddPlot("SentClient", Qt::red, Qt::DotLine);
 		break;
+#endif
+#ifdef WIN32
 	case eClientPlot:
 		pPlot->AddPlot("RecvClient", Qt::green, Qt::SolidLine);
 		pPlot->AddPlot("SentClient", Qt::red, Qt::SolidLine);
 		break;
+#endif
+#ifdef WIN32
 	case eServerPlot:
 		pPlot->AddPlot("RecvServer", Qt::green, Qt::SolidLine);
 		pPlot->AddPlot("SentServer", Qt::red, Qt::SolidLine);
 		break;
+#endif
 	case eRasPlot:
 		pPlot->AddPlot("Recv", Qt::green, Qt::SolidLine);
 		pPlot->AddPlot("Send", Qt::red, Qt::SolidLine);
@@ -323,10 +329,10 @@ void CGraphBar::FixPlotScale(CIncrementalPlot* pPlot)
 
 void CGraphBar::UpdateGraphs()
 {
-	SSysStats SysStats = theAPI->GetStats();
-	CGpuMonitor* pGpuMonitor = theAPI->GetGpuMonitor();
-	CDiskMonitor* pDiskMonitor = theAPI->GetDiskMonitor();
-	CNetMonitor* pNetMonitor = theAPI->GetNetMonitor();
+	SSysStats SysStats = CCluster::GetActiveSystem()->GetStats();
+	CGpuMonitor* pGpuMonitor = CCluster::GetActiveSystem()->GetGpuMonitor();
+	CDiskMonitor* pDiskMonitor = CCluster::GetActiveSystem()->GetDiskMonitor();
+	CNetMonitor* pNetMonitor = CCluster::GetActiveSystem()->GetNetMonitor();
 
 	for(QList<SGraph>::iterator I = m_Graphs.begin(); I != m_Graphs.end(); ++I)
 	{
@@ -336,31 +342,38 @@ void CGraphBar::UpdateGraphs()
 		switch (I->Type)
 		{
 		case eMemoryPlot:
-			Text = tr("Memory=%1%").arg(theAPI->GetInstalledMemory() ? (int)100*theAPI->GetPhysicalUsed()/theAPI->GetInstalledMemory() : 0);
-			pPlot->SetRagne(theAPI->GetMemoryLimit());
-			pPlot->AddPlotPoint("Commited", theAPI->GetCommitedMemory());
-			pPlot->AddPlotPoint("Swapped", theAPI->GetPhysicalUsed() + theAPI->GetSwapedOutMemory());
-			pPlot->AddPlotPoint("Cache", theAPI->GetCacheMemory());
-#ifdef WIN32
-			pPlot->AddPlotPoint("Physical", theAPI->GetPhysicalUsed() - theAPI->GetCacheMemory());
-#else
+			Text = tr("Memory=%1%").arg(CCluster::GetActiveSystem()->GetInstalledMemory() ? (int)100*CCluster::GetActiveSystem()->GetPhysicalUsed()/CCluster::GetActiveSystem()->GetInstalledMemory() : 0);
+			pPlot->SetRagne(CCluster::GetActiveSystem()->GetMemoryLimit());
+			pPlot->AddPlotPoint("Commited", CCluster::GetActiveSystem()->GetCommitedMemory());
+			pPlot->AddPlotPoint("Swapped", CCluster::GetActiveSystem()->GetPhysicalUsed() + CCluster::GetActiveSystem()->GetSwapedOutMemory());
+			pPlot->AddPlotPoint("Cache", CCluster::GetActiveSystem()->GetCacheMemory());
 			//
-			// On Linux GetPhysicalUsed() is MemTotal - MemAvailable, which
-			// already excludes the reclaimable page cache that GetCacheMemory()
-			// reports. Subtracting it again gives a negative result, and since
-			// these are unsigned that wraps to an enormous value and pegs the
-			// series at full scale.
+			// What "physical used" already accounts for differs by system.
 			//
-			// The Windows figures do not have this problem: there PhysicalUsed
-			// excludes the standby list, and CacheMemory is the much smaller
-			// resident kernel cache.
+			// On Linux it is MemTotal - MemAvailable, which already excludes
+			// the reclaimable page cache that GetCacheMemory() reports;
+			// subtracting it again goes negative, and since these are unsigned
+			// that wraps and pegs the series at full scale. On Windows
+			// PhysicalUsed excludes the standby list and CacheMemory is the
+			// much smaller resident kernel cache, so the subtraction is right.
 			//
-			pPlot->AddPlotPoint("Physical", theAPI->GetPhysicalUsed());
-#endif
-			pPlot->AddPlotPoint("Limit", theAPI->GetInstalledMemory());
+			if (CCluster::GetActiveSystem()->GetOsType() == CSystemAPI::eOsWindows)
+				pPlot->AddPlotPoint("Physical", CCluster::GetActiveSystem()->GetPhysicalUsed() - CCluster::GetActiveSystem()->GetCacheMemory());
+			else
+				pPlot->AddPlotPoint("Physical", CCluster::GetActiveSystem()->GetPhysicalUsed());
+			pPlot->AddPlotPoint("Limit", CCluster::GetActiveSystem()->GetInstalledMemory());
 			break;
 		case eGpuMemPlot:
 		{
+			//
+			// A machine this process is not collecting from has no device
+			// monitors - the wire carries the aggregate counters, not the
+			// per-adapter detail these read - so the plot stays empty rather
+			// than showing the wrong machine's. See CSystemAPI's constructor.
+			//
+			if (!pGpuMonitor)
+				break;
+
 			CGpuMonitor::SGpuMemory GpuMemory = pGpuMonitor->GetGpuMemory();
 			
 			Text = tr("Gpu Memory");
@@ -373,26 +386,21 @@ void CGraphBar::UpdateGraphs()
 			break;
 		}
 		case eObjectPlot:
-#ifdef WIN32
 			Text = tr("Objects<%1").arg(FormatUnit(pPlot->GetRangeMax()));
 			
-			Texts.append(FormatUnit(((CWindowsAPI*)theAPI)->GetTotalGuiObjects(), 1));
-			pPlot->AddPlotPoint("Gdi", ((CWindowsAPI*)theAPI)->GetTotalGuiObjects());
+			Texts.append(FormatUnit(CCluster::GetActiveSystem()->GetTotalGuiObjects(), 1));
+			pPlot->AddPlotPoint("Gdi", CCluster::GetActiveSystem()->GetTotalGuiObjects());
 
-			Texts.append(FormatUnit(((CWindowsAPI*)theAPI)->GetTotalUserObjects(), 1));
-			pPlot->AddPlotPoint("User", ((CWindowsAPI*)theAPI)->GetTotalUserObjects());
-#endif
+			Texts.append(FormatUnit(CCluster::GetActiveSystem()->GetTotalUserObjects(), 1));
+			pPlot->AddPlotPoint("User", CCluster::GetActiveSystem()->GetTotalUserObjects());
 			break;
 
 		case eWindowsPlot:
-#ifdef WIN32
 			Text = tr("Windows<%1").arg(FormatUnit(pPlot->GetRangeMax()));
 
-			Texts.append(FormatUnit(((CWindowsAPI*)theAPI)->GetTotalWndObjects(), 1));
-			pPlot->AddPlotPoint("Wnd", ((CWindowsAPI*)theAPI)->GetTotalWndObjects());
-#endif
+			Texts.append(FormatUnit(CCluster::GetActiveSystem()->GetTotalWndObjects(), 1));
+			pPlot->AddPlotPoint("Wnd", CCluster::GetActiveSystem()->GetTotalWndObjects());
 			break;
-#ifndef WIN32
 		case ePressurePlot:
 		{
 			//
@@ -400,9 +408,9 @@ void CGraphBar::UpdateGraphs()
 			// which at least one task was stalled waiting for the resource.
 			// That is the number that correlates with a machine feeling slow.
 			//
-			const ProcFs::SPressure Cpu = ((CLinuxAPI*)theAPI)->GetCpuPressure();
-			const ProcFs::SPressure Memory = ((CLinuxAPI*)theAPI)->GetMemoryPressure();
-			const ProcFs::SPressure Io = ((CLinuxAPI*)theAPI)->GetIoPressure();
+			const CSystemAPI::SPressure Cpu = CCluster::GetActiveSystem()->GetCpuPressure();
+			const CSystemAPI::SPressure Memory = CCluster::GetActiveSystem()->GetMemoryPressure();
+			const CSystemAPI::SPressure Io = CCluster::GetActiveSystem()->GetIoPressure();
 
 			Text = tr("Pressure=%1%").arg(qMax(qMax(Cpu.SomeAvg10, Memory.SomeAvg10), Io.SomeAvg10), 0, 'f', 1);
 
@@ -416,17 +424,18 @@ void CGraphBar::UpdateGraphs()
 			pPlot->AddPlotPoint("IO", Io.SomeAvg10);
 			break;
 		}
-#endif
-
 		case eHandledPlot:
 			Text = tr("Handles<%1").arg(FormatUnit(pPlot->GetRangeMax()));
 
-			pPlot->AddPlotPoint("Handles", theAPI->GetTotalHandles());
+			pPlot->AddPlotPoint("Handles", CCluster::GetActiveSystem()->GetTotalHandles());
 
 			break;
 
 		case eDiskIoPlot:
 		{
+			if (!pDiskMonitor)
+				break;
+
 			CDiskMonitor::SDataRates DiskRates = pDiskMonitor->GetAllDiskDataRates();
 			int DiskUsage = theConf->GetInt("Options/DiskUsageMode", 2);
 
@@ -483,14 +492,12 @@ void CGraphBar::UpdateGraphs()
 
 				quint64 ReadRate = 0;
 				quint64 WriteRate = 0;
-#ifdef WIN32
-				if (((CWindowsAPI*)theAPI)->IsMonitoringETW())
+				if (CCluster::GetActiveSystem()->HasCapability(CSystemAPI::eCapEtw))
 				{
 					ReadRate = SysStats.Disk.ReadRate.Get();
 					WriteRate = SysStats.Disk.WriteRate.Get();
 				}
 				else
-#endif
 				{
 					ReadRate = DiskRates.ReadRate;
 					WriteRate = DiskRates.WriteRate;
@@ -523,14 +530,10 @@ void CGraphBar::UpdateGraphs()
 
 			Texts.append(FormatSize(SysStats.Io.WriteRate.Get(), 0));
 			pPlot->AddPlotPoint("Write", SysStats.Io.WriteRate.Get());
-
-#ifdef WIN32
 			Texts.append(FormatSize(SysStats.Io.OtherRate.Get(), 0));
 			pPlot->AddPlotPoint("Other", SysStats.Io.OtherRate.Get());
-#endif
 			break;
-
-#ifdef WIN32
+#ifdef WIN32	// the values, likewise
 		case eSambaPlot:
 			Text = tr("Samba<%1").arg(FormatSize(pPlot->GetRangeMax(), 0));
 			
@@ -545,7 +548,9 @@ void CGraphBar::UpdateGraphs()
 			pPlot->AddPlotPoint("SentClient", SysStats.SambaClient.SendRate.Get() );
 
 			break;
+#endif
 
+#ifdef WIN32	// likewise
 		case eClientPlot:
 			Text = tr("Client<%1").arg(FormatSize(pPlot->GetRangeMax(), 0));
 
@@ -555,8 +560,10 @@ void CGraphBar::UpdateGraphs()
 			Texts.append(FormatSize(SysStats.SambaClient.SendRate.Get(), 0));
 			pPlot->AddPlotPoint("SentClient", SysStats.SambaClient.SendRate.Get() );
 
+#endif
 			break;
 
+#ifdef WIN32	// likewise
 		case eServerPlot:
 			Text = tr("Server<%1").arg(FormatSize(pPlot->GetRangeMax(), 0));
 	
@@ -566,11 +573,13 @@ void CGraphBar::UpdateGraphs()
 			Texts.append(FormatSize(SysStats.SambaServer.SendRate.Get(), 0));
 			pPlot->AddPlotPoint("SentServer", SysStats.SambaServer.SendRate.Get() );
 
-			break;
 #endif
-
+			break;
 		case eRasPlot:
 		{
+			if (!pNetMonitor)
+				break;
+
 			CNetMonitor::SDataRates RasRates = pNetMonitor->GetTotalDataRate(CNetMonitor::eRas);
 
 			Text = tr("RAS/VPN<%1").arg(FormatSize(pPlot->GetRangeMax(), 0));
@@ -585,6 +594,9 @@ void CGraphBar::UpdateGraphs()
 		}
 		case eNetworkPlot:
 		{
+			if (!pNetMonitor)
+				break;
+
 			CNetMonitor::SDataRates NetRates = pNetMonitor->GetTotalDataRate(CNetMonitor::eNet);
 
 			Text = tr("TCP/IP<%1").arg(FormatSize(pPlot->GetRangeMax(), 0));
@@ -594,9 +606,7 @@ void CGraphBar::UpdateGraphs()
 
 			Texts.append(FormatSize(NetRates.SendRate, 0));
 			pPlot->AddPlotPoint("Send", NetRates.SendRate);
-
-#ifdef WIN32
-			if (((CWindowsAPI*)theAPI)->IsMonitoringETW() && theConf->GetBool("Options/ShowLanPlot", false))
+			if (CCluster::GetActiveSystem()->HasCapability(CSystemAPI::eCapEtw) && theConf->GetBool("Options/ShowLanPlot", false))
 			{
 				Texts.append(FormatSize(SysStats.Lan.ReceiveRate.Get(), 0));
 				pPlot->AddPlotPoint("RecvL", SysStats.Lan.ReceiveRate.Get());
@@ -609,11 +619,13 @@ void CGraphBar::UpdateGraphs()
 				pPlot->AddPlotPoint("RecvL", 0);
 				pPlot->AddPlotPoint("SendL", 0);
 			}
-#endif
 			break;
 		}
 		case eGpuPlot:
 		{
+			if (!pGpuMonitor)
+				break;
+
 			QMap<QString, CGpuMonitor::SGpuInfo> GpuList = pGpuMonitor->GetAllGpuList();
 
 			int GpuPlotCount = I->Params["GpuPlotCount"].toInt();
@@ -647,16 +659,16 @@ void CGraphBar::UpdateGraphs()
 			break;
 		}
 		case eCpuPlot:
-			Text = tr("CPU=%1%").arg(int(100*theAPI->GetCpuUsage()));
+			Text = tr("CPU=%1%").arg(int(100*CCluster::GetActiveSystem()->GetCpuUsage()));
 			
-			Texts.append(tr("%1%").arg(int(100*theAPI->GetCpuUserUsage())));
-			pPlot->AddPlotPoint("User", theAPI->GetCpuUsage()*100);
+			Texts.append(tr("%1%").arg(int(100*CCluster::GetActiveSystem()->GetCpuUserUsage())));
+			pPlot->AddPlotPoint("User", CCluster::GetActiveSystem()->GetCpuUsage()*100);
 
-			Texts.append(tr("%1%").arg(int(100*theAPI->GetCpuKernelUsage())));
-			pPlot->AddPlotPoint("Kernel", theAPI->GetCpuKernelUsage()*100 + theAPI->GetCpuDPCUsage()*100);
+			Texts.append(tr("%1%").arg(int(100*CCluster::GetActiveSystem()->GetCpuKernelUsage())));
+			pPlot->AddPlotPoint("Kernel", CCluster::GetActiveSystem()->GetCpuKernelUsage()*100 + CCluster::GetActiveSystem()->GetCpuDPCUsage()*100);
 
-			Texts.append(tr("%1%").arg(int(100*theAPI->GetCpuDPCUsage())));
-			pPlot->AddPlotPoint("DPC", theAPI->GetCpuDPCUsage()*100);
+			Texts.append(tr("%1%").arg(int(100*CCluster::GetActiveSystem()->GetCpuDPCUsage())));
+			pPlot->AddPlotPoint("DPC", CCluster::GetActiveSystem()->GetCpuDPCUsage()*100);
 
 			break;
 		}
@@ -670,6 +682,25 @@ void CGraphBar::OnMenu(const QPoint& Point)
 {
 	m_pCurPlot = qobject_cast<CIncrementalPlot*>(sender());
 	m_pMenu->popup(QCursor::pos());	
+}
+
+//
+// Whether a view change is a change of machine for the graphs.
+//
+// It often is not. The process tree, the system tabs and the panels all
+// follow the selected machine and every one of them clears when it moves;
+// the graph bar follows CCluster::GetActiveSystem, which is not always the
+// same thing. Resetting on the signal rather than on the fact threw away the
+// history of a machine that was still the one being plotted.
+//
+void CGraphBar::OnViewSystemChanged()
+{
+	const CSystemPtr pActive = CCluster::GetActiveSystem();
+	if (m_pPlotted.lock() == pActive)
+		return;
+
+	m_pPlotted = pActive;
+	ClearGraphs();
 }
 
 void CGraphBar::ClearGraphs()
@@ -712,25 +743,29 @@ void CGraphBar::CustomizeGraphs()
 
 	ItemChooser.AddItem(tr("GPU Memory"), eGpuMemPlot);
 	ItemChooser.AddItem(tr("System Memory"), eMemoryPlot);
-#ifdef WIN32
-	// Both plot Windows kernel object counts, which do not exist on Linux;
-	// offering them would only let the user add an empty box.
-	ItemChooser.AddItem(tr("Object Usage"), eObjectPlot);
-	ItemChooser.AddItem(tr("Window Usage"), eWindowsPlot);
-#else
-	ItemChooser.AddItem(tr("Pressure (PSI)"), ePressurePlot);
-#endif
+	//
+	// Only offer a plot the target can actually fill; otherwise the user can
+	// add a box that stays empty.
+	//
+	if (CCluster::GetActiveSystem()->GetOsType() == CSystemAPI::eOsWindows)
+	{
+		ItemChooser.AddItem(tr("Object Usage"), eObjectPlot);
+		ItemChooser.AddItem(tr("Window Usage"), eWindowsPlot);
+	}
+	else
+		ItemChooser.AddItem(tr("Pressure (PSI)"), ePressurePlot);
 	ItemChooser.AddItem(tr("Handle Usage"), eHandledPlot);
 	ItemChooser.AddItem(tr("Disk I/O"), eDiskIoPlot);
 	ItemChooser.AddItem(tr("Memory Mapped I/O"), eMMapIoPlot);
 	ItemChooser.AddItem(tr("File I/O"), eFileIoPlot);
-#ifdef WIN32
 	// Samba and RAS/VPN counters come from Windows-specific providers.
-	ItemChooser.AddItem(tr("Samba Combined U/D"), eSambaPlot);
-	ItemChooser.AddItem(tr("Samba Client U/D"), eClientPlot);
-	ItemChooser.AddItem(tr("Samba Server U/D"), eServerPlot);
-	ItemChooser.AddItem(tr("RAS / VPN"), eRasPlot);
-#endif
+	if (CCluster::GetActiveSystem()->GetOsType() == CSystemAPI::eOsWindows)
+	{
+		ItemChooser.AddItem(tr("Samba Combined U/D"), eSambaPlot);
+		ItemChooser.AddItem(tr("Samba Client U/D"), eClientPlot);
+		ItemChooser.AddItem(tr("Samba Server U/D"), eServerPlot);
+		ItemChooser.AddItem(tr("RAS / VPN"), eRasPlot);
+	}
 	ItemChooser.AddItem(tr("Network U/D"), eNetworkPlot);
 	ItemChooser.AddItem(tr("GPU Usage"), eGpuPlot);
 	ItemChooser.AddItem(tr("CPU Usage"), eCpuPlot);
@@ -788,23 +823,29 @@ void CGraphBar::OnToolTipRequested(QEvent* event)
 	if (Type == eCount)
 		return;
 
-	SSysStats SysStats = theAPI->GetStats();
-	CGpuMonitor* pGpuMonitor = theAPI->GetGpuMonitor();
-	CDiskMonitor* pDiskMonitor = theAPI->GetDiskMonitor();
-	CNetMonitor* pNetMonitor = theAPI->GetNetMonitor();
+	SSysStats SysStats = CCluster::GetActiveSystem()->GetStats();
+	CGpuMonitor* pGpuMonitor = CCluster::GetActiveSystem()->GetGpuMonitor();
+	CDiskMonitor* pDiskMonitor = CCluster::GetActiveSystem()->GetDiskMonitor();
+	CNetMonitor* pNetMonitor = CCluster::GetActiveSystem()->GetNetMonitor();
 
 	QStringList TextLines;
 	switch (Type)
 	{
 	case eMemoryPlot:
 		TextLines.append(tr("System Memory Usage:"));
-		TextLines.append(tr("    Commited memory: %1").arg(FormatSize(theAPI->GetCommitedMemory())));
-		TextLines.append(tr("    Swapped memory: %1").arg(FormatSize(theAPI->GetSwapedOutMemory())));
-		TextLines.append(tr("    Cache memory: %1").arg(FormatSize(theAPI->GetCacheMemory())));
-		TextLines.append(tr("    Physical memory used: %1/%2").arg(FormatSize(theAPI->GetPhysicalUsed())).arg(FormatSize(theAPI->GetInstalledMemory())));
+		TextLines.append(tr("    Commited memory: %1").arg(FormatSize(CCluster::GetActiveSystem()->GetCommitedMemory())));
+		TextLines.append(tr("    Swapped memory: %1").arg(FormatSize(CCluster::GetActiveSystem()->GetSwapedOutMemory())));
+		TextLines.append(tr("    Cache memory: %1").arg(FormatSize(CCluster::GetActiveSystem()->GetCacheMemory())));
+		TextLines.append(tr("    Physical memory used: %1/%2").arg(FormatSize(CCluster::GetActiveSystem()->GetPhysicalUsed())).arg(FormatSize(CCluster::GetActiveSystem()->GetInstalledMemory())));
 		break;
 	case eGpuMemPlot:
 	{
+		//
+		// No device monitor on a machine this process does not collect from.
+		//
+		if (!pGpuMonitor)
+			break;
+
 		QMap<QString, CGpuMonitor::SGpuInfo> GpuList = pGpuMonitor->GetAllGpuList();
 
 		foreach(const CGpuMonitor::SGpuInfo &GpuInfo, GpuList)
@@ -817,25 +858,20 @@ void CGraphBar::OnToolTipRequested(QEvent* event)
 		break;
 	}
 	case eObjectPlot:
-#ifdef WIN32
 		TextLines.append(tr("Object Usage:"));
-		TextLines.append(tr("    Gdi objects: %1").arg(((CWindowsAPI*)theAPI)->GetTotalGuiObjects()));
-		TextLines.append(tr("    User objects: %1").arg(((CWindowsAPI*)theAPI)->GetTotalUserObjects()));
-#endif
+		TextLines.append(tr("    Gdi objects: %1").arg(CCluster::GetActiveSystem()->GetTotalGuiObjects()));
+		TextLines.append(tr("    User objects: %1").arg(CCluster::GetActiveSystem()->GetTotalUserObjects()));
 		break;
 
 	case eWindowsPlot:
-#ifdef WIN32
 		TextLines.append(tr("Window Usage:"));
-		TextLines.append(tr("    Window objects: %1").arg(((CWindowsAPI*)theAPI)->GetTotalWndObjects()));
-#endif
+		TextLines.append(tr("    Window objects: %1").arg(CCluster::GetActiveSystem()->GetTotalWndObjects()));
 		break;
-#ifndef WIN32
 	case ePressurePlot:
 	{
-		const ProcFs::SPressure Cpu = ((CLinuxAPI*)theAPI)->GetCpuPressure();
-		const ProcFs::SPressure Memory = ((CLinuxAPI*)theAPI)->GetMemoryPressure();
-		const ProcFs::SPressure Io = ((CLinuxAPI*)theAPI)->GetIoPressure();
+		const CSystemAPI::SPressure Cpu = CCluster::GetActiveSystem()->GetCpuPressure();
+		const CSystemAPI::SPressure Memory = CCluster::GetActiveSystem()->GetMemoryPressure();
+		const CSystemAPI::SPressure Io = CCluster::GetActiveSystem()->GetIoPressure();
 
 		if (!Cpu.Valid && !Memory.Valid && !Io.Valid)
 		{
@@ -858,15 +894,13 @@ void CGraphBar::OnToolTipRequested(QEvent* event)
 			.arg(Cpu.SomeAvg60, 0, 'f', 2).arg(Memory.SomeAvg60, 0, 'f', 2).arg(Io.SomeAvg60, 0, 'f', 2));
 		break;
 	}
-#endif
-
 	case eHandledPlot:
 		TextLines.append(tr("Handle Usage:"));
-		TextLines.append(tr("    Handles: %1").arg(theAPI->GetTotalHandles()));
+		TextLines.append(tr("    Handles: %1").arg(CCluster::GetActiveSystem()->GetTotalHandles()));
 		break;
 
 	case eDiskIoPlot:
-		if(Params["DiskPlotCount"].toInt() > 0)
+		if(pDiskMonitor && Params["DiskPlotCount"].toInt() > 0)
 		{
 			QMap<QString, CDiskMonitor::SDiskInfo> DiskList = pDiskMonitor->GetDiskList();
 
@@ -894,8 +928,7 @@ void CGraphBar::OnToolTipRequested(QEvent* event)
 		TextLines.append(tr("    Write rate: %1").arg(FormatSize(SysStats.Io.WriteRate.Get())));
 		TextLines.append(tr("    Other rate: %1").arg(FormatSize(SysStats.Io.OtherRate.Get())));
 		break;
-
-#ifdef WIN32
+#ifdef WIN32	// the tooltip, likewise
 	case eSambaPlot:
 		TextLines.append(tr("Samba client:"));
 		TextLines.append(tr("    Receive rate: %1").arg(FormatSize(SysStats.SambaClient.ReceiveRate.Get())));
@@ -903,23 +936,29 @@ void CGraphBar::OnToolTipRequested(QEvent* event)
 		TextLines.append(tr("Samba server:"));
 		TextLines.append(tr("    Receive rate: %1").arg(FormatSize(SysStats.SambaServer.ReceiveRate.Get())));
 		TextLines.append(tr("    Send rate: %1").arg(FormatSize(SysStats.SambaServer.SendRate.Get())));
+#endif
 		break;
 
+#ifdef WIN32	// likewise
 	case eClientPlot:
 		TextLines.append(tr("Samba client:"));
 		TextLines.append(tr("    Receive rate: %1").arg(FormatSize(SysStats.SambaClient.ReceiveRate.Get())));
 		TextLines.append(tr("    Send rate: %1").arg(FormatSize(SysStats.SambaClient.SendRate.Get())));
+#endif
 		break;
 
+#ifdef WIN32	// likewise
 	case eServerPlot:
 		TextLines.append(tr("Samba server:"));
 		TextLines.append(tr("    Receive rate: %1").arg(FormatSize(SysStats.SambaServer.ReceiveRate.Get())));
 		TextLines.append(tr("    Send rate: %1").arg(FormatSize(SysStats.SambaServer.SendRate.Get())));
-        break;
 #endif
-
+        break;
 	case eRasPlot:
 	{
+		if (!pNetMonitor)
+			break;
+
 		CNetMonitor::SDataRates RasRates = pNetMonitor->GetTotalDataRate(CNetMonitor::eRas);
 
 		TextLines.append(tr("RAS & VPN Traffic:"));
@@ -929,22 +968,26 @@ void CGraphBar::OnToolTipRequested(QEvent* event)
 	}
 	case eNetworkPlot:
 	{
+		if (!pNetMonitor)
+			break;
+
 		CNetMonitor::SDataRates NetRates = pNetMonitor->GetTotalDataRate(CNetMonitor::eNet);
 
 		TextLines.append(tr("TCP/IP Traffic:"));
 		TextLines.append(tr("    Receive rate: %1").arg(FormatSize(NetRates.ReceiveRate)));
 		TextLines.append(tr("    Send rate: %1").arg(FormatSize(NetRates.SendRate)));
-#ifdef WIN32
-		if (((CWindowsAPI*)theAPI)->IsMonitoringETW() && theConf->GetBool("Options/ShowLanPlot", false))
+		if (CCluster::GetActiveSystem()->HasCapability(CSystemAPI::eCapEtw) && theConf->GetBool("Options/ShowLanPlot", false))
 		{
 			TextLines.append(tr("    LAN Receive rate: %1").arg(FormatSize(SysStats.Lan.ReceiveRate.Get())));
 			TextLines.append(tr("    LAN Send rate: %1").arg(FormatSize(SysStats.Lan.SendRate.Get())));
 		}
-#endif
 		break;
 	}
 	case eGpuPlot:
 	{
+		if (!pGpuMonitor)
+			break;
+
 		QMap<QString, CGpuMonitor::SGpuInfo> GpuList = pGpuMonitor->GetAllGpuList();
 
 		TextLines.append(tr("GPU Usage:"));
@@ -954,9 +997,9 @@ void CGraphBar::OnToolTipRequested(QEvent* event)
 	}
 	case eCpuPlot:
 		TextLines.append(tr("CPU Usage:"));
-		TextLines.append(tr("    User usage: %1%").arg(int(100*theAPI->GetCpuUserUsage())));
-		TextLines.append(tr("    Kernel usage: %1%").arg(int(100*theAPI->GetCpuKernelUsage())));
-		TextLines.append(tr("    DPC/IRQ usage: %1%").arg(int(100*theAPI->GetCpuDPCUsage())));
+		TextLines.append(tr("    User usage: %1%").arg(int(100*CCluster::GetActiveSystem()->GetCpuUserUsage())));
+		TextLines.append(tr("    Kernel usage: %1%").arg(int(100*CCluster::GetActiveSystem()->GetCpuKernelUsage())));
+		TextLines.append(tr("    DPC/IRQ usage: %1%").arg(int(100*CCluster::GetActiveSystem()->GetCpuDPCUsage())));
 		break;
 	}
 	

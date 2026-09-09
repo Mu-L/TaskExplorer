@@ -11,6 +11,7 @@
 #include <linux/rtnetlink.h>
 #include <linux/sock_diag.h>
 #include <linux/inet_diag.h>
+#include <linux/unix_diag.h>
 #include <linux/tcp.h>
 
 namespace SockDiag
@@ -20,33 +21,40 @@ namespace SockDiag
 // NET_TYPE_* values, mirrored from SocketInfo.h so this stays independent of
 // the API layer (ProcFs does the same).
 //
-static const quint32 NET_IPV4 = 0x1, NET_IPV6 = 0x2, NET_TCP = 0x10, NET_UDP = 0x20;
+static const quint32 NET_IPV4 = 0x1, NET_IPV6 = 0x2, NET_UNIX = 0x4;
+static const quint32 NET_TCP = 0x10, NET_UDP = 0x20, NET_OTHER = 0x80;
+
+// And EUnixSocketState, mirrored for the same reason.
+static const quint32 UNIX_UNCONNECTED = 1, UNIX_CONNECTED = 3, UNIX_LISTEN = 5;
 
 //
-// The TCP_* state values are spelled out rather than taken from a header:
-// glibc puts them in <netinet/tcp.h> behind __USE_MISC, and that header
-// conflicts with <linux/tcp.h>, which is needed here for tcp_info. They are
-// part of the kernel ABI and cannot change.
+// The two TCP state numbers unix_diag reuses to report a unix socket's state.
+// Spelled out rather than included: netinet/tcp.h has them but collides with
+// linux/tcp.h, which is the header the netlink structures need.
+//
+static const quint32 TCPSTATE_ESTABLISHED = 1, TCPSTATE_LISTEN = 10;
+
+//
+// The kernel's own TCP state numbers, which is what sock_diag reports. They are
+// not the MIB ones the rest of the program uses - Linux counts ESTABLISHED as
+// one where the MIB counts it as five - so the two are kept apart by name and
+// converted below rather than being passed through and hoped about.
 //
 enum ELinuxTcpState
 {
-	LinuxTcpEstablished = 1,
-	LinuxTcpSynSent     = 2,
-	LinuxTcpSynRecv     = 3,
-	LinuxTcpFinWait1    = 4,
-	LinuxTcpFinWait2    = 5,
-	LinuxTcpTimeWait    = 6,
-	LinuxTcpClose       = 7,
-	LinuxTcpCloseWait   = 8,
-	LinuxTcpLastAck     = 9,
-	LinuxTcpListen      = 10,
-	LinuxTcpClosing     = 11,
+	LinuxTcpEstablished	= 1,
+	LinuxTcpSynSent		= 2,
+	LinuxTcpSynRecv		= 3,
+	LinuxTcpFinWait1	= 4,
+	LinuxTcpFinWait2	= 5,
+	LinuxTcpTimeWait	= 6,
+	LinuxTcpClose		= 7,
+	LinuxTcpCloseWait	= 8,
+	LinuxTcpLastAck		= 9,
+	LinuxTcpListen		= 10,
+	LinuxTcpClosing		= 11,
 };
 
-//
-// Kernel TCP state -> MIB_TCP_STATE, the numbering the shared socket layer
-// renders. The two do not agree: Linux ESTABLISHED is 1, the MIB value is 5.
-//
 static quint32 TcpStateToMib(quint32 LinuxState)
 {
 	switch (LinuxState)
@@ -245,6 +253,159 @@ static bool DumpOne(int Family, int Protocol, QList<ProcFs::SNetConnection>& Con
 	return bOk;
 }
 
+//
+// The unix domain sockets, which are most of the sockets a Linux process has.
+//
+// A separate dump because they are a different family with a different request
+// and a different reply: no addresses, no ports, and an identity that is the
+// inode rather than a tuple. What they do have is a name and a peer, and those
+// are asked for explicitly - without UDIAG_SHOW_NAME a listening socket has
+// nothing to show, and without UDIAG_SHOW_PEER a connected one cannot be told
+// apart from any other connected one.
+//
+// The peer is reported as an inode. Which socket that is, and what it is
+// called, is only knowable once the whole dump is in, so the naming is done by
+// the caller - see Enumerate.
+//
+static bool DumpUnix(QList<ProcFs::SNetConnection>& Connections)
+{
+	const int Socket = socket(AF_NETLINK, SOCK_DGRAM | SOCK_CLOEXEC, NETLINK_SOCK_DIAG);
+	if (Socket < 0)
+		return false;
+
+	struct
+	{
+		nlmsghdr Header;
+		unix_diag_req Request;
+	} Query;
+
+	memset(&Query, 0, sizeof(Query));
+	Query.Header.nlmsg_len = sizeof(Query);
+	Query.Header.nlmsg_type = SOCK_DIAG_BY_FAMILY;
+	Query.Header.nlmsg_flags = NLM_F_REQUEST | NLM_F_DUMP;
+	Query.Header.nlmsg_seq = 1;
+
+	Query.Request.sdiag_family = AF_UNIX;
+	Query.Request.udiag_states = ~0u;
+	Query.Request.udiag_show = UDIAG_SHOW_NAME | UDIAG_SHOW_PEER;
+
+	sockaddr_nl Address;
+	memset(&Address, 0, sizeof(Address));
+	Address.nl_family = AF_NETLINK;
+
+	iovec Iov = { &Query, sizeof(Query) };
+	msghdr Message;
+	memset(&Message, 0, sizeof(Message));
+	Message.msg_name = &Address;
+	Message.msg_namelen = sizeof(Address);
+	Message.msg_iov = &Iov;
+	Message.msg_iovlen = 1;
+
+	if (sendmsg(Socket, &Message, 0) < 0)
+	{
+		close(Socket);
+		return false;
+	}
+
+	QByteArray Buffer(32 * 1024, '\0');
+	bool bDone = false;
+	bool bOk = true;
+
+	while (!bDone)
+	{
+		const ssize_t Length = recv(Socket, Buffer.data(), Buffer.size(), 0);
+		if (Length <= 0)
+		{
+			bOk = (errno == 0);
+			break;
+		}
+
+		int Remaining = (int)Length;
+		const nlmsghdr* pHeader = (const nlmsghdr*)Buffer.constData();
+		for (; NLMSG_OK(pHeader, (unsigned)Remaining); pHeader = NLMSG_NEXT(pHeader, Remaining))
+		{
+			if (pHeader->nlmsg_type == NLMSG_DONE)
+			{
+				bDone = true;
+				break;
+			}
+			if (pHeader->nlmsg_type == NLMSG_ERROR)
+			{
+				bOk = false;
+				bDone = true;
+				break;
+			}
+
+			const unix_diag_msg* pMsg = (const unix_diag_msg*)NLMSG_DATA(pHeader);
+
+			ProcFs::SNetConnection Conn;
+
+			switch (pMsg->udiag_type)
+			{
+			case SOCK_DGRAM:		Conn.ProtocolType = NET_UNIX | NET_UDP; break;
+			case SOCK_SEQPACKET:	Conn.ProtocolType = NET_UNIX | NET_OTHER; break;
+			default:				Conn.ProtocolType = NET_UNIX | NET_TCP; break;
+			}
+
+			//
+			// sock_diag reports a unix socket's state in the TCP numbering -
+			// established, listen, close - while /proc/net/unix reports the
+			// socket-layer one. Neither is carried through as it stands: both
+			// are read here into the one set of values the rest of the program
+			// knows, so that a viewer needs to know only which family it is
+			// looking at and not which source answered.
+			//
+			switch (pMsg->udiag_state)
+			{
+			case TCPSTATE_LISTEN:		Conn.State = UNIX_LISTEN; break;
+			case TCPSTATE_ESTABLISHED:	Conn.State = UNIX_CONNECTED; break;
+			default:					Conn.State = UNIX_UNCONNECTED; break;
+			}
+
+			Conn.Inode = pMsg->udiag_ino;
+
+			int AttrLen = pHeader->nlmsg_len - NLMSG_LENGTH(sizeof(*pMsg));
+			const rtattr* pAttr = (const rtattr*)(pMsg + 1);
+			for (; RTA_OK(pAttr, AttrLen); pAttr = RTA_NEXT(pAttr, AttrLen))
+			{
+				if (pAttr->rta_type == UNIX_DIAG_NAME)
+				{
+					const char* pName = (const char*)RTA_DATA(pAttr);
+					int NameLen = (int)RTA_PAYLOAD(pAttr);
+
+					//
+					// An abstract name begins with a nul rather than being one:
+					// it is a name in a namespace of its own with no filesystem
+					// entry. Written with a leading @, which is how ss, lsof and
+					// the socket(7) manual all spell it.
+					//
+					if (NameLen > 0 && pName[0] == '\0')
+						Conn.LocalName = "@" + QString::fromUtf8(pName + 1, NameLen - 1);
+					else
+						Conn.LocalName = QString::fromUtf8(pName, NameLen);
+
+					while (Conn.LocalName.endsWith(QChar('\0')))
+						Conn.LocalName.chop(1);
+				}
+				else if (pAttr->rta_type == UNIX_DIAG_PEER && RTA_PAYLOAD(pAttr) >= sizeof(quint32))
+				{
+					//
+					// An inode, not a name. Which socket it refers to is only
+					// knowable once the whole dump is in, so it is kept as it
+					// stands and resolved in Enumerate.
+					//
+					Conn.PeerInode = *(const quint32*)RTA_DATA(pAttr);
+				}
+			}
+
+			Connections.append(Conn);
+		}
+	}
+
+	close(Socket);
+	return bOk;
+}
+
 bool IsAvailable()
 {
 	//
@@ -267,6 +428,35 @@ QList<ProcFs::SNetConnection> Enumerate()
 	bAnyOk |= DumpOne(AF_INET6, IPPROTO_TCP, Connections);
 	bAnyOk |= DumpOne(AF_INET,  IPPROTO_UDP, Connections);
 	bAnyOk |= DumpOne(AF_INET6, IPPROTO_UDP, Connections);
+
+	//
+	// Not counted towards bAnyOk. A kernel can have CONFIG_INET_DIAG without
+	// CONFIG_UNIX_DIAG, and losing the network sockets because the unix ones
+	// could not be dumped would be the wrong way round.
+	//
+	const int FirstUnix = Connections.count();
+	DumpUnix(Connections);
+
+	//
+	// The peer of a connected unix socket, named now that the whole dump is in.
+	//
+	// Most unix sockets are anonymous - only one end of a pair is usually bound
+	// to anything - so without this a process's list reads as a column of
+	// identical rows saying "connected" and nothing else. With it, the client
+	// end shows the name of the socket it is connected to, which is the thing a
+	// person is looking for: /tmp/.X11-unix/X0, or the bus.
+	//
+	QHash<quint64, QString> ByInode;
+	for (int i = FirstUnix; i < Connections.count(); i++)
+	{
+		if (!Connections[i].LocalName.isEmpty())
+			ByInode.insert(Connections[i].Inode, Connections[i].LocalName);
+	}
+	for (int i = FirstUnix; i < Connections.count(); i++)
+	{
+		if (Connections[i].PeerInode)
+			Connections[i].RemoteName = ByInode.value(Connections[i].PeerInode);
+	}
 
 	// An outright failure returns empty so the caller falls back to /proc/net,
 	// rather than silently reporting that the machine has no sockets.

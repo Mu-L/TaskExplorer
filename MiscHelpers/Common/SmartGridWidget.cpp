@@ -35,6 +35,18 @@ void CSmartGridWidget::AddWidget(QWidget* pWidget)
 	}
 }
 
+void CSmartGridWidget::Clear()
+{
+	foreach(const QPointer<QWidget>& pWidget, m_Widgets)
+	{
+		if (pWidget.isNull())
+			continue;
+		m_pMainLayout->removeWidget(pWidget);
+		delete pWidget;
+	}
+	m_Widgets.clear();
+}
+
 void CSmartGridWidget::ReArange()
 {
 	m_bReArangePending = false;

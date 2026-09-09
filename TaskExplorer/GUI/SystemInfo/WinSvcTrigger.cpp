@@ -1,37 +1,52 @@
 /*
  * Task Explorer -
- *   qt port of the Extended Service Plugin
+ *   qt port of the Service Trigger editor from the ExtendedServices plugin
  *
- * Copyright (C) 2011-2015 wj32
+ * Copyright (C) 2015 wj32
  * Copyright (C) 2019 David Xanatos
  *
  * This file is part of Task Explorer and contains System Informer code.
- * 
+ *
  */
 
 #include "stdafx.h"
 #include "WinSvcTrigger.h"
-#ifdef WIN32
-#include "../../API/Windows/ProcessHacker/PhSvc.h"
-#endif
+#include "../TaskExplorer.h"
 #include "../../../MiscHelpers/Common/ComboInputDialog.h"
 #include "../../../MiscHelpers/Common/MultiLineInputDialog.h"
 
+//
+// Windows SDK only: the SERVICE_TRIGGER_* constants the API reports values
+// from. phlib is not involved. They should become portable enums when the
+// platform constants generally do - see the note on the decoders.
+//
+#include <windows.h>
+#include <winsvc.h>
 
-CWinSvcTrigger::CWinSvcTrigger(QWidget *parent)
+#include <QUuid>
+
+//
+// A trigger's subtype is either one of the names the target knows, or a GUID
+// typed in by hand. The combo carries true in its item data for the entries
+// that mean "custom", which is what enables the text box beside it.
+//
+static const int TriggerCustomRole = Qt::UserRole;
+
+CWinSvcTrigger::CWinSvcTrigger(const CServicePtr& pService, QWidget *parent)
 	: QDialog(parent)
 {
 	ui.setupUi(this);
 
-	m_pInfo = NULL;
+	m_pService = pService;
 
 	m_LastSelectedType = 0;
 	m_NoFixServiceTriggerControls = false;
 
 	ui.datas->setHeaderLabels(tr("Data").split("|"));
 
-    for (int i = 0; i < 8; i++)
-		ui.type->addItem(QString::fromWCharArray(TypeEntries[i].Name), (quint32)TypeEntries[i].Type);
+	typedef QPair<QString, quint32> SLabeledValue;
+	foreach(const SLabeledValue& Type, m_pService->GetTriggerTypes())
+		ui.type->addItem(Type.first, Type.second);
 
 	ui.action->addItem(tr("Start"), SERVICE_TRIGGER_ACTION_SERVICE_START);
 	ui.action->addItem(tr("Stop"), SERVICE_TRIGGER_ACTION_SERVICE_STOP);
@@ -46,30 +61,25 @@ CWinSvcTrigger::CWinSvcTrigger(QWidget *parent)
 
 	connect(ui.buttonBox, SIGNAL(accepted()), this, SLOT(accept()));
 	connect(ui.buttonBox, SIGNAL(rejected()), this, SLOT(reject()));
+
+	//
+	// A new trigger starts on the first subtype the target offers for the first
+	// type, which is what the old code hard-coded to "first IP address arrival".
+	//
+	m_Trigger.Type = ui.type->count() > 0 ? ui.type->itemData(0).toUInt() : 0;
+	m_Trigger.Action = SERVICE_TRIGGER_ACTION_SERVICE_START;
+	ShowTrigger();
 }
 
 CWinSvcTrigger::~CWinSvcTrigger()
 {
-	if(m_pInfo)
-		EspDestroyTriggerInfo((PES_TRIGGER_INFO)m_pInfo);
 }
 
-void CWinSvcTrigger::InitInfo()
+void CWinSvcTrigger::SetTrigger(const CServiceInfo::STrigger& Trigger)
 {
-	if (m_pInfo) {
-		ASSERT(0);
-		return;
-	}
-
-	PES_TRIGGER_INFO info = EspCreateTriggerInfo(NULL);
-	info->Type = SERVICE_TRIGGER_TYPE_IP_ADDRESS_AVAILABILITY;
-	info->SubtypeBuffer = NetworkManagerFirstIpAddressArrivalGuid;
-	info->Subtype = &info->SubtypeBuffer;
-	info->Action = SERVICE_TRIGGER_ACTION_SERVICE_START;
-
-	m_pInfo = info;
-
-	SetInfo();
+	m_Trigger = Trigger;
+	ui.datas->clear();
+	ShowTrigger();
 }
 
 void CWinSvcTrigger::FixServiceTriggerControls()
@@ -78,244 +88,153 @@ void CWinSvcTrigger::FixServiceTriggerControls()
 		return;
 	m_NoFixServiceTriggerControls = true;
 
-	ULONG type = ui.type->currentData().toUInt();
+	const quint32 Type = ui.type->currentData().toUInt();
 
-    if (m_LastSelectedType != type)
-    {
-        // Change the contents of the subtype combo box based on the type.
-
+	if (m_LastSelectedType != Type)
+	{
+		//
+		// The subtype list depends on the type: some types accept only a GUID,
+		// the custom ETW type lists the publishers the target knows, and the
+		// rest have named subtypes.
+		//
 		ui.subType->clear();
 
-        switch (type)
-        {
-        case SERVICE_TRIGGER_TYPE_DEVICE_INTERFACE_ARRIVAL:
-        case SERVICE_TRIGGER_TYPE_CUSTOM_SYSTEM_STATE_CHANGE:
-            {
-				ui.subType->addItem(tr("Custom"));
-            }
-            break;
-        case SERVICE_TRIGGER_TYPE_CUSTOM:
-            {
-                PETW_PUBLISHER_ENTRY entries;
-                ULONG numberOfEntries;
+		switch (Type)
+		{
+		case SERVICE_TRIGGER_TYPE_DEVICE_INTERFACE_ARRIVAL:
+		case SERVICE_TRIGGER_TYPE_CUSTOM_SYSTEM_STATE_CHANGE:
+			ui.subType->addItem(tr("Custom"), true);
+			break;
 
-				ui.subType->addItem(tr("Custom"), true);
+		case SERVICE_TRIGGER_TYPE_CUSTOM:
+			ui.subType->addItem(tr("Custom"), true);
+			foreach(const QString& Publisher, m_pService->GetEtwPublishers())
+				ui.subType->addItem(Publisher);
+			break;
 
-                // Display a std::list of publishers.
-                if (EspEnumerateEtwPublishers(&entries, &numberOfEntries))
-                {
-                    // Sort the std::list by name.
-                    //qsort(entries, numberOfEntries, sizeof(ETW_PUBLISHER_ENTRY), EtwPublisherByNameCompareFunction);
+		default:
+			foreach(const CServiceInfo::STriggerSubtype& Subtype, m_pService->GetTriggerSubtypes())
+			{
+				if (Subtype.TriggerType == Type)
+					ui.subType->addItem(Subtype.Name);
+			}
+			ui.subType->addItem(tr("Custom"), true);
+			break;
+		}
 
-                    for (ULONG i = 0; i < numberOfEntries; i++)
-                    {
-						ui.subType->addItem(QString::fromWCharArray(entries[i].PublisherName->Buffer));
-                        PhDereferenceObject(entries[i].PublisherName);
-                    }
+		m_LastSelectedType = Type;
+	}
 
-                    PhFree(entries);
-                }
-            }
-            break;
-        default:
-            for (int i = 0; i < 20; i++)
-            {
-                if (SubTypeEntries[i].Type == type && SubTypeEntries[i].Guid && SubTypeEntries[i].Guid != &SubTypeUnknownGuid)
-                {
-					ui.subType->addItem(QString::fromWCharArray(SubTypeEntries[i].Name));
-                }
-            }
-            break;
-        }
-
-        m_LastSelectedType = type;
-    }
-
-    if (ui.subType->currentData().toBool() == true)
-    {
+	if (ui.subType->currentData(TriggerCustomRole).toBool())
+	{
 		ui.custom->setEnabled(true);
 		ui.custom->setText(m_LastCustomSubType);
-    }
-    else
-    {
-        if (ui.custom->isEnabled())
-        {
-            ui.custom->setEnabled(false);
-			m_LastCustomSubType = ui.custom->text();
-			ui.custom->setText("");
-        }
-    }
+	}
+	else if (ui.custom->isEnabled())
+	{
+		ui.custom->setEnabled(false);
+		m_LastCustomSubType = ui.custom->text();
+		ui.custom->setText("");
+	}
 
 	m_NoFixServiceTriggerControls = false;
 }
 
-bool EspSetTriggerData(const QString& Value, PES_TRIGGER_DATA Data)
+QString CWinSvcTrigger::FormatData(const CServiceInfo::STriggerData& Data, bool bForDisplay)
 {
-	// todo: add for every type a sanity check
-	// todo: handle number input as hex
-	if (Data->Type == SERVICE_TRIGGER_DATA_TYPE_STRING)
+	switch (Data.Type)
 	{
-		if(Data->String)
-			PhDereferenceObject(Data->String);
+	case SERVICE_TRIGGER_DATA_TYPE_STRING:
+		if (!Data.String.isEmpty())
+			return Data.String;
+		return bForDisplay ? tr("(empty string)") : QString();
 
-		PPH_STRING EditingValue = CastQString(Value);
-		Data->String = EspConvertNewLinesToNulls(EditingValue);
-		PhDereferenceObject(EditingValue);
-	}
-    else if (Data->Type == SERVICE_TRIGGER_DATA_TYPE_BINARY)
-    {
-		if(Data->Binary)
-			PhFree(Data->Binary);
+	case SERVICE_TRIGGER_DATA_TYPE_BINARY:
+		return (bForDisplay ? tr("(binary data) ") : QString()) + QString::fromLatin1(Data.Binary.toHex());
 
-		QByteArray binValue = QByteArray::fromHex(Value.toLatin1());
-		Data->BinaryLength = binValue.length();
-		Data->Binary = PhAllocateCopy(binValue.data(), binValue.length());
-    }
-    else if (Data->Type == SERVICE_TRIGGER_DATA_TYPE_LEVEL)
-    {
-		Data->Byte = Value.toShort();
-    }
-    else if (Data->Type == SERVICE_TRIGGER_DATA_TYPE_KEYWORD_ANY)
-    {
-		Data->UInt64 = Value.toULongLong();
-    }
-    else if (Data->Type == SERVICE_TRIGGER_DATA_TYPE_KEYWORD_ALL)
-    {
-		Data->UInt64 = Value.toULongLong();
-    }
-    else
-    {
-		return false;
-    }
+	case SERVICE_TRIGGER_DATA_TYPE_LEVEL:
+		return (bForDisplay ? tr("(level) ") : QString()) + QString::number(Data.Number);
 
-	return false;
-}
+	case SERVICE_TRIGGER_DATA_TYPE_KEYWORD_ANY:
+		return (bForDisplay ? tr("(keyword any) ") : QString()) + QString::number(Data.Number);
 
-QString EspFormatTriggerData(PES_TRIGGER_DATA Data, bool bForDisplay = true)
-{
-	QString Text = "";
-	// todo: display numbers as hex
-    if (Data->Type == SERVICE_TRIGGER_DATA_TYPE_STRING)
-    {
-        // This check works for both normal strings and multistrings.
-        if (Data->String->Length != 0)
-        {
-			// todo: Prepare the text for display by replacing null characters with spaces.
-			Text = CastPhString(Data->String, false);
-        }
-        else if (bForDisplay)
-        {
-			Text = CWinSvcTrigger::tr("(empty string)");
-        }
-    }
-    else if (Data->Type == SERVICE_TRIGGER_DATA_TYPE_BINARY)
-    {
-		if (bForDisplay)
-			Text = CWinSvcTrigger::tr("(binary data) ");
-		Text.append(QByteArray((char*)Data->Binary, Data->BinaryLength).toHex());
-    }
-    else if (Data->Type == SERVICE_TRIGGER_DATA_TYPE_LEVEL)
-    {
-		if (bForDisplay)
-			Text = CWinSvcTrigger::tr("(level) ");
-		Text.append(QString::number(Data->Byte));
-    }
-    else if (Data->Type == SERVICE_TRIGGER_DATA_TYPE_KEYWORD_ANY)
-    {
-		if (bForDisplay)
-			Text = CWinSvcTrigger::tr("(keyword any) ");
-		Text.append(QString::number(Data->UInt64));
-    }
-    else if (Data->Type == SERVICE_TRIGGER_DATA_TYPE_KEYWORD_ALL)
-    {
-		if (bForDisplay)
-			Text = CWinSvcTrigger::tr("(keyword all) ");
-		Text.append(QString::number(Data->UInt64));
-    }
-    else
-    {
-		if (bForDisplay)
-			Text = CWinSvcTrigger::tr("(unknown type)");
-    }
-	return Text;
-}
-
-void CWinSvcTrigger::SetInfo(void* pInfo)
-{
-	if (m_pInfo) {
-		EspDestroyTriggerInfo((PES_TRIGGER_INFO)m_pInfo);
-		ui.datas->clear();
+	case SERVICE_TRIGGER_DATA_TYPE_KEYWORD_ALL:
+		return (bForDisplay ? tr("(keyword all) ") : QString()) + QString::number(Data.Number);
 	}
 
-	PES_TRIGGER_INFO info = (PES_TRIGGER_INFO)pInfo;
-	
-	m_pInfo = EspCloneTriggerInfo(info);
-
-	SetInfo();
+	return bForDisplay ? tr("(unknown type)") : QString();
 }
 
-void CWinSvcTrigger::SetInfo()
+void CWinSvcTrigger::ParseData(const QString& Value, CServiceInfo::STriggerData& Data)
 {
-	PES_TRIGGER_INFO info = (PES_TRIGGER_INFO)m_pInfo;
+	switch (Data.Type)
+	{
+	case SERVICE_TRIGGER_DATA_TYPE_STRING:
+		Data.String = Value;
+		break;
+	case SERVICE_TRIGGER_DATA_TYPE_BINARY:
+		Data.Binary = QByteArray::fromHex(Value.toLatin1());
+		break;
+	case SERVICE_TRIGGER_DATA_TYPE_LEVEL:
+	case SERVICE_TRIGGER_DATA_TYPE_KEYWORD_ANY:
+	case SERVICE_TRIGGER_DATA_TYPE_KEYWORD_ALL:
+		Data.Number = Value.toULongLong();
+		break;
+	}
+}
 
+void CWinSvcTrigger::ShowData(QTreeWidgetItem* pItem, const CServiceInfo::STriggerData& Data)
+{
+	pItem->setText(0, FormatData(Data));
+}
+
+void CWinSvcTrigger::ShowTrigger()
+{
 	m_LastSelectedType = 0;
+	m_LastCustomSubType = m_Trigger.Subtype;
 
-	if (info->Subtype)
-		m_LastCustomSubType = CastPhString(PhFormatGuid(info->Subtype));
-	else
-		m_LastCustomSubType = QString();
-
-	ui.type->setCurrentIndex(ui.type->findData((quint32)info->Type));
-	ui.action->setCurrentIndex(ui.action->findData((quint32)info->Action));
+	ui.type->setCurrentIndex(ui.type->findData(m_Trigger.Type));
+	ui.action->setCurrentIndex(ui.action->findData(m_Trigger.Action));
 
 	FixServiceTriggerControls();
 
-    if (info->Type != SERVICE_TRIGGER_TYPE_CUSTOM)
-    {
-        for (int i = 0; i < 20; i++)
-        {
-            if (
-                SubTypeEntries[i].Type == info->Type &&
-                SubTypeEntries[i].Guid &&
-                info->Subtype &&
-                IsEqualGUID(*(_GUID*)&SubTypeEntries[i].Guid, *(_GUID*)&info->Subtype)
-                )
-            {
-				ui.subType->setCurrentIndex(ui.subType->findText(QString::fromWCharArray(SubTypeEntries[i].Name)));
-                break;
-            }
-        }
-    }
-    else
-    {
-        if (info->Subtype)
-        {
-            PPH_STRING publisherName;
-
-            // Try to select the publisher name in the subtype std::list.
-            publisherName = EspLookupEtwPublisherName(info->Subtype);
-			ui.subType->setCurrentIndex(ui.subType->findText(QString::fromWCharArray(publisherName->Buffer)));
-            PhDereferenceObject(publisherName);
-        }
-    }
-
-    // Call a second time since the state of the custom subtype text box may have changed.
-    FixServiceTriggerControls();
-
-	if (info->DataList)
+	//
+	// Select the subtype by name where the target knows one for this GUID, and
+	// fall back to showing the GUID itself in the custom box.
+	//
+	QString Name;
+	if (m_Trigger.Type == SERVICE_TRIGGER_TYPE_CUSTOM)
 	{
-		for (int i = 0; i < info->DataList->Count; i++)
+		Name = m_pService->GetEtwPublisherName(m_Trigger.Subtype);
+	}
+	else
+	{
+		foreach(const CServiceInfo::STriggerSubtype& Subtype, m_pService->GetTriggerSubtypes())
 		{
-			PES_TRIGGER_DATA data = (PES_TRIGGER_DATA)info->DataList->Items[i];
-
-			QTreeWidgetItem* pItem = new QTreeWidgetItem();
-			pItem->setData(0, Qt::UserRole, (quint64)data);
-			ui.datas->addTopLevelItem(pItem);
-			pItem->setText(0, EspFormatTriggerData(data));
+			if (Subtype.TriggerType == m_Trigger.Type && Subtype.Guid.compare(m_Trigger.Subtype, Qt::CaseInsensitive) == 0)
+			{
+				Name = Subtype.Name;
+				break;
+			}
 		}
 	}
-}
 
+	int iSubtype = Name.isEmpty() ? -1 : ui.subType->findText(Name);
+	if (iSubtype != -1)
+		ui.subType->setCurrentIndex(iSubtype);
+
+	// the custom box may have just been enabled, so settle the controls again
+	FixServiceTriggerControls();
+
+	ui.datas->clear();
+	foreach(const CServiceInfo::STriggerData& Data, m_Trigger.Data)
+	{
+		QTreeWidgetItem* pItem = new QTreeWidgetItem();
+		pItem->setData(0, Qt::UserRole, ui.datas->topLevelItemCount());
+		ui.datas->addTopLevelItem(pItem);
+		ShowData(pItem, Data);
+	}
+}
 
 void CWinSvcTrigger::closeEvent(QCloseEvent *e)
 {
@@ -324,134 +243,93 @@ void CWinSvcTrigger::closeEvent(QCloseEvent *e)
 
 void CWinSvcTrigger::accept()
 {
-	PH_AUTO_POOL autoPool;
-    PhInitializeAutoPool(&autoPool);
+	m_Trigger.Type = ui.type->currentData().toUInt();
+	m_Trigger.Action = ui.action->currentData().toUInt();
 
-	PES_TRIGGER_INFO info = (PES_TRIGGER_INFO)m_pInfo;
-
-	info->Type = ui.type->currentData().toUInt();
-	std::wstring customStr = ui.custom->text().toStdWString();
-
-    if (ui.subType->currentData().toBool() != true)
-    {
-        if (info->Type != SERVICE_TRIGGER_TYPE_CUSTOM)
-        {
-            for (int i = 0; i < 20; i++)
-            {
-                if (
-                    SubTypeEntries[i].Type == info->Type &&
-                    QString::fromWCharArray(SubTypeEntries[i].Name).compare(ui.subType->currentText(), Qt::CaseInsensitive) == 0
-                    )
-                {
-                    info->SubtypeBuffer = *SubTypeEntries[i].Guid;
-                    info->Subtype = &info->SubtypeBuffer;
-                    break;
-                }
-            }
-        }
-        else
-        {
-            if (!EspLookupEtwPublisherGuid((wchar_t*)customStr.c_str(), &info->SubtypeBuffer))
-            {
+	if (!ui.subType->currentData(TriggerCustomRole).toBool())
+	{
+		//
+		// A named subtype: look the GUID back up from the name the target gave.
+		//
+		QString Guid;
+		if (m_Trigger.Type == SERVICE_TRIGGER_TYPE_CUSTOM)
+		{
+			Guid = m_pService->GetEtwPublisherGuid(ui.subType->currentText());
+			if (Guid.isEmpty())
+			{
 				QMessageBox::warning(NULL, "TaskExplorer", tr("Unable to find the ETW publisher GUID."));
-                //PhShowError(hwndDlg, L"Unable to find the ETW publisher GUID.");
-                goto DoNotClose;
-            }
+				return;
+			}
+		}
+		else
+		{
+			foreach(const CServiceInfo::STriggerSubtype& Subtype, m_pService->GetTriggerSubtypes())
+			{
+				if (Subtype.TriggerType == m_Trigger.Type && Subtype.Name.compare(ui.subType->currentText(), Qt::CaseInsensitive) == 0)
+				{
+					Guid = Subtype.Guid;
+					break;
+				}
+			}
+		}
 
-            info->Subtype = &info->SubtypeBuffer;
-        }
-    }
-    else
-    {
-        UNICODE_STRING guidString;
+		m_Trigger.Subtype = Guid;
+	}
+	else
+	{
+		const QUuid Uuid(ui.custom->text().trimmed());
+		if (Uuid.isNull())
+		{
+			QMessageBox::warning(NULL, "TaskExplorer", tr("The custom subtype is invalid. Please ensure that the string is a valid GUID: \"{x-x-x-x-x}\"."));
+			return;
+		}
 
-		guidString.Buffer = (wchar_t*)customStr.c_str();
-		guidString.Length = customStr.size();
+		m_Trigger.Subtype = Uuid.toString(QUuid::WithBraces);
+	}
 
-        // Trim whitespace.
+	//
+	// Not every trigger type accepts data items; dropping them is destructive,
+	// so it is asked for rather than done quietly.
+	//
+	if (!m_Trigger.Data.isEmpty()
+		&& m_Trigger.Type != SERVICE_TRIGGER_TYPE_DEVICE_INTERFACE_ARRIVAL
+		&& m_Trigger.Type != SERVICE_TRIGGER_TYPE_FIREWALL_PORT_EVENT
+		&& m_Trigger.Type != SERVICE_TRIGGER_TYPE_NETWORK_ENDPOINT
+		&& m_Trigger.Type != SERVICE_TRIGGER_TYPE_CUSTOM)
+	{
+		if (QMessageBox("TaskExplorer", tr("The trigger type \"%1\" does not allow data items to be configured. If you continue, they will be removed.").arg(ui.type->currentText()), QMessageBox::Question, QMessageBox::Ok, QMessageBox::Cancel | QMessageBox::Default | QMessageBox::Escape, QMessageBox::NoButton).exec() != QMessageBox::Ok)
+			return;
 
-        while (guidString.Length != 0 && *guidString.Buffer == ' ')
-        {
-            guidString.Buffer++;
-            guidString.Length -= 2;
-        }
+		m_Trigger.Data.clear();
+	}
 
-        while (guidString.Length != 0 && guidString.Buffer[guidString.Length / 2 - 1] == ' ')
-        {
-            guidString.Length -= 2;
-        }
-
-        if (NT_SUCCESS(RtlGUIDFromString(&guidString, &info->SubtypeBuffer)))
-        {
-            info->Subtype = &info->SubtypeBuffer;
-        }
-        else
-        {
-            QMessageBox::warning(NULL, "TaskExplorer", tr("The custom subtype is invalid. Please ensure that the string is a valid GUID: \"{x-x-x-x-x}\"."));
-            goto DoNotClose;
-        }
-    }
-
-	info->Action = ui.action->currentData().toInt();
-
-    if (
-        info->DataList &&
-        info->DataList->Count != 0 &&
-        info->Type != SERVICE_TRIGGER_TYPE_DEVICE_INTERFACE_ARRIVAL &&
-        info->Type != SERVICE_TRIGGER_TYPE_FIREWALL_PORT_EVENT &&
-        info->Type != SERVICE_TRIGGER_TYPE_NETWORK_ENDPOINT &&
-        info->Type != SERVICE_TRIGGER_TYPE_CUSTOM
-        )
-    {
-        // This trigger has data items, but the trigger type doesn't allow them.
-		if(QMessageBox("TaskExplorer", tr("The trigger type \"%1\" does not allow data items to be configured. If you continue, they will be removed.").arg(ui.type->currentText()), QMessageBox::Question, QMessageBox::Ok, QMessageBox::Cancel | QMessageBox::Default | QMessageBox::Escape, QMessageBox::NoButton).exec() != QMessageBox::Ok)
-            goto DoNotClose;
-
-        for (int i = 0; i < info->DataList->Count; i++)
-        {
-            EspDestroyTriggerData((PES_TRIGGER_DATA)info->DataList->Items[i]);
-        }
-
-        PhClearReference((PVOID*)&info->DataList);
-    }
-
-    this->close();
-
-DoNotClose:
-    PhDeleteAutoPool(&autoPool);
+	QDialog::accept();
 }
 
 void CWinSvcTrigger::reject()
 {
-	this->close();
+	QDialog::reject();
 }
 
 void CWinSvcTrigger::OnData(QTreeWidgetItem *item, int column)
 {
-	PES_TRIGGER_INFO info = (PES_TRIGGER_INFO)m_pInfo;
-
-	PES_TRIGGER_DATA data = (PES_TRIGGER_DATA)item->data(0, Qt::UserRole).toULongLong();
-    ULONG index = PhFindItemList(info->DataList, data);
-	if (index == -1)
+	const int index = item->data(0, Qt::UserRole).toInt();
+	if (index < 0 || index >= m_Trigger.Data.count())
 		return;
 
 	CMultiLineInputDialog valueDialog(this);
-	//valueDialog.setText(tr("Enter value of type %1:").arg(typeDialog.value()));
 	valueDialog.setText(tr("Enter value"));
-	valueDialog.setValue(EspFormatTriggerData(data, false));
+	valueDialog.setValue(FormatData(m_Trigger.Data[index], false));
 
 	if (!valueDialog.exec())
 		return;
 
-	QString value = valueDialog.value();
-
-	EspSetTriggerData(value, data);
+	ParseData(valueDialog.value(), m_Trigger.Data[index]);
+	ShowData(item, m_Trigger.Data[index]);
 }
 
 void CWinSvcTrigger::OnNewTrigger()
 {
-	PES_TRIGGER_INFO info = (PES_TRIGGER_INFO)m_pInfo;
-
 	CComboInputDialog typeDialog(this);
 	typeDialog.setText(tr("Sellect data type:"));
 	typeDialog.addItem(tr("String"), SERVICE_TRIGGER_DATA_TYPE_STRING);
@@ -462,30 +340,22 @@ void CWinSvcTrigger::OnNewTrigger()
 
 	if (!typeDialog.exec())
 		return;
-	
+
 	CMultiLineInputDialog valueDialog(this);
-	//valueDialog.setText(tr("Enter value of type %1:").arg(typeDialog.value()));
 	valueDialog.setText(tr("Enter value"));
 
 	if (!valueDialog.exec())
 		return;
 
-	ULONG type = typeDialog.data().toUInt();
-	QString value = valueDialog.value();
-
-	PES_TRIGGER_DATA data = EspCreateTriggerData(NULL);
-	data->Type = type;
-	data->String = NULL;
-	EspSetTriggerData(value, data);
-
-	if (!info->DataList)
-		info->DataList = PhCreateList(4);
-	PhAddItemList(info->DataList, data);
+	CServiceInfo::STriggerData Data;
+	Data.Type = typeDialog.data().toUInt();
+	ParseData(valueDialog.value(), Data);
 
 	QTreeWidgetItem* pItem = new QTreeWidgetItem();
-	pItem->setData(0, Qt::UserRole, (quint64)data);
+	pItem->setData(0, Qt::UserRole, m_Trigger.Data.count());
+	m_Trigger.Data.append(Data);
 	ui.datas->addTopLevelItem(pItem);
-	pItem->setText(0, EspFormatTriggerData(data));
+	ShowData(pItem, Data);
 }
 
 void CWinSvcTrigger::OnEditTrigger()
@@ -502,17 +372,17 @@ void CWinSvcTrigger::OnDeleteTrigger()
 	if (!item)
 		return;
 
-	if(QMessageBox("TaskExplorer", tr("Do you want to delete the selected data"), QMessageBox::Question, QMessageBox::Yes, QMessageBox::No | QMessageBox::Default | QMessageBox::Escape, QMessageBox::NoButton).exec() != QMessageBox::Yes)
+	const int index = item->data(0, Qt::UserRole).toInt();
+	if (index < 0 || index >= m_Trigger.Data.count())
 		return;
 
-	PES_TRIGGER_INFO info = (PES_TRIGGER_INFO)m_pInfo;
+	if (QMessageBox("TaskExplorer", tr("Do you want to delete the selected data"), QMessageBox::Question, QMessageBox::Yes, QMessageBox::No | QMessageBox::Default | QMessageBox::Escape, QMessageBox::NoButton).exec() != QMessageBox::Yes)
+		return;
 
-	PES_TRIGGER_DATA data = (PES_TRIGGER_DATA)item->data(0, Qt::UserRole).toULongLong();
-    ULONG index = PhFindItemList(info->DataList, data);
-    if (index != -1)
-    {
-        EspDestroyTriggerData(data);
-        PhRemoveItemList(info->DataList, index);
-        delete item;
-    }
+	m_Trigger.Data.removeAt(index);
+	delete item;
+
+	// the rows carry their index, so renumber what is left
+	for (int i = 0; i < ui.datas->topLevelItemCount(); i++)
+		ui.datas->topLevelItem(i)->setData(0, Qt::UserRole, i);
 }

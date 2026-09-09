@@ -1,7 +1,7 @@
 #pragma once
 
 #include <QtWidgets/QMainWindow>
-#include "../API/Windows/WinProcess.h"
+#include "../API/ProcessInfo.h"
 #include "../../MiscHelpers/Common/PanelView.h"
 
 class CWsWatchDialog : public QMainWindow
@@ -26,6 +26,7 @@ protected:
 	void closeEvent(QCloseEvent *e);
 	void timerEvent(QTimerEvent *e);
 
+	CProcessPtr			m_pProcess;
 	int					m_TimerId;
 
 	QMap<quint64, QTreeWidgetItem*> m_FailtList;
@@ -38,6 +39,4 @@ private:
 	QLabel*				m_pEnabledLbl;
 	CPanelWidgetEx*		m_pFaultList;
 	QDialogButtonBox*	m_pButtonBox;
-    
-	struct SWorkingSetWatch* m;
 };

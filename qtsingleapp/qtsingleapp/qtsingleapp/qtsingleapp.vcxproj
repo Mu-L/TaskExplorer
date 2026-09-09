@@ -195,7 +195,8 @@
       <QtMocFileName>moc_%(Filename).cpp</QtMocFileName>
     </QtMoc>
     <PostBuildEvent>
-      <Command>cmd /c "cd "$(SolutionDir)ProcessHacker\" &amp; "$(SolutionDir)ProcessHacker\tools\CustomBuildTool\bin_old\Release\AMD64\CustomBuildTool.exe" -kph-sign "$(OutDir)$(TargetName)$(TargetExt)""</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">

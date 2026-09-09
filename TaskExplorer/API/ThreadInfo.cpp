@@ -16,14 +16,8 @@ CThreadInfo::CThreadInfo(QObject *parent) : CAbstractTask(parent)
 
 CThreadInfo::~CThreadInfo()
 {
-	theAPI->ClearThread(m_ThreadId);
+	GetSystem()->ClearThread(m_ThreadId);
 }
-
-QString CThreadInfo::GetStackUsageString() const
-{
-	return tr("%1/%2 (%3 %%)").arg(FormatSize(m_StackUsage)).arg(FormatSize(m_StackLimit)).arg(m_StackUsageFloat, 0, 'f', 2);
-}
-
 QSharedPointer<QObject>	CThreadInfo::GetProcess() const
 {
 	QReadLocker Locker(&m_Mutex); 
@@ -31,7 +25,7 @@ QSharedPointer<QObject>	CThreadInfo::GetProcess() const
 	{
 		Locker.unlock();
 
-		((CThreadInfo*)this)->SetProcess(theAPI->GetProcessByID(m_ProcessId, true));
+		((CThreadInfo*)this)->SetProcess(GetSystem()->GetProcessByID(m_ProcessId, true));
 		
 		Locker.relock();
 	}

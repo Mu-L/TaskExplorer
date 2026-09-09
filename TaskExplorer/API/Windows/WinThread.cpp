@@ -11,7 +11,9 @@
 
 #include "stdafx.h"
 #include "WinThread.h"
+#include "WinToken.h"
 #include "ProcessHacker.h"
+#include "WinSecurityEditor.h"
 #include "WindowsAPI.h"
 #include "../../SVC/TaskService.h"
 
@@ -72,7 +74,7 @@ CWinThread::CWinThread(QObject *parent)
 
 	m_MiscStates = 0;
 	
-	m_TokenState = PH_THREAD_TOKEN_STATE_UNKNOWN;
+	m_TokenState = eTokenStateUnknown;
 	m_HasToken2 = false;
 
 	m_bHasRpcState = false;
@@ -190,7 +192,7 @@ bool CWinThread::UpdateDynamicData(struct _SYSTEM_THREAD_INFORMATION* thread, qu
 		if (m_ProcessId != (quint64)SYSTEM_IDLE_PROCESS_ID)
 			PhGetThreadCycleTime(m->ThreadHandle, &cycles);
 		else
-			cycles = qobject_cast<CWindowsAPI*>(theAPI)->GetCpuIdleCycleTime(m_ThreadId);
+			cycles = qobject_cast<CWindowsAPI*>(GetSystem().data())->GetCpuIdleCycleTime(m_ThreadId);
 
 		m_CpuStats.CycleDelta.Update(cycles);
 
@@ -225,7 +227,7 @@ bool CWinThread::UpdateDynamicData(struct _SYSTEM_THREAD_INFORMATION* thread, qu
 	if (m->StartAddressResolveLevel != PhsrlFunction && !m->StartAddressResolvePending)
 	{
 		m->StartAddressResolvePending = true;
-		qobject_cast<CWindowsAPI*>(theAPI)->GetSymbolProvider()->GetSymbolFromAddress(m_ProcessId, m_StartAddress, this, SLOT(OnSymbolFromAddress(quint64, quint64, int, const QString&, const QString&, const QString&)));
+		qobject_cast<CWindowsAPI*>(GetSystem().data())->GetSymbolProvider()->GetSymbolFromAddress(m_ProcessId, m_StartAddress, this, SLOT(OnSymbolFromAddress(quint64, quint64, int, const QString&, const QString&, const QString&)));
 	}
 
 	// for all other values we need a handle
@@ -308,15 +310,15 @@ bool CWinThread::UpdateDynamicData(struct _SYSTEM_THREAD_INFORMATION* thread, qu
 		NTSTATUS status = PhOpenThreadToken(m->ThreadHandle, TOKEN_QUERY, TRUE, &tokenHandle);
 		if (status == STATUS_NO_TOKEN)
 		{
-			tokenState = PH_THREAD_TOKEN_STATE_NOT_PRESENT;
+			tokenState = eTokenStateNotPresent;
 		}
 		else if (status == STATUS_CANT_OPEN_ANONYMOUS)
 		{
-			tokenState = PH_THREAD_TOKEN_STATE_ANONYMOUS;
+			tokenState = eTokenStateAnonymous;
 		}
 		else
 		{
-			tokenState = PH_THREAD_TOKEN_STATE_PRESENT;
+			tokenState = eTokenStatePresent;
 		}
 
 		if (NT_SUCCESS(status))
@@ -333,7 +335,7 @@ bool CWinThread::UpdateDynamicData(struct _SYSTEM_THREAD_INFORMATION* thread, qu
 	{
 		BOOLEAN HasToken2 = FALSE;
 
-		CSandboxieAPI* pSandboxieAPI = ((CWindowsAPI*)theAPI)->GetSandboxieAPI();
+		CSandboxieAPI* pSandboxieAPI = ((CWindowsAPI*)GetSystem().data())->GetSandboxieAPI();
 		HasToken2 = pSandboxieAPI && pSandboxieAPI->TestOriginalToken(m_ProcessId, m_ThreadId);
 		if ((bool)HasToken2 != m_HasToken2)
 		{
@@ -432,27 +434,6 @@ bool CWinThread::UpdateDynamicData(struct _SYSTEM_THREAD_INFORMATION* thread, qu
 
 	return modified;
 }
-
-QString CWinThread::GetTokenStateString() const
-{
-	QReadLocker Locker(&m_Mutex);
-
-	if (m_IsSandboxed) 
-	{
-		if(m_HasToken2)
-			return tr("Yes");
-	}
-	else
-	{
-		switch (m_TokenState)
-		{
-		case PH_THREAD_TOKEN_STATE_ANONYMOUS:	return tr("Anonymous");
-		case PH_THREAD_TOKEN_STATE_PRESENT:		return tr("Yes");
-		}
-	}
-	return "";
-}
-
 void CWinThread::OnSymbolFromAddress(quint64 ProcessId, quint64 Address, int ResolveLevel, const QString& StartAddressString, const QString& FileName, const QString& SymbolName)
 {
 	m->StartAddressResolvePending = false;
@@ -486,7 +467,7 @@ void CWinThread::UnInit()
 
 quint64 CWinThread::TraceStack()
 {
-	return qobject_cast<CWindowsAPI*>(theAPI)->GetSymbolProvider()->GetStackTrace(m_ProcessId, m_ThreadId, this, SIGNAL(StackTraced(const CStackTracePtr&)));
+	return qobject_cast<CWindowsAPI*>(GetSystem().data())->GetSymbolProvider()->GetStackTrace(m_ProcessId, m_ThreadId, this, SIGNAL(StackTraced(const CStackTracePtr&)));
 }
 
 QString CWinThread::GetName() const
@@ -494,40 +475,8 @@ QString CWinThread::GetName() const
 	CProcessPtr pProcess = GetProcess().staticCast<CProcessInfo>();
 	if (pProcess)
 		return pProcess->GetName();
-	return tr("Unknown process");
+	return MakePlaceholder(TE_NAME_UNKNOWN_PROCESS);
 }
-
-QString CWinThread::GetStateString() const
-{
-	QReadLocker Locker(&m_Mutex);
-
-	QString State;
-
-    if (m_State != Waiting)
-    {
-		if (m_State < MaximumThreadState)
-			State = QString::fromWCharArray(PhKThreadStateNames[m_State].Buffer);
-        else
-            State = tr("Unknown");
-    }
-    else
-    {
-		if (m_WaitReason < MaximumWaitReason)
-			State = tr("Wait:") + QString::fromWCharArray(PhKWaitReasonNames[m_WaitReason].Buffer);
-        else
-            State = tr("Waiting");
-    }
-
-    if (m->ThreadHandle)
-    {
-		ULONG suspendCount;
-        if (m_WaitReason == Suspended && NT_SUCCESS(PhGetThreadSuspendCount(m->ThreadHandle, &suspendCount)))
-			State.append(tr(" (%1)").arg(suspendCount));
-    }
-
-	return State;
-}
-
 quint64 CWinThread::GetRawCreateTime() const
 {
 	QReadLocker Locker(&m_Mutex); 
@@ -538,59 +487,6 @@ QString CWinThread::GetStartAddressString() const
 {
 	QReadLocker Locker(&m_Mutex);
 	return m_StartAddressString;
-}
-
-QString CWinThread::GetBasePriorityIncrementString() const
-{
-	return QString::number(GetBasePriorityIncrement());
-}
-
-QString CWinThread::GetPriorityString() const
-{
-	QReadLocker Locker(&m_Mutex);
-
-	switch (m_BasePriorityIncrement)
-	{
-	case THREAD_BASE_PRIORITY_LOWRT + 1:
-	case THREAD_BASE_PRIORITY_LOWRT:
-		return tr("Time critical");
-	case THREAD_PRIORITY_HIGHEST:
-		return tr("Highest");
-	case THREAD_PRIORITY_ABOVE_NORMAL:
-		return tr("Above normal");
-	case THREAD_PRIORITY_NORMAL:
-		return tr("Normal");
-	case THREAD_PRIORITY_BELOW_NORMAL:
-		return tr("Below normal");
-	case THREAD_PRIORITY_LOWEST:
-		return tr("Lowest");
-	case THREAD_BASE_PRIORITY_IDLE:
-	case THREAD_BASE_PRIORITY_IDLE - 1:
-		return tr("Idle");
-	case THREAD_PRIORITY_ERROR_RETURN:
-		return tr("");
-	default:
-		return QString::number(m_Priority);
-	}
-
-	//return QString::number(GetPriority());
-}
-
-QString CWinThread::GetBasePriorityString() const	
-{ 
-	// The process priority class and thread priority level are combined to form the base priority of each thread.
-	// https://docs.microsoft.com/en-us/windows/win32/procthread/scheduling-priorities
-	return QString::number(GetBasePriority());
-}
-
-QString CWinThread::GetPagePriorityString() const	
-{ 
-	return CWinProcess::GetPagePriorityString(GetPagePriority()); 
-}
-
-QString CWinThread::GetIOPriorityString() const		
-{ 
-	return CWinProcess::GetIOPriorityString(GetIOPriority()); 
 }
 
 STATUS CWinThread::SetPriorityBoost(bool Value)
@@ -614,7 +510,7 @@ STATUS CWinThread::SetPriorityBoost(bool Value)
 				return OK;
 		}
 
-		return ERR(tr("Failed to set Thread priority boost"), status);
+		return ERR(TE_SetThreadPriorityBoost, status);
 	}
 	return OK;
 }
@@ -645,7 +541,7 @@ STATUS CWinThread::SetPriority(qint32 Value)
 				return OK;
 		}
 
-		return ERR(tr("Failed to set Thread priority"), status);
+		return ERR(TE_SetThreadPriority, status);
     }
 	return OK;
 }
@@ -670,7 +566,7 @@ STATUS CWinThread::SetPagePriority(qint32 Value)
 				return OK;
 		}
 
-		return ERR(tr("Failed to set Page priority"), status);
+		return ERR(TE_SetPagePriority, status);
     }
 	return OK;
 }
@@ -695,7 +591,7 @@ STATUS CWinThread::SetIOPriority(qint32 Value)
 				return OK;
 		}
 
-		return ERR(tr("Failed to set I/O priority"), status);
+		return ERR(TE_SetIoPriority, status);
     }
 	return OK;
 }
@@ -720,7 +616,7 @@ STATUS CWinThread::SetAffinityMask(quint64 Value)
 				return OK;
 		}
 
-		return ERR(tr("Failed to set CPU affinity"), status);
+		return ERR(TE_SetCpuAffinity, status);
     }
 	return OK;
 }
@@ -743,7 +639,7 @@ STATUS CWinThread::Terminate(bool bForce)
 			if (breakOnTermination /*m_IsCritical*/)
 			{
 				NtClose(threadHandle);
-				return ERR(tr("You are about to terminate one or more critical threads. This will shut down the operating system immediately."), ERROR_CONFIRM);
+				return ERR(TE_ConfirmTerminateCriticalThread, ERROR_CONFIRM);
 			}
 		}
 
@@ -759,7 +655,7 @@ STATUS CWinThread::Terminate(bool bForce)
 				return OK;
 		}
 
-		return ERR(tr("Failed to terminate thread"), status);
+		return ERR(TE_TerminateThread, status);
     }
 	return OK;
 }
@@ -790,7 +686,7 @@ STATUS CWinThread::Suspend()
 				return OK;
 		}
 
-		return ERR(tr("Failed to suspend thread"), status);
+		return ERR(TE_SuspendThread, status);
     }
 	return OK;
 }
@@ -815,24 +711,20 @@ STATUS CWinThread::Resume()
 				return OK;
 		}
 
-		return ERR(tr("Failed to resume thread"), status);
+		return ERR(TE_ResumeThread, status);
     }
 	return OK;
 }
 
-QString CWinThread::GetIdealProcessor() const
+int CWinThread::GetIdealProcessorGroup() const
 {
-	return tr("%1:%2").arg(m->idealProcessorNumber.Group).arg(m->idealProcessorNumber.Number);
+	return m->idealProcessorNumber.Group;
 }
 
-QString CWinThread::GetTypeString() const
+int CWinThread::GetIdealProcessorNumber() const
 {
-	QReadLocker Locker(&m_Mutex);
-	if (m_IsMainThread)
-		return tr("Main");
-	return m_IsGuiThread ? tr("GUI") : tr("Normal");
+	return m->idealProcessorNumber.Number;
 }
-
 STATUS CWinThread::SetCriticalThread(bool bSet, bool bForce)
 {
 	QWriteLocker Locker(&m_Mutex);
@@ -860,7 +752,7 @@ STATUS CWinThread::SetCriticalThread(bool bSet, bool bForce)
 				{
 					NtClose(threadHandle);
 
-					return ERR(tr("If the process ends, the operating system will shut down immediately."), ERROR_CONFIRM);
+					return ERR(TE_ConfirmCriticalProcShutdown, ERROR_CONFIRM);
 				}
 
 				status = PhSetThreadBreakOnTermination(threadHandle, TRUE);
@@ -872,7 +764,7 @@ STATUS CWinThread::SetCriticalThread(bool bSet, bool bForce)
 
     if (!NT_SUCCESS(status))
     {
-        return ERR(tr("Unable to change the thread critical status."), status);
+        return ERR(TE_ChangeThreadCritical, status);
     }
 
 	m_IsCritical = bSet;
@@ -894,11 +786,11 @@ STATUS CWinThread::CancelIO()
 
     if (status == STATUS_NOT_FOUND)
     {
-        return ERR(tr("There is no synchronous I/O to cancel."), status);
+        return ERR(TE_NoSynchronousIo, status);
     }
     if (!NT_SUCCESS(status))
     {
-		return ERR(tr("Unable to cancel synchronous I/O"), status);
+		return ERR(TE_CancelSynchronousIo, status);
     }
 	return OK;
 }
@@ -1018,167 +910,190 @@ static NTSTATUS NTAPI CWinThread_OpenThreadPermissions(_Out_ PHANDLE Handle, _In
     return PhOpenThread(Handle, DesiredAccess, (HANDLE)Context);
 }
 
-void CWinThread::OpenPermissions()
+CTokenInfoPtr CWinThread::GetToken() const
 {
-    PhEditSecurity(NULL, (wchar_t*)GetStartAddressString().toStdWString().c_str(), L"Thread", CWinThread_OpenThreadPermissions, NULL, (HANDLE)GetThreadId());
+	return CTokenInfoPtr(CWinToken::TokenFromThread(GetSystem(), m_ThreadId));
 }
 
-int CWinThread::GetApartmentType() const
+CTokenInfoPtr CWinThread::GetOriginalToken() const
 {
-	QReadLocker Locker(&m_Mutex);
-	return m->ApartmentInfo.Type;
+	return CTokenInfoPtr(CWinToken::OriginalToken(GetSystem(), m_ProcessId, m_ThreadId));
 }
 
-QString CWinThread::GetApartmentTypeString() const
+CSecurityEditablePtr CWinThread::GetSecurityObject() const
 {
-	QReadLocker Locker(&m_Mutex);
-	
-	QString Type;
-	if (m->ApartmentInfo.InNeutral)
-		Type += "NTA on ";
-
-	switch (m->ApartmentInfo.Type)
-	{
-	case PH_APARTMENT_TYPE_STA:			Type += "STA"; break;
-	case PH_APARTMENT_TYPE_MAIN_STA:	Type += "Main STA";	break;
-	case PH_APARTMENT_TYPE_APPLICATION_STA: Type += "ASTA"; break;
-	case PH_APARTMENT_TYPE_MTA:			Type += "MTA"; break;
-	case PH_APARTMENT_TYPE_IMPLICIT_MTA:Type += "Implicit MTA"; break;
-	}
-	
-	if (m->ApartmentInfo.ComInits > 1)
-		Type += QString(" (x%1)").arg(m->ApartmentInfo.ComInits);
-
-	return Type;
-}
-
-int CWinThread::GetApartmentFlags() const
-{
-	QReadLocker Locker(&m_Mutex);
-	return m->ApartmentInfo.Flags;
-}
-
-QString CWinThread::GetApartmentFlagsString() const
-{
-	QReadLocker Locker(&m_Mutex);
-
-	QStringList Info;
-
-	if (m->ApartmentInfo.Flags & OLETLS_LOCALTID)
-		Info.append(tr("Local TID"));
-	if (m->ApartmentInfo.Flags & OLETLS_UUIDINITIALIZED)
-		Info.append(tr("UUID initialized"));
-	if (m->ApartmentInfo.Flags & OLETLS_INTHREADDETACH)
-		Info.append(tr("Inside thread detach"));
-	if (m->ApartmentInfo.Flags & OLETLS_CHANNELTHREADINITIALZED)
-		Info.append(tr("Channel thread initialized"));
-	if (m->ApartmentInfo.Flags & OLETLS_WOWTHREAD)
-		Info.append(tr("WOW Thread"));
-	if (m->ApartmentInfo.Flags & OLETLS_THREADUNINITIALIZING)
-		Info.append(tr("Thread Uninitializing"));
-	if (m->ApartmentInfo.Flags & OLETLS_DISABLE_OLE1DDE)
-		Info.append(tr("OLE1DDE disabled"));
-	if (m->ApartmentInfo.Flags & OLETLS_APARTMENTTHREADED)
-		Info.append(tr("Single threaded (STA)"));
-	if (m->ApartmentInfo.Flags & OLETLS_MULTITHREADED)
-		Info.append(tr("Multi threaded (MTA)"));
-	if (m->ApartmentInfo.Flags & OLETLS_IMPERSONATING)
-		Info.append(tr("Impersonating"));
-	if (m->ApartmentInfo.Flags & OLETLS_DISABLE_EVENTLOGGER)
-		Info.append(tr("Eventlogger disabled"));
-	if (m->ApartmentInfo.Flags & OLETLS_INNEUTRALAPT)
-		Info.append(tr("Neutral threaded (NTA)"));
-	if (m->ApartmentInfo.Flags & OLETLS_DISPATCHTHREAD)
-		Info.append(tr("Dispatch thread"));
-	if (m->ApartmentInfo.Flags & OLETLS_HOSTTHREAD)
-		Info.append(tr("HOSTTHREAD"));
-	if (m->ApartmentInfo.Flags & OLETLS_ALLOWCOINIT)
-		Info.append(tr("ALLOWCOINIT"));
-	if (m->ApartmentInfo.Flags & OLETLS_PENDINGUNINIT)
-		Info.append(tr("PENDINGUNINIT"));
-	if (m->ApartmentInfo.Flags & OLETLS_FIRSTMTAINIT)
-		Info.append(tr("FIRSTMTAINIT"));
-	if (m->ApartmentInfo.Flags & OLETLS_FIRSTNTAINIT)
-		Info.append(tr("FIRSTNTAINIT"));
-	if (m->ApartmentInfo.Flags & OLETLS_APTINITIALIZING)
-		Info.append(tr("APTIN INITIALIZING"));
-	if (m->ApartmentInfo.Flags & OLETLS_UIMSGSINMODALLOOP)
-		Info.append(tr("UIMSGS IN MODAL LOOP"));
-	if (m->ApartmentInfo.Flags & OLETLS_MARSHALING_ERROR_OBJECT)
-		Info.append(tr("Marshaling error object"));
-	if (m->ApartmentInfo.Flags & OLETLS_WINRT_INITIALIZE)
-		Info.append(tr("WinRT initialized"));
-	if (m->ApartmentInfo.Flags & OLETLS_APPLICATION_STA)
-		Info.append(tr("ApplicationSTA"));
-	if (m->ApartmentInfo.Flags & OLETLS_IN_SHUTDOWN_CALLBACKS)
-		Info.append(tr("IN_SHUTDOWN_CALLBACKS"));
-	if (m->ApartmentInfo.Flags & OLETLS_POINTER_INPUT_BLOCKED)
-		Info.append(tr("POINTER_INPUT_BLOCKED"));
-	if (m->ApartmentInfo.Flags & OLETLS_IN_ACTIVATION_FILTER)
-		Info.append(tr("IN_ACTIVATION_FILTER"));
-	if (m->ApartmentInfo.Flags & OLETLS_ASTATOASTAEXEMPT_QUIRK)
-		Info.append(tr("ASTATOASTAEXEMPT_QUIRK"));
-	if (m->ApartmentInfo.Flags & OLETLS_ASTATOASTAEXEMPT_PROXY)
-		Info.append(tr("ASTATOASTAEXEMPT_PROXY"));
-	if (m->ApartmentInfo.Flags & OLETLS_ASTATOASTAEXEMPT_INDOUBT)
-		Info.append(tr("ASTATOASTAEXEMPT_INDOUBT"));
-	if (m->ApartmentInfo.Flags & OLETLS_DETECTED_USER_INITIALIZED)
-		Info.append(tr("DETECTED_USER_INITIALIZED"));
-	if (m->ApartmentInfo.Flags & OLETLS_BRIDGE_STA)
-		Info.append(tr("BRIDGE_STA"));
-	if (m->ApartmentInfo.Flags & OLETLS_NAINITIALIZING)
-		Info.append(tr("NA_INITIALIZING"));
-
-	return Info.join(", ");
+	return CSecurityEditablePtr(new CWinSecurityObject(
+		QString(), "Thread",
+		(CWinSecurityObject::POpenObject)CWinThread_OpenThreadPermissions, GetThreadId(), GetThreadId()));
 }
 
 extern "C" PPH_STRING PhGetSystemCallNumberName(_In_ USHORT SystemCallNumber);
 
-QString CWinThread::GetLastSysCallInfoString() const
+//
+// phlib's apartment numbering happens to match ours, but it is its own
+// constant set rather than a platform ABI, so it is mapped rather than passed
+// through.
+//
+int CWinThread::GetApartmentType() const
 {
-	QString Info;
-	if (NT_SUCCESS(m->LastSystemCallStatus))
+	QReadLocker Locker(&m_Mutex);
+
+	switch (m->ApartmentInfo.Type)
 	{
-		if (m->LastSystemCall.SystemCallNumber == 0 && !m->LastSystemCall.FirstArgument)
-		{
-			// If the thread was created in a frozen/suspended process and hasn't executed, the
-			// ThreadLastSystemCall returns status_success but the values are invalid. (dmex)	
-		}
-		else
-		{
-			PPH_STRING systemCallName = PhGetSystemCallNumberName(m->LastSystemCall.SystemCallNumber);
-			if (systemCallName)
-				Info = tr("%1 (0x%2)").arg(CastPhString(systemCallName)).arg(m->LastSystemCall.SystemCallNumber, 0, 16);
-			else
-				Info = tr("0x%1").arg(m->LastSystemCall.SystemCallNumber, 0, 16);
-
-			Info += tr(" (Arg0: 0x%1)").arg((quint64)m->LastSystemCall.FirstArgument, 0, 16);
-
-			if (WindowsVersion >= WINDOWS_8)
-			{
-				PPH_STRING waitTime = PhFormatTimeSpanRelative(m->LastSystemCall.WaitTime);
-				Info += tr(" - %1").arg(CastPhString(waitTime));
-			}
-		}
+	case PH_APARTMENT_TYPE_STA:				return eApartmentSta;
+	case PH_APARTMENT_TYPE_MAIN_STA:		return eApartmentMainSta;
+	case PH_APARTMENT_TYPE_APPLICATION_STA:	return eApartmentApplicationSta;
+	case PH_APARTMENT_TYPE_MTA:				return eApartmentMta;
+	case PH_APARTMENT_TYPE_IMPLICIT_MTA:	return eApartmentImplicitMta;
 	}
-	return Info;
+	return eApartmentNone;
 }
 
-QString CWinThread::GetLastSysCallStatusString() const
+bool CWinThread::IsInNeutralApartment() const
 {
-	QString Info;
-	if (NT_SUCCESS(m->LastStatusQueryStatus))
-	{
-		if (m->LastStatusValue != STATUS_SUCCESS)
-		{
-			Info = tr("0x%1").arg((quint32)m->LastStatusValue, 0, 16);
+	QReadLocker Locker(&m_Mutex);
+	return m->ApartmentInfo.InNeutral != 0;
+}
 
-			PPH_STRING errorMessage = PhGetStatusMessage(m->LastStatusValue, 0);
-			if (errorMessage)
-				Info += tr(" (%1)").arg(CastPhString(errorMessage));
-		}
-	}
-	return Info;
+quint32 CWinThread::GetComInitCount() const
+{
+	QReadLocker Locker(&m_Mutex);
+	return m->ApartmentInfo.ComInits;
+}
+
+quint32 CWinThread::GetApartmentFlags() const
+{
+	QReadLocker Locker(&m_Mutex);
+
+	static_assert(eOleLocalTid                 == OLETLS_LOCALTID,                  "ole local tid");
+	static_assert(eOleUuidInitialized          == OLETLS_UUIDINITIALIZED,           "ole uuid initialized");
+	static_assert(eOleInThreadDetach           == OLETLS_INTHREADDETACH,            "ole in thread detach");
+	static_assert(eOleChannelThreadInitialized == OLETLS_CHANNELTHREADINITIALZED,   "ole channel thread initialized");
+	static_assert(eOleWowThread                == OLETLS_WOWTHREAD,                 "ole wow thread");
+	static_assert(eOleThreadUninitializing     == OLETLS_THREADUNINITIALIZING,      "ole thread uninitializing");
+	static_assert(eOleDisableOle1Dde           == OLETLS_DISABLE_OLE1DDE,           "ole disable ole1dde");
+	static_assert(eOleApartmentThreaded        == OLETLS_APARTMENTTHREADED,         "ole apartment threaded");
+	static_assert(eOleMultiThreaded            == OLETLS_MULTITHREADED,             "ole multi threaded");
+	static_assert(eOleImpersonating            == OLETLS_IMPERSONATING,             "ole impersonating");
+	static_assert(eOleDisableEventLogger       == OLETLS_DISABLE_EVENTLOGGER,       "ole disable eventlogger");
+	static_assert(eOleInNeutralApt             == OLETLS_INNEUTRALAPT,              "ole in neutral apt");
+	static_assert(eOleDispatchThread           == OLETLS_DISPATCHTHREAD,            "ole dispatch thread");
+	static_assert(eOleHostThread               == OLETLS_HOSTTHREAD,                "ole host thread");
+	static_assert(eOleAllowCoInit              == OLETLS_ALLOWCOINIT,               "ole allow coinit");
+	static_assert(eOlePendingUninit            == OLETLS_PENDINGUNINIT,             "ole pending uninit");
+	static_assert(eOleFirstMtaInit             == OLETLS_FIRSTMTAINIT,              "ole first mta init");
+	static_assert(eOleFirstNtaInit             == OLETLS_FIRSTNTAINIT,              "ole first nta init");
+	static_assert(eOleAptInitializing          == OLETLS_APTINITIALIZING,           "ole apt initializing");
+	static_assert(eOleUiMsgsInModalLoop        == OLETLS_UIMSGSINMODALLOOP,         "ole ui msgs in modal loop");
+	static_assert(eOleMarshalingErrorObject    == OLETLS_MARSHALING_ERROR_OBJECT,   "ole marshaling error object");
+	static_assert(eOleWinRtInitialize          == OLETLS_WINRT_INITIALIZE,          "ole winrt initialize");
+	static_assert(eOleApplicationSta           == OLETLS_APPLICATION_STA,           "ole application sta");
+	static_assert(eOleInShutdownCallbacks      == OLETLS_IN_SHUTDOWN_CALLBACKS,     "ole in shutdown callbacks");
+	static_assert(eOlePointerInputBlocked      == OLETLS_POINTER_INPUT_BLOCKED,     "ole pointer input blocked");
+	static_assert(eOleInActivationFilter       == OLETLS_IN_ACTIVATION_FILTER,      "ole in activation filter");
+	static_assert(eOleAstaToAstaExemptQuirk    == OLETLS_ASTATOASTAEXEMPT_QUIRK,    "ole asta exempt quirk");
+	static_assert(eOleAstaToAstaExemptProxy    == OLETLS_ASTATOASTAEXEMPT_PROXY,    "ole asta exempt proxy");
+	static_assert(eOleAstaToAstaExemptIndoubt  == OLETLS_ASTATOASTAEXEMPT_INDOUBT,  "ole asta exempt indoubt");
+	static_assert(eOleDetectedUserInitialized  == OLETLS_DETECTED_USER_INITIALIZED, "ole detected user initialized");
+	static_assert(eOleBridgeSta                == OLETLS_BRIDGE_STA,                "ole bridge sta");
+	static_assert(eOleNaInitializing           == OLETLS_NAINITIALIZING,            "ole na initializing");
+
+	return m->ApartmentInfo.Flags;
+}
+
+//
+// A thread created in a frozen process that has not run yet answers "success"
+// with nothing in it, which is not the same as having made a call.
+//
+bool CWinThread::HasLastSysCall() const
+{
+	QReadLocker Locker(&m_Mutex);
+
+	if (!NT_SUCCESS(m->LastSystemCallStatus))
+		return false;
+
+	return m->LastSystemCall.SystemCallNumber != 0 || m->LastSystemCall.FirstArgument != NULL;
+}
+
+quint32 CWinThread::GetLastSysCallNumber() const
+{
+	QReadLocker Locker(&m_Mutex);
+	return m->LastSystemCall.SystemCallNumber;
+}
+
+QString CWinThread::GetLastSysCallName() const
+{
+	QReadLocker Locker(&m_Mutex);
+
+	PPH_STRING systemCallName = PhGetSystemCallNumberName(m->LastSystemCall.SystemCallNumber);
+	return systemCallName ? CastPhString(systemCallName) : QString();
+}
+
+quint64 CWinThread::GetLastSysCallArgument() const
+{
+	QReadLocker Locker(&m_Mutex);
+	return (quint64)m->LastSystemCall.FirstArgument;
+}
+
+//
+// The wait time only exists from Windows 8 on; older versions leave the field
+// undefined rather than zero, so it is not reported at all there.
+//
+quint64 CWinThread::GetLastSysCallWaitTime() const
+{
+	if (WindowsVersion < WINDOWS_8)
+		return 0;
+
+	QReadLocker Locker(&m_Mutex);
+
+	// The kernel counts in 100ns units.
+	return m->LastSystemCall.WaitTime / 10000;
+}
+
+//
+// The thread-state and wait-reason numbering CThreadInfo names is the kernel's
+// own; the viewer's tables are indexed by it, so a drift here would rename
+// every state at once.
+//
+static_assert(CThreadInfo::eThreadInitialized == Initialized,          "thread state initialized");
+static_assert(CThreadInfo::eThreadWaiting     == Waiting,              "thread state waiting");
+static_assert(CThreadInfo::eThreadStateCount  == MaximumThreadState,   "thread state count");
+static_assert(CThreadInfo::eWaitExecutive     == Executive,            "wait reason executive");
+static_assert(CThreadInfo::eWaitSuspended     == Suspended,            "wait reason suspended");
+static_assert(CThreadInfo::eWaitReasonCount   == MaximumWaitReason,    "wait reason count");
+
+//
+// A thread whose status could not be read, and one whose last call succeeded,
+// both have nothing to report - and neither is an error worth showing.
+//
+bool CWinThread::HasLastStatus() const
+{
+	return NT_SUCCESS(m->LastStatusQueryStatus) && m->LastStatusValue != STATUS_SUCCESS;
+}
+
+quint32 CWinThread::GetLastStatusValue() const
+{
+	return (quint32)m->LastStatusValue;
+}
+
+QString CWinThread::GetLastStatusMessage() const
+{
+	PPH_STRING errorMessage = PhGetStatusMessage(m->LastStatusValue, 0);
+	return errorMessage ? CastPhString(errorMessage) : QString();
+}
+
+//
+// Only meaningful for a thread waiting on Suspended; anything else has no
+// suspend count to give.
+//
+quint32 CWinThread::GetSuspendCount() const
+{
+	QReadLocker Locker(&m_Mutex);
+
+	ULONG suspendCount = 0;
+	if (m->ThreadHandle && NT_SUCCESS(PhGetThreadSuspendCount(m->ThreadHandle, &suspendCount)))
+		return suspendCount;
+	return 0;
 }
 
 quint64 CWinThread::GetLXSSThreadId() const 

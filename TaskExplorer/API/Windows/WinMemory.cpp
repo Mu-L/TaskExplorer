@@ -30,149 +30,9 @@ void CWinMemory::InitBasicInfo(struct _MEMORY_BASIC_INFORMATION* basicInfo, void
 	m_Type = basicInfo->Type;
 }
 
-QString CWinMemory::GetMemoryTypeString() const
+quint32 CWinMemory::GetPageSize() const
 {
-	QReadLocker Locker(&m_Mutex);
-
-    if (m_Type & MEM_PRIVATE)
-        return tr("Private");
-    else if (m_Type & MEM_MAPPED)
-        return tr("Mapped");
-    else if (m_Type & MEM_IMAGE)
-        return tr("Image");
-    return tr("Unknown");
-}
-
-QString CWinMemory::GetRegionTypeExStr() const
-{
-    if (!m_RegionTypeEx)
-        return "";
-
-	QStringList regionTypes;
-
-    if (m_Private)
-        regionTypes.append(tr("Private"));
-    if (m_MappedDataFile)
-        regionTypes.append(tr("MappedDataFile"));
-    if (m_MappedImage)
-        regionTypes.append(tr("MappedImage"));
-    if (m_MappedPageFile)
-        regionTypes.append(tr("MappedPageFile"));
-    if (m_MappedPhysical)
-        regionTypes.append(tr("MappedPhysical"));
-    if (m_DirectMapped)
-        regionTypes.append(tr("DirectMapped"));
-    if (m_SoftwareEnclave)
-        regionTypes.append(tr("Software enclave"));
-    if (m_PageSize64K)
-        regionTypes.append(tr("PageSize64K"));
-    if (m_PlaceholderReservation)
-        regionTypes.append(tr("Placeholder"));
-    if (m_MappedAwe)
-        regionTypes.append(tr("Mapped AWE"));
-    if (m_MappedWriteWatch)
-        regionTypes.append(tr("MappedWriteWatch"));
-    if (m_PageSizeLarge)
-        regionTypes.append(tr("PageSizeLarge"));
-    if (m_PageSizeHuge)
-        regionTypes.append(tr("PageSizeHuge"));
-
-    return regionTypes.join(tr(", "));
-}
-
-QString CWinMemory::GetMemoryStateString() const
-{
-	QReadLocker Locker(&m_Mutex);
-
-    if (m_State & MEM_COMMIT)
-        return tr("Commit");
-    else if (m_State & MEM_RESERVE)
-        return tr("Reserved");
-    else if (m_State & MEM_FREE)
-        return tr("Free");
-    return tr("Unknown");
-}
-
-QString CWinMemory::GetTypeString() const
-{
-	if (GetState() & MEM_FREE)
-	{
-		if (GetRegionType() == UnusableRegion)
-			return tr("Free (Unusable)");
-		else
-			return tr("Free");
-	}
-	else if (IsAllocationBase())
-	{
-		return GetMemoryTypeString();
-	}
-	else
-	{
-		return tr("%1: %2").arg(GetMemoryTypeString()).arg(GetMemoryStateString());
-	}
-}
-
-QString CWinMemory::GetProtectionString(quint32 Protect)
-{
-	if (!Protect)
-		return "";
-
-	QString str;
-    if (Protect & PAGE_NOACCESS)
-        str = tr("NA");
-    else if (Protect & PAGE_READONLY)
-        str = tr("R");
-    else if (Protect & PAGE_READWRITE)
-        str = tr("RW");
-    else if (Protect & PAGE_WRITECOPY)
-        str = tr("WC");
-    else if (Protect & PAGE_EXECUTE)
-        str = tr("X");
-    else if (Protect & PAGE_EXECUTE_READ)
-        str = tr("RX");
-    else if (Protect & PAGE_EXECUTE_READWRITE)
-        str = tr("RWX");
-    else if (Protect & PAGE_EXECUTE_WRITECOPY)
-        str = tr("WCX");
-    else
-        str = tr("?");
-
-    if (Protect & PAGE_GUARD)
-		str += tr("+G");
-
-    if (Protect & PAGE_NOCACHE)
-		str += tr("+NC");
-
-    if (Protect & PAGE_WRITECOMBINE)
-		str += tr("+WCM");
-
-	return str;
-}
-
-QString CWinMemory::GetProtectionString() const
-{
-	return GetProtectionString(GetProtection());
-}
-
-QString CWinMemory::GetAllocProtectionString() const
-{
-	return GetProtectionString(GetAllocProtection());
-}
-
-QString CWinMemory::GetOriginalPagesString() const
-{
-    if ((GetState() & MEM_COMMIT) && IsMapped())
-    {
-
-        SIZE_T count = m_SharedOriginalPages;
-        SIZE_T modified = (m_RegionSize / PAGE_SIZE) - count;
-
-		QString result = tr("%1%%").arg(count ? (count / (m_RegionSize / PAGE_SIZE) * 100) : 0.f, 0, 'f', 2);
-        if (modified)
-			result += tr(" (%1)").arg(modified);
-		return result;
-    }
-	return "";
+	return PAGE_SIZE;
 }
 
 bool CWinMemory::IsExecutable() const
@@ -202,92 +62,10 @@ bool CWinMemory::IsPrivate() const
 }
 
 
-QString CWinMemory::GetUseString() const
-{
-    PH_MEMORY_REGION_TYPE type = (PH_MEMORY_REGION_TYPE)m_RegionType;
-
-    switch (type)
-    {
-    case UnknownRegion:
-        return "";
-    case CustomRegion:
-        return u_Custom_Text;
-    case UnusableRegion:
-        return "";
-    case MappedFileRegion:
-        return u_Custom_Text;
-    case UserSharedDataRegion:
-        return tr("USER_SHARED_DATA");
-    case HypervisorSharedDataRegion:
-        return tr("HYPERVISOR_SHARED_DATA");
-    case PebRegion:
-    case Peb32Region:
-        return tr("PEB%1").arg(QString(type == Peb32Region ? tr(" 32-bit") : ""));
-    case TebRegion:
-    case Teb32Region:
-        return tr("TEB%1 (thread %2)").arg(QString(type == Teb32Region ? tr(" 32-bit") : "")).arg((quint64)u.Teb.ThreadId);
-    case StackRegion:
-    case Stack32Region:
-        return tr("Stack%1 (thread %2)").arg(QString(type == Stack32Region ? tr(" 32-bit") : "")).arg((quint64)u.Stack.ThreadId);
-    case HeapRegion:
-    case Heap32Region:
-        return tr("Heap%1 (ID %2)").arg(QString(type == Heap32Region ? tr(" 32-bit") : "")).arg((ULONG)u.Heap.Index + 1);
-    case HeapSegmentRegion:
-    case HeapSegment32Region:
-        return tr("Heap segment%1 (ID %2)").arg(QString(type == HeapSegment32Region ? tr(" 32-bit") : "").arg((ULONG)u_HeapSegment_HeapItem->u.Heap.Index + 1));
-    case CfgBitmapRegion:
-    case CfgBitmap32Region:
-        return tr("CFG Bitmap%1").arg(QString(type == CfgBitmap32Region ? tr(" 32-bit") : ""));
-    case ApiSetMapRegion:
-        return tr("ApiSetMap");
-    default:
-        return "";
-    }
-}
-
 quint8 CWinMemory::GetSigningLevel() const 
 { 
     QReadLocker Locker(&m_Mutex);
     return u.MappedFile.SigningLevel; 
-}
-
-QString CWinMemory::GetSigningLevelString() const
-{
-	SE_SIGNING_LEVEL SigningLevel = (SE_SIGNING_LEVEL)GetSigningLevel();
-
-    switch (SigningLevel)
-    {
-        case SE_SIGNING_LEVEL_UNCHECKED:
-            return tr("Unchecked");
-        case SE_SIGNING_LEVEL_UNSIGNED:
-            return tr("Unsigned");
-        case SE_SIGNING_LEVEL_ENTERPRISE:
-            return tr("Enterprise");
-        case SE_SIGNING_LEVEL_DEVELOPER:
-            return tr("Developer");
-        case SE_SIGNING_LEVEL_AUTHENTICODE:
-            return tr("Authenticode");
-        case SE_SIGNING_LEVEL_STORE:
-            return tr("StoreApp");
-        case SE_SIGNING_LEVEL_ANTIMALWARE:
-            return tr("Antimalware");
-        case SE_SIGNING_LEVEL_MICROSOFT:
-            return tr("Microsoft");
-        case SE_SIGNING_LEVEL_DYNAMIC_CODEGEN:
-            return tr("CodeGen");
-        case SE_SIGNING_LEVEL_WINDOWS:
-            return tr("Windows");
-        case SE_SIGNING_LEVEL_WINDOWS_TCB:
-            return tr("WinTcb");
-        case SE_SIGNING_LEVEL_CUSTOM_2:
-        case SE_SIGNING_LEVEL_CUSTOM_4:
-        case SE_SIGNING_LEVEL_CUSTOM_5:
-        case SE_SIGNING_LEVEL_CUSTOM_6:
-        case SE_SIGNING_LEVEL_CUSTOM_7:
-            return tr("Custom");
-        default:
-            return tr("");
-    }
 }
 
 STATUS CWinMemory::SetProtect(quint32 Protect)
@@ -319,21 +97,21 @@ STATUS CWinMemory::SetProtect(quint32 Protect)
 	}
 
 	if (!NT_SUCCESS(status))
-		return ERR(tr("Unable to change memory protection"), status);
+		return ERR(TE_ChangeMemoryProtection, status);
 	return OK;
 }
 
 STATUS CWinMemory::DumpMemory(QIODevice* pFile)
 {
 	if (!IsAllocationBase() && (GetState() & MEM_COMMIT) == 0)
-		return ERR(tr("Not dumpable memory item"), -1);
+		return ERR(TE_NotDumpableMemory, -1);
 
 	QReadLocker Locker(&m_Mutex);
 
 	NTSTATUS status;
 	HANDLE processHandle;
 	if (!NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_VM_READ, (HANDLE)m_ProcessId)))
-		return ERR(tr("Unable to open the process"), status);
+		return ERR(TE_OpenProc2, status);
 
 	PVOID buffer = PhAllocatePage(PAGE_SIZE, NULL);
 
@@ -389,15 +167,15 @@ STATUS CWinMemory::FreeMemory(bool Free)
 
     if (!NT_SUCCESS(status))
     {
-        QString Message;
-        if (IsMapped())
-			Message = tr("Unable to unmap the section view");
-		else if (Free)
-            Message = tr("Unable to free the memory region");
-        else
-            Message = tr("Unable to decommit the memory region");
+        //
+        // Which operation was refused is the useful part; the platform's own
+        // wording for the status travels with it as an argument.
+        //
+        const ETaskMsgCode Code = IsMapped() ? TE_UnmapSectionViewFailed
+                                : Free       ? TE_FreeMemoryFailed
+                                             : TE_DecommitMemoryFailed;
 
-		return ERR(Message, status);
+        return ERR(Code, QVariantList() << FormatNativeStatus(status), status);
     }
 	return OK;
 }
@@ -410,3 +188,105 @@ QIODevice* CWinMemory::MkDevice()
 	return new CWinMemIO(GetBaseAddress(), GetRegionSize(), GetProcessId());
 }
 
+
+
+//
+// The payload that belongs with a region, reported as values so the viewer can
+// word it - see GUI/TaskStrings.cpp.
+//
+QString CWinMemory::GetRegionText() const
+{
+	QReadLocker Locker(&m_Mutex);
+	return u_Custom_Text;
+}
+
+quint64 CWinMemory::GetRegionThreadId() const
+{
+	QReadLocker Locker(&m_Mutex);
+	switch (m_RegionType)
+	{
+	case TebRegion:
+	case Teb32Region:		return (quint64)u.Teb.ThreadId;
+	case StackRegion:
+	case Stack32Region:		return (quint64)u.Stack.ThreadId;
+	}
+	return 0;
+}
+
+quint32 CWinMemory::GetRegionIndex() const
+{
+	QReadLocker Locker(&m_Mutex);
+	switch (m_RegionType)
+	{
+	case HeapRegion:
+	case Heap32Region:
+		return (quint32)u.Heap.Index + 1;
+	case HeapSegmentRegion:
+	case HeapSegment32Region:
+		if (u_HeapSegment_HeapItem)
+			return (quint32)u_HeapSegment_HeapItem->u.Heap.Index + 1;
+		break;
+	}
+	return 0;
+}
+
+quint32 CWinMemory::GetRegionTypeExFlags() const
+{
+	QReadLocker Locker(&m_Mutex);
+
+	if (!m_RegionTypeEx)
+		return 0;
+
+	quint32 Flags = 0;
+	if (m_Private)					Flags |= eRegionPrivate;
+	if (m_MappedDataFile)			Flags |= eRegionMappedDataFile;
+	if (m_MappedImage)				Flags |= eRegionMappedImage;
+	if (m_MappedPageFile)			Flags |= eRegionMappedPageFile;
+	if (m_MappedPhysical)			Flags |= eRegionMappedPhysical;
+	if (m_DirectMapped)				Flags |= eRegionDirectMapped;
+	if (m_SoftwareEnclave)			Flags |= eRegionSoftwareEnclave;
+	if (m_PageSize64K)				Flags |= eRegionPageSize64K;
+	if (m_PlaceholderReservation)	Flags |= eRegionPlaceholder;
+	if (m_MappedAwe)				Flags |= eRegionMappedAwe;
+	if (m_MappedWriteWatch)			Flags |= eRegionMappedWriteWatch;
+	if (m_PageSizeLarge)			Flags |= eRegionPageSizeLarge;
+	if (m_PageSizeHuge)				Flags |= eRegionPageSizeHuge;
+	return Flags;
+}
+
+static_assert(CMemoryInfo::ePageNoAccess          == PAGE_NOACCESS,           "page protection drifted");
+static_assert(CMemoryInfo::ePageReadOnly          == PAGE_READONLY,           "page protection drifted");
+static_assert(CMemoryInfo::ePageReadWrite         == PAGE_READWRITE,          "page protection drifted");
+static_assert(CMemoryInfo::ePageWriteCopy         == PAGE_WRITECOPY,          "page protection drifted");
+static_assert(CMemoryInfo::ePageExecute           == PAGE_EXECUTE,            "page protection drifted");
+static_assert(CMemoryInfo::ePageExecuteRead       == PAGE_EXECUTE_READ,       "page protection drifted");
+static_assert(CMemoryInfo::ePageExecuteReadWrite  == PAGE_EXECUTE_READWRITE,  "page protection drifted");
+static_assert(CMemoryInfo::ePageExecuteWriteCopy  == PAGE_EXECUTE_WRITECOPY,  "page protection drifted");
+static_assert(CMemoryInfo::ePageGuard             == PAGE_GUARD,              "page protection drifted");
+static_assert(CMemoryInfo::ePageNoCache           == PAGE_NOCACHE,            "page protection drifted");
+static_assert(CMemoryInfo::ePageWriteCombine      == PAGE_WRITECOMBINE,       "page protection drifted");
+
+static_assert(CMemoryInfo::eMemCommit  == MEM_COMMIT,  "memory state drifted");
+static_assert(CMemoryInfo::eMemReserve == MEM_RESERVE, "memory state drifted");
+static_assert(CMemoryInfo::eMemFree    == MEM_FREE,    "memory state drifted");
+static_assert(CMemoryInfo::eMemPrivate == MEM_PRIVATE, "memory type drifted");
+static_assert(CMemoryInfo::eMemMapped  == MEM_MAPPED,  "memory type drifted");
+static_assert(CMemoryInfo::eMemImage   == MEM_IMAGE,   "memory type drifted");
+
+static_assert(CMemoryInfo::eSignUnchecked    == SE_SIGNING_LEVEL_UNCHECKED,    "signing level drifted");
+static_assert(CMemoryInfo::eSignUnsigned     == SE_SIGNING_LEVEL_UNSIGNED,     "signing level drifted");
+static_assert(CMemoryInfo::eSignAuthenticode == SE_SIGNING_LEVEL_AUTHENTICODE, "signing level drifted");
+static_assert(CMemoryInfo::eSignStore        == SE_SIGNING_LEVEL_STORE,        "signing level drifted");
+static_assert(CMemoryInfo::eSignMicrosoft    == SE_SIGNING_LEVEL_MICROSOFT,    "signing level drifted");
+static_assert(CMemoryInfo::eSignWindows      == SE_SIGNING_LEVEL_WINDOWS,      "signing level drifted");
+static_assert(CMemoryInfo::eSignWindowsTcb   == SE_SIGNING_LEVEL_WINDOWS_TCB,  "signing level drifted");
+
+static_assert(CMemoryInfo::eRegionCustom            == CustomRegion,               "region type drifted");
+static_assert(CMemoryInfo::eRegionMappedFile        == MappedFileRegion,           "region type drifted");
+static_assert(CMemoryInfo::eRegionPeb               == PebRegion,                  "region type drifted");
+static_assert(CMemoryInfo::eRegionTeb               == TebRegion,                  "region type drifted");
+static_assert(CMemoryInfo::eRegionStack             == StackRegion,                "region type drifted");
+static_assert(CMemoryInfo::eRegionHeap              == HeapRegion,                 "region type drifted");
+static_assert(CMemoryInfo::eRegionHeapSegment       == HeapSegmentRegion,          "region type drifted");
+static_assert(CMemoryInfo::eRegionApiSetMap         == ApiSetMapRegion,            "region type drifted");
+static_assert(CMemoryInfo::eRegionTelemetryCoverage == TelemetryCoverageRegion,    "region type drifted");

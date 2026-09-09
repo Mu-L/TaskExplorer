@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../mischelpers_global.h"
+#include "../../corehelpers_global.h"
 
 #include <QMutex>
 #include <QWaitCondition>
@@ -12,7 +12,7 @@
 * This works regardless of the real order in which Lock and Release were called.
 */
 
-class MISCHELPERS_EXPORT CThreadLock
+class COREHELPERS_EXPORT CThreadLock
 {
 public:
 	CThreadLock();

@@ -7,32 +7,13 @@
  * Copyright (C) 2019 David Xanatos
  *
  * This file is part of Task Explorer and contains System Informer code.
- * 
+ *
  */
 
 #include "stdafx.h"
 #include "WsWatchDialog.h"
+#include "TaskExplorer.h"
 #include "../../MiscHelpers/Common/Settings.h"
-#include "../API/Windows/ProcessHacker.h"
-#include "../API/Windows/WindowsAPI.h"
-
-struct SWorkingSetWatch
-{
-	SWorkingSetWatch()
-	{
-		ProcessId = NULL;
-
-		ProcessHandle = NULL;
-		Buffer = NULL;
-		BufferSize = 0;
-	}
-
-	HANDLE ProcessId;
-
-    HANDLE ProcessHandle;
-    PVOID Buffer;
-    ULONG BufferSize;
-};
 
 class CSWorkingSetItem : public QTreeWidgetItem
 {
@@ -50,6 +31,8 @@ private:
 CWsWatchDialog::CWsWatchDialog(const CProcessPtr& pProcess, QWidget *parent)
 	: QMainWindow(parent)
 {
+	m_pProcess = pProcess;
+
 	this->setWindowTitle(tr("Working Set Watch"));
 
 	m_pMainWidget = new QWidget();
@@ -97,19 +80,6 @@ CWsWatchDialog::CWsWatchDialog(const CProcessPtr& pProcess, QWidget *parent)
 
 	m_TimerId = -1;
 
-	m = new SWorkingSetWatch();
-	m->ProcessId = (HANDLE)pProcess->GetProcessId();
-
-	if (!NT_SUCCESS(PhOpenProcess(&m->ProcessHandle, PROCESS_QUERY_INFORMATION, m->ProcessId)))
-    {
-		QMessageBox::critical(this, tr("Working Set Watch"), tr("Unable to open the process."));
-		this->close();
-		return;
-    }
-
-    m->BufferSize = 0x2000;
-    m->Buffer = PhAllocate(m->BufferSize);
-
 	if (Refresh())
 	{
 		m_TimerId = startTimer(1000);
@@ -126,14 +96,6 @@ CWsWatchDialog::~CWsWatchDialog()
 
 	if(m_TimerId != -1)
 		killTimer(m_TimerId);
-
-	if (m->ProcessHandle)
-		NtClose(m->ProcessHandle);
-
-	if(m->Buffer)
-		PhFree(m->Buffer);
-
-	delete m;
 }
 
 void CWsWatchDialog::closeEvent(QCloseEvent *e)
@@ -153,26 +115,20 @@ void CWsWatchDialog::reject()
 
 void CWsWatchDialog::OnEnable()
 {
-	NTSTATUS status;
-    HANDLE processHandle;
-
-    if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_SET_INFORMATION, m->ProcessId)))
-    {
-        status = NtSetInformationProcess(processHandle, ProcessWorkingSetWatchEx, NULL, 0);
-        NtClose(processHandle);
-    }
+	STATUS Status = m_pProcess->EnableWsWatch();
 
 	m_pEnableBtn->setEnabled(false);
 	m_pEnabledLbl->setVisible(true);
-	if (NT_SUCCESS(status))
+
+	if (!Status.IsError())
 		m_TimerId = startTimer(1000);
 	else
-		m_pEnabledLbl->setText(tr("Unable to enable WS watch, error: %1").arg(status));
+		m_pEnabledLbl->setText(tr("Unable to enable WS watch, error: %1").arg(CTaskExplorer::FormatError(Status)));
 }
 
 void CWsWatchDialog::timerEvent(QTimerEvent *e)
 {
-	if (e->timerId() != m_TimerId) 
+	if (e->timerId() != m_TimerId)
 	{
 		QMainWindow::timerEvent(e);
 		return;
@@ -183,56 +139,20 @@ void CWsWatchDialog::timerEvent(QTimerEvent *e)
 
 bool CWsWatchDialog::Refresh()
 {
-	NTSTATUS status;
-    ULONG returnLength;
-    PPROCESS_WS_WATCH_INFORMATION_EX wsWatchInfo;
+	//
+	// One entry per fault, so a repeated address means repeated faults - the
+	// tally is kept here rather than by the collector.
+	//
+	QList<quint64> Faults;
+	bool bEnabled = false;
+	if (m_pProcess->GetWsWatchFaults(Faults, bEnabled).IsError())
+		return bEnabled;
 
-    // Query WS watch information.
+	foreach(quint64 FaultingPc, Faults)
+	{
+		QTreeWidgetItem* &pItem = m_FailtList[FaultingPc];
 
-    if (!m->Buffer)
-        return FALSE;
-
-    status = NtQueryInformationProcess(m->ProcessHandle, ProcessWorkingSetWatchEx, m->Buffer, m->BufferSize, &returnLength);
-
-    if (status == STATUS_UNSUCCESSFUL)
-    {
-        // WS Watch is not enabled.
-        return false;
-    }
-
-    if (status == STATUS_NO_MORE_ENTRIES)
-    {
-        // There were no new faults, but we still need to process symbol lookup results.
-		return true;
-    }
-
-    if (status == STATUS_BUFFER_TOO_SMALL || status == STATUS_INFO_LENGTH_MISMATCH)
-    {
-        PhFree(m->Buffer);
-        m->Buffer = PhAllocate(returnLength);
-        m->BufferSize = returnLength;
-
-        status = NtQueryInformationProcess(m->ProcessHandle, ProcessWorkingSetWatchEx, m->Buffer, m->BufferSize, &returnLength);
-    }
-
-    if (!NT_SUCCESS(status))
-    {
-        // Error related to the buffer size. Try again later.
-		return false;
-    }
-
-    // Update the hashtable and std::list view.
-
-    wsWatchInfo = (PPROCESS_WS_WATCH_INFORMATION_EX)m->Buffer;
-
-    while (wsWatchInfo->BasicInfo.FaultingPc)
-    {
-        quint32 newCount;
-
-        // Update the count in the entry for this instruction pointer, or add a new entry if it doesn't exist.
-
-		QTreeWidgetItem* &pItem = m_FailtList[(quint64)wsWatchInfo->BasicInfo.FaultingPc];
-
+		quint32 newCount;
         if (pItem)
         {
             newCount = pItem->data(1, Qt::UserRole).toUInt() + 1;
@@ -242,25 +162,29 @@ bool CWsWatchDialog::Refresh()
 			pItem = new CSWorkingSetItem();
 			m_pFaultList->GetTree()->addTopLevelItem(pItem);
 
-			pItem->setData(0, Qt::UserRole, (quint64)wsWatchInfo->BasicInfo.FaultingPc);
-			pItem->setText(0, FormatAddress((quint64)wsWatchInfo->BasicInfo.FaultingPc));
+			pItem->setData(0, Qt::UserRole, FaultingPc);
+			pItem->setText(0, FormatAddress(FaultingPc));
 
-			qobject_cast<CWindowsAPI*>(theAPI)->GetSymbolProvider()->GetSymbolFromAddress((quint64)m->ProcessId, (quint64)wsWatchInfo->BasicInfo.FaultingPc, this, SLOT(OnSymbolFromAddress(quint64, quint64, int, const QString&, const QString&, const QString&)));
+			if (CSystemPtr pSystem = m_pProcess->GetSystem())
+			{
+				pSystem->GetSymbolFromAddress(m_pProcess->GetProcessId(), FaultingPc, this,
+					SLOT(OnSymbolFromAddress(quint64, quint64, int, const QString&, const QString&, const QString&)));
+			}
 
 			newCount = 1;
         }
 
         pItem->setData(1, Qt::UserRole, newCount);
 		pItem->setText(1, FormatNumber(newCount));
+	}
 
-        wsWatchInfo++;
-    }
-
-	return true;
+	return bEnabled;
 }
 
 void CWsWatchDialog::OnSymbolFromAddress(quint64 ProcessId, quint64 Address, int ResolveLevel, const QString& StartAddressString, const QString& FileName, const QString& SymbolName)
 {
+	// the row may be gone by the time a lookup comes back
 	QTreeWidgetItem* pItem = m_FailtList.value(Address);
-	pItem->setText(0, StartAddressString);
+	if (pItem)
+		pItem->setText(0, StartAddressString);
 }

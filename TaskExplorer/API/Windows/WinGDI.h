@@ -1,8 +1,12 @@
 #pragma once
 #include <qobject.h>
-#include "../AbstractInfo.h"
+#include "../GdiInfo.h"
 
-class CWinGDI: public CAbstractInfoEx
+//
+// The Windows filling of CGdiInfo. Everything the view reads is on the base;
+// what is left here is how to get it out of the object manager's handle table.
+//
+class CWinGDI: public CGdiInfo
 {
 	Q_OBJECT
 
@@ -13,20 +17,8 @@ public:
 
 	bool InitData(quint32 index, struct _GDI_HANDLE_ENTRY* handle, const QString& ProcessName);
 
-	virtual QString GetProcessName() const			{ QReadLocker Locker(&m_Mutex); return m_ProcessName; }
-	virtual quint64 GetProcessId() const			{ QReadLocker Locker(&m_Mutex); return m_ProcessId; }
-	virtual quint32 GetHandleId() const				{ QReadLocker Locker(&m_Mutex); return m_HandleId; }
-	virtual QString GetTypeString() const;
-	virtual quint64 GetObject() const				{ QReadLocker Locker(&m_Mutex); return m_Object; }
-	virtual QString GetInformations() const			{ QReadLocker Locker(&m_Mutex); return m_Informations; }
-
-protected:
-	QString			m_ProcessName;
-	quint64			m_ProcessId;
-	quint32			m_HandleId;
-	quint64			m_Object;
-	QString			m_Informations;
+private:
+	// The handle's own bits say what it refers to. Decoded once, here, because
+	// it needs GDI_CLIENT_TYPE_FROM_UNIQUE and nothing off Windows has it.
+	static quint32 DecodeGdiType(quint32 HandleId);
 };
-
-typedef QSharedPointer<CWinGDI> CWinGDIPtr;
-typedef QWeakPointer<CWinGDI> CWinGDIRef;

@@ -5,7 +5,7 @@
 #include <phnt_windows.h>
 #include <phnt.h>
 
-#include "../../../MiscHelpers/Common/FlexError.h"
+#include "../../../MiscHelpers/Common/Status.h"
 
 STATUS InitKSH(QString DeviceName = "", QString FileName = "", int SecurityLevel = 0);
 

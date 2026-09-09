@@ -13,22 +13,18 @@ public:
 
 	void	InitBasicInfo(struct _MEMORY_BASIC_INFORMATION* basicInfo, void* ProcessId);
 
-	virtual QString GetTypeString() const;
-	virtual QString GetMemoryTypeString() const;
-	virtual QString GetRegionTypeExStr() const;
-	virtual QString GetMemoryStateString() const;
-	virtual QString GetProtectionString() const;
-	virtual QString GetAllocProtectionString() const;
-	virtual QString GetOriginalPagesString() const;
+	virtual quint32 GetPageSize() const;
 	virtual bool IsExecutable() const;
 	virtual bool IsBitmapRegion() const;
 	virtual bool IsFree() const;
 	virtual bool IsMapped() const;
 	virtual bool IsPrivate() const;
-	virtual QString GetUseString() const;
 
+	virtual QString GetRegionText() const;
+	virtual quint64 GetRegionThreadId() const;
+	virtual quint32 GetRegionIndex() const;
+	virtual quint32 GetRegionTypeExFlags() const;
 	virtual quint8 GetSigningLevel() const;
-	virtual QString GetSigningLevelString() const;
 
 	virtual STATUS SetProtect(quint32 Protect);
 	virtual STATUS DumpMemory(QIODevice* pFile);
@@ -36,7 +32,6 @@ public:
 
 	virtual QIODevice* MkDevice();
 
-	static QString GetProtectionString(quint32 Protect);
 
 protected:
 	friend long PhQueryMemoryItemList(void* ProcessId, ulong Flags, QMap<quint64, CMemoryPtr>& MemoryMap);

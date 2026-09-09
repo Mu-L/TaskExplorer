@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>573</width>
+    <width>729</width>
     <height>516</height>
    </rect>
   </property>
@@ -45,7 +45,7 @@
         <enum>QTabWidget::TabPosition::North</enum>
        </property>
        <property name="currentIndex">
-        <number>4</number>
+        <number>2</number>
        </property>
        <widget class="QWidget" name="tab">
         <attribute name="title">
@@ -378,65 +378,17 @@
         <layout class="QGridLayout" name="gridLayout_9">
          <item row="0" column="0">
           <layout class="QGridLayout" name="gridLayout_8">
-           <item row="10" column="1">
-            <widget class="QComboBox" name="processName"/>
-           </item>
-           <item row="5" column="0">
-            <widget class="QLabel" name="label_5">
-             <property name="font">
-              <font>
-               <bold>true</bold>
-               <kerning>true</kerning>
-              </font>
+           <item row="5" column="1" colspan="2">
+            <widget class="QCheckBox" name="chkUnixSockets">
+             <property name="toolTip">
+              <string>Unix domain sockets are how programs on a Linux machine talk to each other - to the display, to the bus, to wineserver. There are hundreds of them and they are listed with each process's handles; this puts them in the socket lists as well.</string>
              </property>
              <property name="text">
-              <string>Tray options</string>
+              <string>Show Unix Domain Sockets (Linux)</string>
              </property>
             </widget>
            </item>
-           <item row="8" column="1">
-            <widget class="QComboBox" name="onClose"/>
-           </item>
-           <item row="8" column="0">
-            <widget class="QLabel" name="label_15">
-             <property name="text">
-              <string>On main window close:</string>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
-             </property>
-            </widget>
-           </item>
-           <item row="7" column="1">
-            <widget class="QComboBox" name="trayMode"/>
-           </item>
-           <item row="13" column="1">
-            <spacer name="verticalSpacer_4">
-             <property name="orientation">
-              <enum>Qt::Orientation::Vertical</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>20</width>
-               <height>40</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item row="13" column="0">
-            <spacer name="horizontalSpacer_9">
-             <property name="orientation">
-              <enum>Qt::Orientation::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item row="13" column="2">
+           <item row="16" column="2">
             <spacer name="horizontalSpacer_8">
              <property name="orientation">
               <enum>Qt::Orientation::Horizontal</enum>
@@ -449,14 +401,86 @@
              </property>
             </spacer>
            </item>
-           <item row="4" column="1" colspan="2">
-            <widget class="QCheckBox" name="chkSmartDns">
+           <item row="11" column="0">
+            <widget class="QLabel" name="label_14">
              <property name="text">
-              <string>Use DNS cache for remote host name resolution</string>
+              <string>Process name</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
              </property>
             </widget>
            </item>
-           <item row="9" column="0">
+           <item row="1" column="1" colspan="2">
+            <widget class="QCheckBox" name="chkUdpCons">
+             <property name="text">
+              <string>Show Pseudo UDP Connections (ETW)</string>
+             </property>
+            </widget>
+           </item>
+           <item row="6" column="0">
+            <widget class="QLabel" name="label_5">
+             <property name="font">
+              <font>
+               <bold>true</bold>
+               <kerning>true</kerning>
+              </font>
+             </property>
+             <property name="text">
+              <string>Tray options</string>
+             </property>
+            </widget>
+           </item>
+           <item row="7" column="1">
+            <widget class="QCheckBox" name="chkShowTray">
+             <property name="text">
+              <string>Show Sys-Tray</string>
+             </property>
+            </widget>
+           </item>
+           <item row="8" column="1">
+            <widget class="QComboBox" name="trayMode"/>
+           </item>
+           <item row="9" column="1">
+            <widget class="QComboBox" name="onClose"/>
+           </item>
+           <item row="16" column="0">
+            <spacer name="horizontalSpacer_9">
+             <property name="orientation">
+              <enum>Qt::Orientation::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item row="11" column="1">
+            <widget class="QComboBox" name="processName"/>
+           </item>
+           <item row="2" column="1" colspan="2">
+            <widget class="QCheckBox" name="chkLanPlot">
+             <property name="text">
+              <string>Show LAN only TCP/IP Traffic (ETW)</string>
+             </property>
+            </widget>
+           </item>
+           <item row="16" column="1">
+            <spacer name="verticalSpacer_4">
+             <property name="orientation">
+              <enum>Qt::Orientation::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item row="10" column="0">
             <widget class="QLabel" name="label_7">
              <property name="font">
               <font>
@@ -469,14 +493,38 @@
              </property>
             </widget>
            </item>
-           <item row="6" column="1">
-            <widget class="QCheckBox" name="chkShowTray">
+           <item row="3" column="1" colspan="2">
+            <widget class="QCheckBox" name="chkReverseDns">
              <property name="text">
-              <string>Show Sys-Tray</string>
+              <string>Use Reverse DNS for remote host name resolution</string>
              </property>
             </widget>
            </item>
-           <item row="7" column="0">
+           <item row="9" column="0">
+            <widget class="QLabel" name="label_15">
+             <property name="text">
+              <string>On main window close:</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+             </property>
+            </widget>
+           </item>
+           <item row="13" column="1">
+            <widget class="QCheckBox" name="chkParents">
+             <property name="text">
+              <string>Retain parent processes</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="1" colspan="2">
+            <widget class="QCheckBox" name="chkSmartDns">
+             <property name="text">
+              <string>Use DNS cache for remote host name resolution</string>
+             </property>
+            </widget>
+           </item>
+           <item row="8" column="0">
             <widget class="QLabel" name="label_10">
              <property name="text">
               <string>Infos in tray:</string>
@@ -499,52 +547,645 @@
              </property>
             </widget>
            </item>
-           <item row="10" column="0">
-            <widget class="QLabel" name="label_14">
-             <property name="text">
-              <string>Process name</string>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
-             </property>
-            </widget>
-           </item>
            <item row="12" column="1">
-            <widget class="QCheckBox" name="chkParents">
-             <property name="text">
-              <string>Retain parent processes</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="1" colspan="2">
-            <widget class="QCheckBox" name="chkReverseDns">
-             <property name="text">
-              <string>Use Reverse DNS for remote host name resolution</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="1" colspan="2">
-            <widget class="QCheckBox" name="chkLanPlot">
-             <property name="text">
-              <string>Show LAN only TCP/IP Traffic (ETW)</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="1" colspan="2">
-            <widget class="QCheckBox" name="chkUdpCons">
-             <property name="text">
-              <string>Show Pseudo UDP Connections (ETW)</string>
-             </property>
-            </widget>
-           </item>
-           <item row="11" column="1">
             <widget class="QCheckBox" name="chkShow32">
              <property name="text">
               <string>Append &quot;*32&quot; to WoW64 processes</string>
              </property>
             </widget>
            </item>
+           <item row="15" column="1" colspan="2">
+            <widget class="QCheckBox" name="chkDeskAgents">
+             <property name="toolTip">
+              <string>Windows are enumerated on the desktop of the process asking, and no privilege changes that: a process cannot list another session's windows. With this on, a small helper is started inside each logged-on session and reports what it can see there, so the Windows tab works for other users' processes - and for every process, when TaskExplorer is running as a service. It costs one small process per session and is off unless you ask for it.</string>
+             </property>
+             <property name="text">
+              <string>See windows on other desktops (starts a helper per session)</string>
+             </property>
+            </widget>
+           </item>
           </layout>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="tabRemote">
+        <attribute name="title">
+         <string>Remote Machines</string>
+        </attribute>
+        <layout class="QGridLayout" name="gridLayoutRemote">
+         <item row="0" column="0">
+          <widget class="QTabWidget" name="tabsRemote">
+           <property name="currentIndex">
+            <number>1</number>
+           </property>
+           <widget class="QWidget" name="tabRemoteConn">
+            <attribute name="title">
+             <string>Connections</string>
+            </attribute>
+            <layout class="QGridLayout" name="gridRemoteConn">
+             <item row="2" column="0">
+              <widget class="QLabel" name="lblRemoteConn">
+               <property name="font">
+                <font>
+                 <bold>true</bold>
+                 <kerning>true</kerning>
+                </font>
+               </property>
+               <property name="text">
+                <string>Reconnecting</string>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="1">
+              <widget class="QLabel" name="lblReconnect">
+               <property name="text">
+                <string>Reconnect interval:</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="2">
+              <widget class="QSpinBox" name="spinReconnect">
+               <property name="toolTip">
+                <string>How often to try a machine whose connection was lost. A machine stays in the tree until you disconnect it, and is retried for as long as it is there.</string>
+               </property>
+               <property name="minimum">
+                <number>1</number>
+               </property>
+               <property name="maximum">
+                <number>3600</number>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="3">
+              <widget class="QLabel" name="lblReconnectUnit">
+               <property name="text">
+                <string>seconds</string>
+               </property>
+              </widget>
+             </item>
+             <item row="4" column="1" colspan="3">
+              <widget class="QLabel" name="lblReconnectNote">
+               <property name="text">
+                <string>A machine that stops answering keeps its row until you disconnect it.</string>
+               </property>
+               <property name="wordWrap">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item row="5" column="0">
+              <widget class="QLabel" name="lblMachinesHdr">
+               <property name="font">
+                <font>
+                 <bold>true</bold>
+                 <kerning>true</kerning>
+                </font>
+               </property>
+               <property name="text">
+                <string>Saved machines</string>
+               </property>
+              </widget>
+             </item>
+             <item row="6" column="1" colspan="3">
+              <layout class="QHBoxLayout" name="layoutMachines">
+               <item>
+                <widget class="QTreeWidget" name="treeMachines">
+                 <property name="rootIsDecorated">
+                  <bool>false</bool>
+                 </property>
+                 <property name="uniformRowHeights">
+                  <bool>true</bool>
+                 </property>
+                 <column>
+                  <property name="text">
+                   <string>Machine</string>
+                  </property>
+                 </column>
+                 <column>
+                  <property name="text">
+                   <string>Address</string>
+                  </property>
+                 </column>
+                 <column>
+                  <property name="text">
+                   <string>Credentials</string>
+                  </property>
+                 </column>
+                </widget>
+               </item>
+               <item>
+                <layout class="QVBoxLayout" name="layoutMachineButtons">
+                 <item>
+                  <widget class="QPushButton" name="btnMachineEdit">
+                   <property name="toolTip">
+                    <string>Change this machine's name, address or credentials. Nothing is connected or disconnected.</string>
+                   </property>
+                   <property name="text">
+                    <string>Edit...</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="btnMachineRemove">
+                   <property name="text">
+                    <string>Remove</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <spacer name="verticalSpacerMachines">
+                   <property name="orientation">
+                    <enum>Qt::Orientation::Vertical</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>20</width>
+                     <height>40</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                </layout>
+               </item>
+              </layout>
+             </item>
+             <item row="7" column="0">
+              <widget class="QLabel" name="lblSavedHdr">
+               <property name="font">
+                <font>
+                 <bold>true</bold>
+                 <kerning>true</kerning>
+                </font>
+               </property>
+               <property name="text">
+                <string>Saved keys</string>
+               </property>
+              </widget>
+             </item>
+             <item row="8" column="1" colspan="2">
+              <widget class="QLabel" name="lblSavedState">
+               <property name="text">
+                <string/>
+               </property>
+               <property name="wordWrap">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item row="8" column="3">
+              <widget class="QPushButton" name="btnForgetKeys">
+               <property name="text">
+                <string>Forget all</string>
+               </property>
+              </widget>
+             </item>
+             <item row="9" column="1" colspan="3">
+              <widget class="QCheckBox" name="chkRememberPassword">
+               <property name="toolTip">
+                <string>Keeps the key that opens the saved connection keys where only this account on this machine can read it. The password still opens the file anywhere.</string>
+               </property>
+               <property name="text">
+                <string>Open the saved keys without asking on this machine</string>
+               </property>
+              </widget>
+             </item>
+             <item row="10" column="0">
+              <spacer name="verticalSpacerRemoteConn">
+               <property name="orientation">
+                <enum>Qt::Orientation::Vertical</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>20</width>
+                 <height>40</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </widget>
+           <widget class="QWidget" name="tabRemoteServer">
+            <attribute name="title">
+             <string>Serving this machine</string>
+            </attribute>
+            <layout class="QGridLayout" name="gridRemoteServer">
+             <item row="6" column="2">
+              <layout class="QHBoxLayout" name="layoutServerKeyButtons">
+               <item>
+                <widget class="QPushButton" name="btnServerShow">
+                 <property name="toolTip">
+                  <string>Show the key this machine is using, so it can be given to a viewer on another machine. It is stored where only administrators can read it.</string>
+                 </property>
+                 <property name="text">
+                  <string>Show</string>
+                 </property>
+                 <property name="checkable">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="btnServerKey">
+                 <property name="text">
+                  <string>Generate</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item row="6" column="0">
+              <widget class="QLabel" name="lblServerKey">
+               <property name="text">
+                <string>Transport key:</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item row="10" column="0">
+              <spacer name="verticalSpacerRemoteServer">
+               <property name="orientation">
+                <enum>Qt::Orientation::Vertical</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>20</width>
+                 <height>40</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item row="7" column="0" colspan="3">
+              <widget class="QLabel" name="lblServerUsers">
+               <property name="font">
+                <font>
+                 <bold>true</bold>
+                 <kerning>true</kerning>
+                </font>
+               </property>
+               <property name="text">
+                <string>Who may log in</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="lblServerName">
+               <property name="text">
+                <string>Instance name:</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="0">
+              <widget class="QLabel" name="lblListenPort">
+               <property name="text">
+                <string>Listening port:</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="1">
+              <widget class="QSpinBox" name="spinListenPort">
+               <property name="minimum">
+                <number>1</number>
+               </property>
+               <property name="maximum">
+                <number>65535</number>
+               </property>
+               <property name="value">
+                <number>28333</number>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="0" colspan="3">
+              <widget class="QCheckBox" name="chkServer">
+               <property name="toolTip">
+                <string>Install a service, or a systemd unit on Linux, that serves this machine to other TaskExplorers. It starts with the machine and keeps running when nobody is logged in.</string>
+               </property>
+               <property name="text">
+                <string>Run a server on this machine, starting with it</string>
+               </property>
+              </widget>
+             </item>
+             <item row="6" column="1">
+              <widget class="QLineEdit" name="txtServerKey">
+               <property name="toolTip">
+                <string>Shared by every viewer that may reach this machine. It secures the connection and grants nothing on its own - who may see what is decided by the users below.</string>
+               </property>
+               <property name="echoMode">
+                <enum>QLineEdit::EchoMode::Password</enum>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="0">
+              <widget class="QLabel" name="lblBindAddress">
+               <property name="text">
+                <string>Bind to address:</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="1" colspan="2">
+              <widget class="QComboBox" name="cmbBindAddress">
+               <property name="toolTip">
+                <string>Accept network connections only on this address. Leave it on every address unless one of this machine's networks should not reach the server at all.</string>
+               </property>
+               <property name="editable">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item row="5" column="1" colspan="2">
+              <widget class="QCheckBox" name="chkServerDriver">
+               <property name="toolTip">
+                <string>The kernel driver is what lets the daemon answer for a protected process, resolve a handle's true object, or read a working set without opening the process. Switch it off for a machine where no kernel driver is to be loaded; everything else the daemon serves keeps working.</string>
+               </property>
+               <property name="text">
+                <string>Use the kernel driver</string>
+               </property>
+              </widget>
+             </item>
+             <item row="4" column="1" colspan="2">
+              <widget class="QCheckBox" name="chkLocalPipe">
+               <property name="toolTip">
+                <string>The local pipe is how a viewer on this machine reaches its own daemon, and needs no key or password - the operating system says who connected. Switch it off for a machine that should only be watched from elsewhere.</string>
+               </property>
+               <property name="text">
+                <string>Answer on the local pipe as well as the network</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1" colspan="2">
+              <widget class="QLineEdit" name="txtServerName">
+               <property name="toolTip">
+                <string>What this daemon is called: the name of its local pipe and of the service it is installed as. Leave it alone unless this machine runs more than one of them.</string>
+               </property>
+               <property name="placeholderText">
+                <string>TaskExplorerServer</string>
+               </property>
+              </widget>
+             </item>
+             <item row="8" column="0" colspan="3">
+              <layout class="QHBoxLayout" name="layoutServerUsers">
+               <item>
+                <widget class="QTreeWidget" name="treeServerUsers">
+                 <property name="rootIsDecorated">
+                  <bool>false</bool>
+                 </property>
+                 <property name="uniformRowHeights">
+                  <bool>true</bool>
+                 </property>
+                 <column>
+                  <property name="text">
+                   <string>User</string>
+                  </property>
+                 </column>
+                 <column>
+                  <property name="text">
+                   <string>Level</string>
+                  </property>
+                 </column>
+                 <column>
+                  <property name="text">
+                   <string>Actions</string>
+                  </property>
+                 </column>
+                 <column>
+                  <property name="text">
+                   <string>Password</string>
+                  </property>
+                 </column>
+                </widget>
+               </item>
+               <item>
+                <layout class="QVBoxLayout" name="layoutServerUserButtons">
+                 <item>
+                  <widget class="QPushButton" name="btnUserAdd">
+                   <property name="text">
+                    <string>Add...</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="btnUserEdit">
+                   <property name="text">
+                    <string>Edit...</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="btnUserRemove">
+                   <property name="text">
+                    <string>Remove</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <spacer name="verticalSpacerServerUsers">
+                   <property name="orientation">
+                    <enum>Qt::Orientation::Vertical</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>20</width>
+                     <height>40</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                </layout>
+               </item>
+              </layout>
+             </item>
+             <item row="9" column="0" colspan="2">
+              <widget class="QLabel" name="lblServerState">
+               <property name="text">
+                <string/>
+               </property>
+               <property name="wordWrap">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item row="9" column="2">
+              <layout class="QHBoxLayout" name="layoutServerButtons">
+               <item>
+                <widget class="QPushButton" name="btnServerStart">
+                 <property name="toolTip">
+                  <string>Start the installed server now. It is not reconfigured; whatever is set here is applied when you press OK or Apply.</string>
+                 </property>
+                 <property name="text">
+                  <string>Start</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="btnServerStop">
+                 <property name="toolTip">
+                  <string>Stop the installed server. It stays installed and starts again with the machine.</string>
+                 </property>
+                 <property name="text">
+                  <string>Stop</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+           <widget class="QWidget" name="tabRemoteDiscovery">
+            <attribute name="title">
+             <string>Discovery</string>
+            </attribute>
+            <layout class="QGridLayout" name="gridRemoteDiscovery">
+             <item row="0" column="0" colspan="3">
+              <widget class="QCheckBox" name="chkDiscover">
+               <property name="toolTip">
+                <string>Ask the local network segment which machines are serving, and list what answers. Nothing is connected automatically.</string>
+               </property>
+               <property name="text">
+                <string>Look for machines on this network</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="lblDiscoverEvery">
+               <property name="text">
+                <string>Ask every:</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QSpinBox" name="spinDiscoverEvery">
+               <property name="specialValueText">
+                <string>only when asked</string>
+               </property>
+               <property name="minimum">
+                <number>0</number>
+               </property>
+               <property name="maximum">
+                <number>3600</number>
+               </property>
+               <property name="value">
+                <number>30</number>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="2">
+              <widget class="QLabel" name="lblDiscoverUnit">
+               <property name="text">
+                <string>seconds</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="0" colspan="3">
+              <widget class="QCheckBox" name="chkAnnounce">
+               <property name="toolTip">
+                <string>Let other TaskExplorers on this network segment find the server running here. Independent of looking: a machine can be findable without looking, and can look without being findable.</string>
+               </property>
+               <property name="text">
+                <string>Let this machine be found by others</string>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="0">
+              <widget class="QLabel" name="lblAnnounceEvery">
+               <property name="text">
+                <string>Announce every:</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="1">
+              <widget class="QSpinBox" name="spinAnnounceEvery">
+               <property name="specialValueText">
+                <string>only when asked</string>
+               </property>
+               <property name="minimum">
+                <number>0</number>
+               </property>
+               <property name="maximum">
+                <number>3600</number>
+               </property>
+               <property name="value">
+                <number>0</number>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="2">
+              <widget class="QLabel" name="lblAnnounceUnit">
+               <property name="text">
+                <string>seconds</string>
+               </property>
+              </widget>
+             </item>
+             <item row="4" column="0">
+              <widget class="QLabel" name="lblDiscoveryPort">
+               <property name="text">
+                <string>Discovery port:</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item row="4" column="1">
+              <widget class="QSpinBox" name="spinDiscoveryPort">
+               <property name="toolTip">
+                <string>The UDP port both halves use. Multicast, so it reaches this network segment and no further.</string>
+               </property>
+               <property name="minimum">
+                <number>1</number>
+               </property>
+               <property name="maximum">
+                <number>65535</number>
+               </property>
+               <property name="value">
+                <number>28334</number>
+               </property>
+              </widget>
+             </item>
+             <item row="5" column="0" colspan="3">
+              <widget class="QLabel" name="lblDiscoveryNote">
+               <property name="text">
+                <string>Found machines are listed, never connected to. An announcement carries only a name, an id and a port.</string>
+               </property>
+               <property name="wordWrap">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item row="6" column="0">
+              <spacer name="verticalSpacerRemoteDiscovery">
+               <property name="orientation">
+                <enum>Qt::Orientation::Vertical</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>20</width>
+                 <height>40</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </widget>
+          </widget>
          </item>
         </layout>
        </widget>
@@ -851,189 +1492,459 @@
          </item>
         </layout>
        </widget>
-       <widget class="QWidget" name="tabUpdate">
+       <widget class="QWidget" name="tabSupport">
         <attribute name="title">
-         <string>Online Updater</string>
+         <string>Support &amp;&amp; Updates</string>
         </attribute>
-        <layout class="QGridLayout" name="gridLayout_38">
+        <layout class="QGridLayout" name="gridSupport">
          <item row="0" column="0">
-          <layout class="QGridLayout" name="gridLayout_37">
-           <property name="leftMargin">
+          <widget class="QTabWidget" name="tabsSupport">
+           <property name="currentIndex">
             <number>0</number>
            </property>
-           <item row="6" column="3">
-            <widget class="QComboBox" name="cmbUpdate"/>
-           </item>
-           <item row="8" column="1">
-            <spacer name="verticalSpacer_12">
-             <property name="orientation">
-              <enum>Qt::Orientation::Vertical</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>20</width>
-               <height>0</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item row="1" column="0" colspan="2">
-            <widget class="QLabel" name="lblUpdates">
-             <property name="font">
-              <font>
-               <bold>true</bold>
-               <kerning>true</kerning>
-              </font>
-             </property>
-             <property name="text">
-              <string>Update Settings</string>
-             </property>
-            </widget>
-           </item>
-           <item row="7" column="4" colspan="3">
-            <widget class="QLabel" name="lblRelease">
-             <property name="text">
-              <string/>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="1">
-            <widget class="QLabel" name="label_39">
-             <property name="maximumSize">
-              <size>
-               <width>20</width>
-               <height>16777215</height>
-              </size>
-             </property>
-             <property name="text">
-              <string/>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="1" colspan="3">
-            <widget class="QCheckBox" name="chkAutoUpdate">
-             <property name="text">
-              <string>Check periodically for new TaskExplorer versions</string>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="4">
-            <widget class="QLabel" name="lblPreview">
-             <property name="text">
-              <string/>
-             </property>
-            </widget>
-           </item>
-           <item row="6" column="4" colspan="3">
-            <widget class="QLabel" name="lblRevision">
-             <property name="text">
-              <string/>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="4">
-            <widget class="QLabel" name="lblStable">
-             <property name="text">
-              <string/>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="2">
-            <widget class="QLabel" name="label_34">
-             <property name="text">
-              <string>Update Check Interval</string>
-             </property>
-             <property name="buddy">
-              <cstring>cmbInterval</cstring>
-             </property>
-            </widget>
-           </item>
-           <item row="7" column="2">
-            <widget class="QLabel" name="label_32">
-             <property name="toolTip">
-              <string>New full installers from the selected release channel.</string>
-             </property>
-             <property name="text">
-              <string>Full Upgrades</string>
-             </property>
-             <property name="buddy">
-              <cstring>cmbRelease</cstring>
-             </property>
-            </widget>
-           </item>
-           <item row="8" column="6">
-            <spacer name="horizontalSpacer_22">
-             <property name="orientation">
-              <enum>Qt::Orientation::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>0</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item row="8" column="4" colspan="2">
-            <spacer name="horizontalSpacer_21">
-             <property name="orientation">
-              <enum>Qt::Orientation::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>0</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item row="6" column="2">
-            <widget class="QLabel" name="label_35">
-             <property name="toolTip">
-              <string>Hotpatches for the installed version, updates to the Templates.ini and translations.</string>
-             </property>
-             <property name="text">
-              <string>Incremental Updates</string>
-             </property>
-             <property name="buddy">
-              <cstring>cmbUpdate</cstring>
-             </property>
-            </widget>
-           </item>
-           <item row="7" column="3">
-            <widget class="QComboBox" name="cmbRelease"/>
-           </item>
-           <item row="2" column="4" colspan="2">
-            <widget class="QLabel" name="lblCurrent">
-             <property name="text">
-              <string/>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="3">
-            <widget class="QComboBox" name="cmbInterval"/>
-           </item>
-           <item row="4" column="2" colspan="2">
-            <widget class="QRadioButton" name="radStable">
-             <property name="toolTip">
-              <string>The stable channel contains the latest stable GitHub releases.</string>
-             </property>
-             <property name="text">
-              <string>Search in the Stable channel</string>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="2" colspan="2">
-            <widget class="QRadioButton" name="radPreview">
-             <property name="toolTip">
-              <string>The preview channel contains the latest GitHub pre-releases.</string>
-             </property>
-             <property name="text">
-              <string>Search in the Preview channel</string>
-             </property>
-            </widget>
-           </item>
-          </layout>
+           <widget class="QWidget" name="tabCert">
+            <attribute name="title">
+             <string>Certificate</string>
+            </attribute>
+            <layout class="QGridLayout" name="gridLayoutCert">
+             <item row="0" column="0">
+              <layout class="QGridLayout" name="gridCert">
+               <property name="leftMargin">
+                <number>0</number>
+               </property>
+               <item row="0" column="0" rowspan="3">
+                <widget class="QLabel" name="lblHelpingHand">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                 <property name="pixmap">
+                  <pixmap resource="../Resources/TaskExplorer.qrc">:/HelpingHand.png</pixmap>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignTop</set>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1" colspan="4">
+                <widget class="QLabel" name="lblSupport">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Preferred" vsizetype="Ignored">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>Maintaining and improving TaskExplorer is an ongoing process. Your support keeps it going and pays for the work that goes into it. You can support TaskExplorer by &lt;a href=&quot;https://xanasoft.com/go.php?to=task-contribute&quot;&gt;contributing to the project&lt;/a&gt;, by &lt;a href=&quot;https://xanasoft.com/go.php?to=task-get-cert&quot;&gt;obtaining a supporter certificate&lt;/a&gt;, by &lt;a href=&quot;https://xanasoft.com/go.php?to=patreon&quot;&gt;subscribing on Patreon&lt;/a&gt;, or with a &lt;a href=&quot;https://xanasoft.com/go.php?to=donate&quot;&gt;PayPal donation&lt;/a&gt;.&lt;br /&gt;Watching another machine, and serving this one to a viewer elsewhere, are supporter features; everything TaskExplorer does on the machine it runs on needs no certificate.</string>
+                 </property>
+                 <property name="textFormat">
+                  <enum>Qt::TextFormat::RichText</enum>
+                 </property>
+                 <property name="wordWrap">
+                  <bool>true</bool>
+                 </property>
+                 <property name="openExternalLinks">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="1" colspan="4">
+                <widget class="QLabel" name="lblSupportCert">
+                 <property name="text">
+                  <string>Please enter your certificate data or serial number:</string>
+                 </property>
+                 <property name="wordWrap">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="1" colspan="4">
+                <widget class="QPlainTextEdit" name="txtCertificate">
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>73</height>
+                  </size>
+                 </property>
+                 <property name="placeholderText">
+                  <string>Enter the certificate data here</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="1" colspan="4">
+                <widget class="QLabel" name="lblCertExp">
+                 <property name="font">
+                  <font>
+                   <bold>true</bold>
+                   <kerning>true</kerning>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                 <property name="wordWrap">
+                  <bool>true</bool>
+                 </property>
+                 <property name="openExternalLinks">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="1" colspan="3">
+                <widget class="QLabel" name="lblSerial">
+                 <property name="text">
+                  <string>Retrieve, upgrade or renew a certificate using a serial number</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="4">
+                <widget class="QLabel" name="lblCertGuide">
+                 <property name="font">
+                  <font>
+                   <bold>true</bold>
+                   <kerning>true</kerning>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>&lt;a href=&quot;https://xanasoft.com/go.php?to=use-cert&quot;&gt;Certificate usage guide&lt;/a&gt;</string>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+                 </property>
+                 <property name="wordWrap">
+                  <bool>true</bool>
+                 </property>
+                 <property name="openExternalLinks">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item row="6" column="1">
+                <widget class="QLineEdit" name="txtSerial">
+                 <property name="minimumSize">
+                  <size>
+                   <width>200</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>250</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="placeholderText">
+                  <string>TASK_-_____-_____-_____-_____</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="6" column="2">
+                <widget class="QToolButton" name="btnGetCert">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
+                 <property name="text">
+                  <string>Get</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="6" column="3" colspan="2">
+                <spacer name="horizontalSpacerCert">
+                 <property name="orientation">
+                  <enum>Qt::Orientation::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="7" column="1" colspan="4">
+                <widget class="QLabel" name="lblEvalCert">
+                 <property name="text">
+                  <string/>
+                 </property>
+                 <property name="wordWrap">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item row="10" column="0">
+                <spacer name="verticalSpacerCert">
+                 <property name="orientation">
+                  <enum>Qt::Orientation::Vertical</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>20</width>
+                   <height>40</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="11" column="1" colspan="3">
+                <widget class="QLabel" name="lblCert">
+                 <property name="font">
+                  <font>
+                   <pointsize>7</pointsize>
+                   <kerning>true</kerning>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                 <property name="openExternalLinks">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item row="11" column="4">
+                <widget class="QLabel" name="lblVersion">
+                 <property name="font">
+                  <font>
+                   <pointsize>7</pointsize>
+                   <kerning>true</kerning>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="12" column="1" colspan="3">
+                <widget class="QLabel" name="lblCertOpt">
+                 <property name="font">
+                  <font>
+                   <pointsize>7</pointsize>
+                   <kerning>true</kerning>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                 <property name="wordWrap">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item row="12" column="4">
+                <widget class="QLabel" name="lblHwId">
+                 <property name="font">
+                  <font>
+                   <pointsize>7</pointsize>
+                   <kerning>true</kerning>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="13" column="0" colspan="3">
+                <widget class="QCheckBox" name="chkNoCheck">
+                 <property name="text">
+                  <string>In the future, don't notify about certificate expiration</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+           <widget class="QWidget" name="tabUpdate">
+            <attribute name="title">
+             <string>Online Updater</string>
+            </attribute>
+            <layout class="QGridLayout" name="gridLayout_38">
+             <item row="0" column="0">
+              <layout class="QGridLayout" name="gridLayout_37">
+               <property name="leftMargin">
+                <number>0</number>
+               </property>
+               <item row="6" column="3">
+                <widget class="QComboBox" name="cmbUpdate"/>
+               </item>
+               <item row="8" column="1">
+                <spacer name="verticalSpacer_12">
+                 <property name="orientation">
+                  <enum>Qt::Orientation::Vertical</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>20</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="1" column="0" colspan="2">
+                <widget class="QLabel" name="lblUpdates">
+                 <property name="font">
+                  <font>
+                   <bold>true</bold>
+                   <kerning>true</kerning>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Update Settings</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="7" column="4" colspan="3">
+                <widget class="QLabel" name="lblRelease">
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="1">
+                <widget class="QLabel" name="label_39">
+                 <property name="maximumSize">
+                  <size>
+                   <width>20</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="1" colspan="3">
+                <widget class="QCheckBox" name="chkAutoUpdate">
+                 <property name="text">
+                  <string>Check periodically for new TaskExplorer versions</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="4">
+                <widget class="QLabel" name="lblPreview">
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="6" column="4" colspan="3">
+                <widget class="QLabel" name="lblRevision">
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="4">
+                <widget class="QLabel" name="lblStable">
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="2">
+                <widget class="QLabel" name="label_34">
+                 <property name="text">
+                  <string>Update Check Interval</string>
+                 </property>
+                 <property name="buddy">
+                  <cstring>cmbInterval</cstring>
+                 </property>
+                </widget>
+               </item>
+               <item row="7" column="2">
+                <widget class="QLabel" name="label_32">
+                 <property name="toolTip">
+                  <string>New full installers from the selected release channel.</string>
+                 </property>
+                 <property name="text">
+                  <string>Full Upgrades</string>
+                 </property>
+                 <property name="buddy">
+                  <cstring>cmbRelease</cstring>
+                 </property>
+                </widget>
+               </item>
+               <item row="8" column="6">
+                <spacer name="horizontalSpacer_22">
+                 <property name="orientation">
+                  <enum>Qt::Orientation::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="8" column="4" colspan="2">
+                <spacer name="horizontalSpacer_21">
+                 <property name="orientation">
+                  <enum>Qt::Orientation::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="6" column="2">
+                <widget class="QLabel" name="label_35">
+                 <property name="toolTip">
+                  <string>Hotpatches for the installed version, updates to the Templates.ini and translations.</string>
+                 </property>
+                 <property name="text">
+                  <string>Incremental Updates</string>
+                 </property>
+                 <property name="buddy">
+                  <cstring>cmbUpdate</cstring>
+                 </property>
+                </widget>
+               </item>
+               <item row="7" column="3">
+                <widget class="QComboBox" name="cmbRelease"/>
+               </item>
+               <item row="2" column="4" colspan="2">
+                <widget class="QLabel" name="lblCurrent">
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="3">
+                <widget class="QComboBox" name="cmbInterval"/>
+               </item>
+               <item row="4" column="2" colspan="2">
+                <widget class="QRadioButton" name="radStable">
+                 <property name="toolTip">
+                  <string>The stable channel contains the latest stable GitHub releases.</string>
+                 </property>
+                 <property name="text">
+                  <string>Search in the Stable channel</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="2" colspan="2">
+                <widget class="QRadioButton" name="radPreview">
+                 <property name="toolTip">
+                  <string>The preview channel contains the latest GitHub pre-releases.</string>
+                 </property>
+                 <property name="text">
+                  <string>Search in the Preview channel</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </widget>
          </item>
         </layout>
        </widget>
@@ -1050,6 +1961,8 @@
    </item>
   </layout>
  </widget>
- <resources/>
+ <resources>
+  <include location="../Resources/TaskExplorer.qrc"/>
+ </resources>
  <connections/>
 </ui>

@@ -18,6 +18,9 @@
 
 #include "WindowsAPI.h"
 #include "WinProcess.h"
+#include "../../SVC/WndAgents.h"
+#include "WinSecurityEditor.h"
+#include "ProcessHacker/AssemblyEnum.h"
 #include "WinThread.h"
 #include "WinHandle.h"
 #include "WinModule.h"
@@ -251,7 +254,7 @@ bool CWinProcess::InitStaticData(quint64 ProcessId)
 
 	if (!InitStaticData())
 	{
-		m_ProcessName = tr("Unknown process PID: %1").arg(ProcessId);
+		m_ProcessName = MakePlaceholder(TE_NAME_UNKNOWN_PROCESS, ProcessId);
 		return false;
 	}
 
@@ -290,7 +293,7 @@ bool CWinProcess::InitStaticData(struct _SYSTEM_PROCESS_INFORMATION* Process, bo
 			m_ProcessName = QString::fromWCharArray(Process->ImageName.Buffer, Process->ImageName.Length / sizeof(wchar_t));
 	}
 	else
-		m_ProcessName = tr("System Idle Process");
+		m_ProcessName = MakePlaceholder(TE_NAME_SYSTEM_IDLE_PROCESS);
 
 	m->CreateTime = Process->CreateTime;
 	m_ProcessUId = SProcessUID(m_ProcessId, m->CreateTime.QuadPart);
@@ -543,12 +546,12 @@ bool CWinProcess::InitStaticData(bool bLoadFileName)
 	// Token information
 	if (m->UniqueProcessId == SYSTEM_IDLE_PROCESS_ID || m->UniqueProcessId == SYSTEM_PROCESS_ID)
 	{
-		m_pToken = CWinTokenPtr(CWinToken::NewSystemToken()); // System token can't be opened (dmex)
+		m_pToken = CWinTokenPtr(CWinToken::NewSystemToken(GetSystem())); // System token can't be opened (dmex)
 	}
 	// Note: See comment in UpdateDynamicData
 	else if (m->QueryHandle)
 	{
-		m_pToken = CWinTokenPtr(CWinToken::TokenFromProcess(m->QueryHandle));
+		m_pToken = CWinTokenPtr(CWinToken::TokenFromProcess(GetSystem(), m->QueryHandle));
 
 		//m->IsElevated = m_pToken->IsElevated(); // (m_pToken->GetElevationType() == TokenElevationTypeFull);
 	}
@@ -651,7 +654,7 @@ bool CWinProcess::InitStaticData(bool bLoadFileName)
 	// PhpFillProcessItemExtension is done in UpdateDynamicData which is to be called right after InitStaticData
 
     // Add service names to the process item.
-	m_ServiceList = ((CWindowsAPI*)theAPI)->GetServicesByPID(m_ProcessId);
+	m_ServiceList = ((CWindowsAPI*)GetSystem().data())->GetServicesByPID(m_ProcessId);
 
 	// Note: on the first listing ProcessHacker does this asynchroniusly, on subsequent listings synchroniusly
 
@@ -725,7 +728,7 @@ bool CWinProcess::InitStaticData(bool bLoadFileName)
     }
 	// PhpProcessQueryStage1 End
 
-	CSandboxieAPI* pSandboxieAPI = ((CWindowsAPI*)theAPI)->GetSandboxieAPI();
+	CSandboxieAPI* pSandboxieAPI = ((CWindowsAPI*)GetSystem().data())->GetSandboxieAPI();
 	m->IsSandBoxed = pSandboxieAPI ? pSandboxieAPI->IsSandBoxed(m_ProcessId) : false;
 
 	if (!m->IsSubsystemProcess)
@@ -774,6 +777,7 @@ bool CWinProcess::InitStaticData(bool bLoadFileName)
 void CWinProcess::UpdateModuleInfo()
 {
 	CWinMainModule* pModule = new CWinMainModule();
+	pModule->SetSystem(GetSystem());
 	m_pModuleInfo = CModulePtr(pModule);
 	connect(pModule, SIGNAL(AsyncDataDone(bool, quint32, quint32)), this, SLOT(OnAsyncDataDone(bool, quint32, quint32)));
 	pModule->InitStaticData(m_ProcessId, (quint64)m->QueryHandle, m_FileName, m_FileNameNt, m->IsSubsystemProcess, m->IsWow64Process);
@@ -1162,7 +1166,7 @@ bool CWinProcess::UpdateDynamicData(struct _SYSTEM_PROCESS_INFORMATION* Process,
 	m_Stats.Io.SetWrite(Process->WriteTransferCount.QuadPart, Process->WriteOperationCount.QuadPart);
 	m_Stats.Io.SetOther(Process->OtherTransferCount.QuadPart, Process->OtherOperationCount.QuadPart);
 
-	if (((CWindowsAPI*)theAPI)->UseDiskCounters() && processExtension)
+	if (((CWindowsAPI*)GetSystem().data())->UseDiskCounters() && processExtension)
 	{
 		PPROCESS_DISK_COUNTERS diskCounters = &processExtension->DiskCounters;
 
@@ -1249,10 +1253,11 @@ bool CWinProcess::UpdateThreadData(struct _SYSTEM_PROCESS_INFORMATION* Process, 
 		if (pWinThread.isNull())
 		{
 			pWinThread = QSharedPointer<CWinThread>(new CWinThread());
+			pWinThread->SetSystem(GetSystem());
 			if (m->IsSandBoxed)
 				pWinThread->SetSandboxed();
 			bAdd = pWinThread->InitStaticData(m->QueryHandle, Thread);
-			theAPI->AddThread(pWinThread);
+			GetSystem()->AddThread(pWinThread);
 			if (!HaveFirst)
 			{
 				// Sometimes an application exits its first thread leaving other threads running (DX)
@@ -1307,7 +1312,7 @@ bool CWinProcess::UpdateThreadData(struct _SYSTEM_PROCESS_INFORMATION* Process, 
 bool CWinProcess::UpdateThreads()
 {
 	// The API calls the Above function with cached process info data to perform the update
-	return ((CWindowsAPI*)theAPI)->UpdateThreads(this);
+	return ((CWindowsAPI*)GetSystem().data())->UpdateThreads(this);
 }
 
 void CWinProcess::CloseHandle()
@@ -1424,6 +1429,7 @@ bool CWinProcess::UpdateHandles()
 		if (pWinHandle.isNull())
 		{
 			pWinHandle = QSharedPointer<CWinHandle>(new CWinHandle());
+			pWinHandle->SetSystem(GetSystem());
 			bAdd = true;
 			QWriteLocker Locker(&m_HandleMutex);
 			ASSERT(!m_HandleList.contains(HandleID));
@@ -1675,6 +1681,7 @@ bool CWinProcess::UpdateModulesList(bool bWithModPages)
 		if (I == OldModules.end())
 		{
 			pModule = QSharedPointer<CWinModule>(new CWinModule(m_ProcessId, m->IsSubsystemProcess));
+			pModule->SetSystem(GetSystem());
 			bAdd = pModule->InitStaticData(module, (quint64)m->QueryHandle);
 			
 			if (pModule->GetType() != -1)
@@ -1795,6 +1802,7 @@ bool CWinProcess::UpdateModulesList(bool bWithModPages)
 			if (I == OldModules.end())
 			{
 				pModule = QSharedPointer<CWinModule>(new CWinModule(m_ProcessId, m->IsSubsystemProcess));
+				pModule->SetSystem(GetSystem());
 				bAdd = pModule->InitStaticData(Module);
 				QWriteLocker Locker(&m_ModuleMutex);
 				ASSERT(!m_ModuleList.contains(pModule->GetBaseAddress()));
@@ -1941,7 +1949,15 @@ bool CWinProcess::UpdateWindows()
 	QString ProcessName = GetName();
 	QMap<quint64, CWndPtr> OldWindows = GetWindowList();
 
-	QMultiMap<quint64, quint64> Windows = ((CWindowsAPI*)theAPI)->GetWindowByPID(m_ProcessId);
+	QMultiMap<quint64, quint64> Windows = ((CWindowsAPI*)GetSystem().data())->GetWindowByPID(m_ProcessId);
+
+	//
+	// What this process could enumerate for itself, so that an agent standing
+	// in the same session does not report the same window a second time. Both
+	// sources are right; only one of them should own the row, and the local one
+	// wins because it can answer questions this one cannot.
+	//
+	QSet<quint64> Seen;
 
 	for (QMultiMap<quint64, quint64>::iterator I = Windows.begin(); I != Windows.end(); I++)
 	{
@@ -1952,6 +1968,7 @@ bool CWinProcess::UpdateWindows()
 		if (pWinWnd.isNull())
 		{
 			pWinWnd = QSharedPointer<CWinWnd>(new CWinWnd());
+			pWinWnd->SetSystem(GetSystem());
 			pWinWnd->InitStaticData(ProcessId, I.key(), I.value(), m->QueryHandle, ProcessName);
 			bAdd = true;
 			QWriteLocker Locker(&m_WindowMutex);
@@ -1966,6 +1983,38 @@ bool CWinProcess::UpdateWindows()
 			Added.insert(I.value());
 		else if (bChanged)
 			Changed.insert(I.value());
+
+		Seen.insert(I.value());
+	}
+
+	//
+	// And the ones an agent saw for us.
+	//
+	// A window on another session's desktop cannot be asked anything from here -
+	// its handle means nothing in this session - so it arrives as a record and
+	// becomes a CAgentWnd, which answers from that record and sends its actions
+	// back to the agent. The view cannot tell the two apart, which is the point.
+	//
+	foreach(const CWndAgents::SWindow& Window, CWndAgents::Instance()->GetWindows(ProcessId))
+	{
+		if (Seen.contains(Window.hWnd))
+			continue;
+
+		QSharedPointer<CAgentWnd> pAgentWnd = OldWindows.take(Window.hWnd).objectCast<CAgentWnd>();
+
+		if (pAgentWnd.isNull())
+		{
+			pAgentWnd = QSharedPointer<CAgentWnd>(new CAgentWnd());
+			pAgentWnd->SetSystem(GetSystem());
+			pAgentWnd->Set(Window, ProcessName);
+
+			Added.insert(Window.hWnd);
+
+			QWriteLocker AgentLocker(&m_WindowMutex);
+			m_WindowList.insert(Window.hWnd, pAgentWnd);
+		}
+		else if (pAgentWnd->Update(Window))
+			Changed.insert(Window.hWnd);
 	}
 
 	QWriteLocker Locker(&m_WindowMutex);
@@ -2015,21 +2064,37 @@ bool CWinProcess::IsWoW64() const
 	return m->IsWow64Process;
 }
 
-QString CWinProcess::GetArchString() const
+//
+// The machine and the ARM64X flag, in place of the reading they used to make.
+//
+quint16 CWinProcess::GetArchitecture() const
 {
-	QReadLocker Locker(&m_Mutex); 
+	QReadLocker Locker(&m_Mutex);
 
 	QSharedPointer<CWinMainModule> pModule = m_pModuleInfo.staticCast<CWinMainModule>();
 
-	switch ((!pModule || (m->Architecture != IMAGE_FILE_MACHINE_UNKNOWN)) ? m->Architecture : pModule->GetImageMachine())
-	{
-	case IMAGE_FILE_MACHINE_I386: return "x86";
-	case IMAGE_FILE_MACHINE_AMD64: return pModule && pModule->GetImageCHPEVersion() ? "x64 (ARM64X)" : "x64";
-	case IMAGE_FILE_MACHINE_ARMNT: return "ARM";
-	case IMAGE_FILE_MACHINE_ARM64: return pModule && pModule->GetImageCHPEVersion() ? "ARM64 (ARM64X)" : "ARM64";
-	}
+	static_assert(CModuleInfo::eMachineI386  == IMAGE_FILE_MACHINE_I386,  "machine i386");
+	static_assert(CModuleInfo::eMachineAmd64 == IMAGE_FILE_MACHINE_AMD64, "machine amd64");
+	static_assert(CModuleInfo::eMachineArmNt == IMAGE_FILE_MACHINE_ARMNT, "machine armnt");
+	static_assert(CModuleInfo::eMachineArm64 == IMAGE_FILE_MACHINE_ARM64, "machine arm64");
 
-	return "";
+	return (!pModule || (m->Architecture != IMAGE_FILE_MACHINE_UNKNOWN)) ? m->Architecture : pModule->GetImageMachine();
+}
+
+//
+// An ARM64X binary carries both an ARM64 and an x64 view of itself, which the
+// machine field alone cannot say.
+//
+bool CWinProcess::IsArm64X() const
+{
+	QReadLocker Locker(&m_Mutex);
+
+	QSharedPointer<CWinMainModule> pModule = m_pModuleInfo.staticCast<CWinMainModule>();
+	if (!pModule || !pModule->GetImageCHPEVersion())
+		return false;
+
+	const quint16 Machine = (m->Architecture != IMAGE_FILE_MACHINE_UNKNOWN) ? m->Architecture : pModule->GetImageMachine();
+	return Machine == IMAGE_FILE_MACHINE_AMD64 || Machine == IMAGE_FILE_MACHINE_ARM64;
 }
 
 quint64 CWinProcess::GetSessionID() const
@@ -2040,29 +2105,107 @@ quint64 CWinProcess::GetSessionID() const
 
 quint16 CWinProcess::GetSubsystem() const
 {
+	static_assert(eSubsystemNative     == IMAGE_SUBSYSTEM_NATIVE,      "subsystem native");
+	static_assert(eSubsystemWindowsGui == IMAGE_SUBSYSTEM_WINDOWS_GUI, "subsystem gui");
+	static_assert(eSubsystemWindowsCui == IMAGE_SUBSYSTEM_WINDOWS_CUI, "subsystem cui");
+	static_assert(eSubsystemOs2Cui     == IMAGE_SUBSYSTEM_OS2_CUI,     "subsystem os2");
+	static_assert(eSubsystemPosixCui   == IMAGE_SUBSYSTEM_POSIX_CUI,   "subsystem posix");
+
 	QReadLocker Locker(&m_Mutex); 
 	QSharedPointer<CWinMainModule> pModule = m_pModuleInfo.staticCast<CWinMainModule>();
 	return pModule ? pModule->GetImageSubsystem() : 0;
 }
 
-QString CWinProcess::GetSubsystemString() const
+//
+// The SID as text, which is the same string on every machine and in every
+// language - unlike the name beside it. Taken from the token because that is
+// where the identity actually lives; a process whose token could not be opened
+// has no answer, and says so by returning nothing.
+//
+//
+// Whether this is one of the invented processes - see GetUserName below.
+//
+static bool IsPseudoProcessId(quint64 ProcessId)
 {
-    switch (GetSubsystem())
-    {
-	case 0:								return "";
-    case IMAGE_SUBSYSTEM_NATIVE:		return tr("Native");
-    case IMAGE_SUBSYSTEM_WINDOWS_GUI:	return tr("Windows");
-    case IMAGE_SUBSYSTEM_WINDOWS_CUI:	return tr("Windows console");
-    case IMAGE_SUBSYSTEM_OS2_CUI:		return tr("OS/2");
-    case IMAGE_SUBSYSTEM_POSIX_CUI:		return tr("POSIX");
-    default:							return tr("Unknown");
-    }
+	return PH_IS_FAKE_PROCESS_ID((HANDLE)(LONG_PTR)ProcessId);
 }
+QString CWinProcess::GetUserKey() const
+{
+	QReadLocker Locker(&m_Mutex);
+	if (m_pToken.isNull())
+	{
+		//
+		// The same account the name above resolves to, so the two agree and the
+		// row groups under it rather than under nothing. See GetUserName.
+		//
+		if (IsPseudoProcessId(m_ProcessId))
+			return QString("S-1-5-18");
+		return QString();
+	}
+
+	//
+	// The *real* owner, which is what GetUserSid(true) means.
+	//
+	// A packaged app runs in an app container whose token user is the package's
+	// own SID - one per package - while the name resolves to the person the
+	// package runs for. Keying on the package SID puts every packaged app in a
+	// branch of its own, all of them labelled with the same user name, which
+	// looks like the grouping is broken. CWinToken resolves the name from
+	// m_OwnerSid for exactly these tokens; this asks for the same one, so the
+	// key and the name always describe the same account.
+	//
+	const QByteArray Sid = m_pToken->GetUserSid(true);
+	if (Sid.isEmpty())
+		return QString();
+
+	QString Key;
+	if (PPH_STRING pStr = PhSidToStringSid((PSID)Sid.constData()))
+	{
+		Key = QString::fromWCharArray(pStr->Buffer, pStr->Length / sizeof(wchar_t));
+		PhDereferenceObject(pStr);
+	}
+	return Key;
+}
+
+//
+// The account the two invented processes belong to.
+//
+// They have no token because they have no process - DPCs and Interrupts are
+// structures this program fills in so that the CPU time the kernel spends
+// servicing them has a row to be listed on. Left to the token they had no
+// user at all, which put them in a nameless branch of their own when grouping
+// by account and left the User column blank.
+//
+// The work they stand for is done in kernel mode on the system's behalf, which
+// is the account the System process runs under and the one they are shown
+// beside. Resolved from the well-known SID rather than written out, because
+// the name is localised - NT-AUTORITÄT\SYSTEM on this machine - and because a
+// SID is what the grouping key has to be anyway.
+//
 
 QString CWinProcess::GetUserName() const
 {
 	QReadLocker Locker(&m_Mutex); 
-	return m_pToken ? m_pToken->GetUserName() : QString();
+	if (m_pToken)
+		return m_pToken->GetUserName();
+
+	if (IsPseudoProcessId(m_ProcessId))
+	{
+		static QString SystemName;
+		if (SystemName.isNull())
+		{
+			if (PPH_STRING pStr = PhGetSidFullName((PSID)&PhSeLocalSystemSid, TRUE, NULL))
+			{
+				SystemName = QString::fromWCharArray(pStr->Buffer, pStr->Length / sizeof(wchar_t));
+				PhDereferenceObject(pStr);
+			}
+			else
+				SystemName = QString("");	// asked once; do not ask again every second
+		}
+		return SystemName;
+	}
+
+	return QString();
 }
 
 quint64 CWinProcess::GetProcessSequenceNumber() const
@@ -2123,12 +2266,378 @@ QString CWinProcess::GetWorkingDirectory() const
 	return QString();
 }*/
 
+//
+// What the process tree says about a process in its tooltip.
+//
+// Decoding a svchost group, a rundll target or a COM surrogate means reading
+// the command line against the machine's own registry and image files, so it
+// belongs with the collector rather than with the view that displays it. Only
+// the values come back; the headings are written by whoever is reading.
+//
+QList<CProcessInfo::SToolTipSection> CWinProcess::GetToolTipSections() const
+{
+	QList<SToolTipSection> Sections;
+
+	PH_KNOWN_PROCESS_TYPE KnownProcessType = (PH_KNOWN_PROCESS_TYPE)this->GetKnownProcessType();
+
+	// Known command line information
+	PH_KNOWN_PROCESS_COMMAND_LINE knownCommandLine;
+	if (KnownProcessType != UnknownProcessType)
+	{
+		PH_AUTO_POOL autoPool;
+		PhInitializeAutoPool(&autoPool);
+
+		PPH_STRING commandLine = (PPH_STRING)PH_AUTO(CastQString(GetCommandLineStr()));
+
+		if (PhaGetProcessKnownCommandLine(commandLine, KnownProcessType, &knownCommandLine))
+		{
+			switch (KnownProcessType & KnownProcessTypeMask)
+			{
+				case ServiceHostProcessType:
+				{
+					SToolTipSection Section(SToolTipSection::eServiceGroup);
+					Section.Items.append(qMakePair(CastPhString(knownCommandLine.ServiceHost.GroupName, false), QString()));
+					Sections.append(Section);
+					break;
+				}
+				case RunDllAsAppProcessType:
+				{
+					PH_IMAGE_VERSION_INFO versionInfo;
+					if (PhInitializeImageVersionInfo(&versionInfo, knownCommandLine.RunDllAsApp.FileName->Buffer))
+					{
+						SToolTipSection Section(SToolTipSection::eRunDllTarget);
+						Section.Items.append(qMakePair(CastPhString(versionInfo.FileDescription, false), CastPhString(versionInfo.FileVersion, false)));
+						Section.Items.append(qMakePair(CastPhString(versionInfo.CompanyName, false), QString()));
+						Sections.append(Section);
+
+						PhDeleteImageVersionInfo(&versionInfo);
+					}
+					break;
+				}
+				case ComSurrogateProcessType:
+				{
+					SToolTipSection Section(SToolTipSection::eComTarget);
+
+					if (knownCommandLine.ComSurrogate.Name)
+						Section.Items.append(qMakePair(CastPhString(knownCommandLine.ComSurrogate.Name, false), QString()));
+
+					PPH_STRING guidString = PhFormatGuid(&knownCommandLine.ComSurrogate.Guid);
+					if (guidString)
+						Section.Items.append(qMakePair(CastPhString(guidString), QString()));
+
+					Sections.append(Section);
+
+					PH_IMAGE_VERSION_INFO versionInfo;
+					if (knownCommandLine.ComSurrogate.FileName && PhInitializeImageVersionInfo(&versionInfo, knownCommandLine.ComSurrogate.FileName->Buffer))
+					{
+						SToolTipSection FileSection(SToolTipSection::eComTargetFile);
+						FileSection.Items.append(qMakePair(CastPhString(versionInfo.FileDescription, false), CastPhString(versionInfo.FileVersion, false)));
+						FileSection.Items.append(qMakePair(CastPhString(versionInfo.CompanyName, false), QString()));
+						Sections.append(FileSection);
+
+						PhDeleteImageVersionInfo(&versionInfo);
+					}
+					break;
+				}
+			}
+		}
+
+		PhDeleteAutoPool(&autoPool);
+	}
+
+	// Services
+	QStringList ServiceList = this->GetServiceList();
+	if (!ServiceList.isEmpty())
+	{
+		SToolTipSection Section(SToolTipSection::eServices);
+		foreach(const QString& Service, ServiceList)
+		{
+			CServicePtr pService = GetSystem()->GetService(Service);
+			Section.Items.append(qMakePair(Service, pService ? pService->GetDisplayName() : QString()));
+		}
+		Sections.append(Section);
+	}
+
+	// Tasks, Drivers
+	switch (KnownProcessType & KnownProcessTypeMask)
+	{
+		case TaskHostProcessType:
+		{
+			QList<STask> Tasks = this->GetTasks();
+			if (!Tasks.isEmpty())
+			{
+				SToolTipSection Section(SToolTipSection::eTasks);
+				foreach(const STask& Task, Tasks)
+					Section.Items.append(qMakePair(Task.Name, Task.Path));
+				Sections.append(Section);
+			}
+		}
+		break;
+		case UmdfHostProcessType:
+		{
+			QList<SDriver> Drivers = this->GetUmdfDrivers();
+			if (!Drivers.isEmpty())
+			{
+				SToolTipSection Section(SToolTipSection::eDrivers);
+				foreach(const SDriver& Driver, Drivers)
+					Section.Items.append(qMakePair(Driver.Name, Driver.Path));
+				Sections.append(Section);
+			}
+		}
+		break;
+		case EdgeProcessType:
+		{
+			CTokenInfoPtr pToken = this->GetToken();
+			if (!pToken)
+				break;
+
+			//
+			// The AppContainer SIDs Edge uses for each of its parts. Compared
+			// for equality - the earlier form of this test used the sign of
+			// QString::compare, which is zero when the strings match, so every
+			// branch was inverted and the first one caught nearly everything.
+			//
+			static const struct { const char* Sid; int Role; } EdgeSids[] =
+			{
+				{ "S-1-15-2-3624051433-2125758914-1423191267-1740899205-1073925389-3782572162-737981194",
+				  SToolTipSection::eEdgeManager },
+				{ "S-1-15-2-3624051433-2125758914-1423191267-1740899205-1073925389-3782572162-737981194-1206159417-1570029349-2913729690-1184509225",
+				  SToolTipSection::eEdgeBrowserExtensions },
+				{ "S-1-15-2-3624051433-2125758914-1423191267-1740899205-1073925389-3782572162-737981194-3513710562-3729412521-1863153555-1462103995",
+				  SToolTipSection::eEdgeUserInterfaceService },
+				{ "S-1-15-2-3624051433-2125758914-1423191267-1740899205-1073925389-3782572162-737981194-1821068571-1793888307-623627345-1529106238",
+				  SToolTipSection::eEdgeChakraJitCompiler },
+				{ "S-1-15-2-3624051433-2125758914-1423191267-1740899205-1073925389-3782572162-737981194-3859068477-1314311106-1651661491-1685393560",
+				  SToolTipSection::eEdgeFlashPlayer },
+				{ "S-1-15-2-3624051433-2125758914-1423191267-1740899205-1073925389-3782572162-737981194-4256926629-1688279915-2739229046-3928706915",
+				  SToolTipSection::eEdgeBackgroundTabPool },
+				{ "S-1-15-2-3624051433-2125758914-1423191267-1740899205-1073925389-3782572162-737981194-2385269614-3243675-834220592-3047885450",
+				  SToolTipSection::eEdgeBackgroundTabPool },
+				{ "S-1-15-2-3624051433-2125758914-1423191267-1740899205-1073925389-3782572162-737981194-355265979-2879959831-980936148-1241729999",
+				  SToolTipSection::eEdgeBackgroundTabPool },
+			};
+
+			const QString SidString = pToken->GetSidString();
+			for (size_t i = 0; i < sizeof(EdgeSids) / sizeof(EdgeSids[0]); i++)
+			{
+				if (SidString.compare(QLatin1String(EdgeSids[i].Sid), Qt::CaseInsensitive) != 0)
+					continue;
+
+				SToolTipSection Section(SToolTipSection::eEdgeRole);
+				Section.Role = EdgeSids[i].Role;
+				Sections.append(Section);
+				break;
+			}
+		}
+		break;
+		case WmiProviderHostType:
+		{
+			QList<SWmiProvider> Providers = this->QueryWmiProviders();
+			if (!Providers.isEmpty())
+			{
+				SToolTipSection Section(SToolTipSection::eWmiProviders);
+				foreach(const SWmiProvider& Provider, Providers)
+					Section.Items.append(qMakePair(Provider.ProviderName, Provider.FileName));
+				Sections.append(Section);
+			}
+		}
+		break;
+	}
+
+	return Sections;
+}
+
+//
+// Mandatory-policy bits, translated between the abstract flags and the
+// SYSTEM_MANDATORY_LABEL_* ones the kernel uses.
+//
+static quint32 MandatoryFromNt(ACCESS_MASK Mask)
+{
+	quint32 Policy = 0;
+	if (FlagOn(Mask, SYSTEM_MANDATORY_LABEL_NO_WRITE_UP))	Policy |= CProcessInfo::eNoWriteUp;
+	if (FlagOn(Mask, SYSTEM_MANDATORY_LABEL_NO_READ_UP))	Policy |= CProcessInfo::eNoReadUp;
+	if (FlagOn(Mask, SYSTEM_MANDATORY_LABEL_NO_EXECUTE_UP))	Policy |= CProcessInfo::eNoExecuteUp;
+	return Policy;
+}
+
+static ACCESS_MASK MandatoryToNt(quint32 Policy)
+{
+	ACCESS_MASK Mask = 0;
+	if (Policy & CProcessInfo::eNoWriteUp)		SetFlag(Mask, SYSTEM_MANDATORY_LABEL_NO_WRITE_UP);
+	if (Policy & CProcessInfo::eNoReadUp)		SetFlag(Mask, SYSTEM_MANDATORY_LABEL_NO_READ_UP);
+	if (Policy & CProcessInfo::eNoExecuteUp)	SetFlag(Mask, SYSTEM_MANDATORY_LABEL_NO_EXECUTE_UP);
+	return Mask;
+}
+
+quint64 CWinProcess::GetPebBaseAddress(bool bWow64) const
+{
+	//
+	// Held by the main image rather than the process record, because that is
+	// what carries the parsed headers it is read from.
+	//
+	QReadLocker Locker(&m_Mutex);
+	QSharedPointer<CWinMainModule> pModule = m_pModuleInfo.staticCast<CWinMainModule>();
+	return pModule.isNull() ? 0 : pModule->GetPebBaseAddress(bWow64);
+}
+
+quint32 CWinProcess::GetMandatoryPolicy() const
+{
+	ACCESS_MASK mandatoryPolicy = 0;
+	if (!NT_SUCCESS(PhGetProcessMandatoryPolicy(GetQueryHandle(), &mandatoryPolicy)))
+		return 0;
+	return MandatoryFromNt(mandatoryPolicy);
+}
+
+STATUS CWinProcess::SetMandatoryPolicy(quint32 Policy)
+{
+	//
+	// Needs its own handle: the cached query handle is not opened for
+	// WRITE_OWNER, which changing the label requires.
+	//
+	HANDLE processHandle = NULL;
+	NTSTATUS status = PhOpenProcess(&processHandle, READ_CONTROL | WRITE_OWNER, (HANDLE)m_ProcessId);
+	if (!NT_SUCCESS(status))
+		return CStatus::Native(status);
+
+	status = PhSetProcessMandatoryPolicy(processHandle, MandatoryToNt(Policy));
+
+	NtClose(processHandle);
+
+	if (!NT_SUCCESS(status))
+		return CStatus::Native(status);
+	return OK;
+}
+bool CWinProcess::IsExecutionRequired() const
+{
+	return PhIsProcessExecutionRequired((HANDLE)m_ProcessId) ? true : false;
+}
+
+STATUS CWinProcess::SetExecutionRequired(bool bSet)
+{
+	NTSTATUS status = bSet
+		? PhProcessExecutionRequiredEnable((HANDLE)m_ProcessId)
+		: PhProcessExecutionRequiredDisable((HANDLE)m_ProcessId);
+
+	if (!NT_SUCCESS(status))
+		return ERR(TE_SetProcExecution, status);
+	return OK;
+}
+
+//
+// Working-set watch. Moved down from CWsWatchDialog, which opened the process
+// and walked the kernel buffer itself.
+//
+// Deliberately stateless: the handle and buffer live for the duration of one
+// call rather than for the life of the dialog. At the once-a-second poll this
+// costs nothing, it cannot leak, and it is the shape a remote implementation
+// wants anyway - one request, one answer.
+//
+STATUS CWinProcess::EnableWsWatch()
+{
+	HANDLE processHandle;
+	NTSTATUS status = PhOpenProcess(&processHandle, PROCESS_SET_INFORMATION, (HANDLE)m_ProcessId);
+	if (!NT_SUCCESS(status))
+		return ERR(TE_OpenProc2, status);
+
+	status = NtSetInformationProcess(processHandle, ProcessWorkingSetWatchEx, NULL, 0);
+	NtClose(processHandle);
+
+	if (!NT_SUCCESS(status))
+		return ERR(TE_EnableWorkingSet, status);
+	return OK;
+}
+
+STATUS CWinProcess::GetWsWatchFaults(QList<quint64>& Faults, bool& bEnabled)
+{
+	bEnabled = false;
+
+	HANDLE processHandle;
+	NTSTATUS status = PhOpenProcess(&processHandle, PROCESS_QUERY_INFORMATION, (HANDLE)m_ProcessId);
+	if (!NT_SUCCESS(status))
+		return ERR(TE_OpenProc2, status);
+
+	ULONG BufferSize = 0x2000;
+	PVOID Buffer = PhAllocate(BufferSize);
+	ULONG returnLength = 0;
+
+	status = NtQueryInformationProcess(processHandle, ProcessWorkingSetWatchEx, Buffer, BufferSize, &returnLength);
+
+	if (status == STATUS_BUFFER_TOO_SMALL || status == STATUS_INFO_LENGTH_MISMATCH)
+	{
+		PhFree(Buffer);
+		BufferSize = returnLength;
+		Buffer = PhAllocate(BufferSize);
+		status = NtQueryInformationProcess(processHandle, ProcessWorkingSetWatchEx, Buffer, BufferSize, &returnLength);
+	}
+
+	NtClose(processHandle);
+
+	// the watch has not been turned on for this process
+	if (status == STATUS_UNSUCCESSFUL)
+	{
+		PhFree(Buffer);
+		return OK;
+	}
+
+	bEnabled = true;
+
+	// running, but nothing faulted since the last poll
+	if (status == STATUS_NO_MORE_ENTRIES)
+	{
+		PhFree(Buffer);
+		return OK;
+	}
+
+	if (!NT_SUCCESS(status))
+	{
+		PhFree(Buffer);
+		return ERR(TE_ReadWorkingSet, status);
+	}
+
+	//
+	// One record per fault, so the same address appearing twice means it
+	// faulted twice - the caller does the tallying.
+	//
+	PPROCESS_WS_WATCH_INFORMATION_EX wsWatchInfo = (PPROCESS_WS_WATCH_INFORMATION_EX)Buffer;
+	while (wsWatchInfo->BasicInfo.FaultingPc)
+	{
+		Faults.append((quint64)wsWatchInfo->BasicInfo.FaultingPc);
+		wsWatchInfo++;
+	}
+
+	PhFree(Buffer);
+	return OK;
+}
+CTokenInfoPtr CWinProcess::GetOriginalToken() const
+{
+	return CTokenInfoPtr(CWinToken::OriginalToken(GetSystem(), m_ProcessId));
+}
+
 bool CWinProcess::ValidateParent(CProcessInfo* pParent) const
 { 
 	QReadLocker Locker(&m_Mutex); 
 
 	if (!pParent || pParent->GetProcessId() == m_ProcessId) // for cases where the parent PID = PID (e.g. System Idle Process)
         return false;
+
+	//
+	// The candidate has to be a process of *this* kind before anything below can
+	// ask it anything.
+	//
+	// It used to be cast twice without checking, on the reasonable assumption
+	// that a Windows process's parent is a Windows process. That stopped being
+	// true when a viewer could hold several machines at once: a remote process is
+	// a CRemoteProcess, the cast yields null, and the next line dereferences it.
+	// CProcessModel keeps them apart before it gets here, which is why this has
+	// never fired - but the guard belongs with the cast, not with the one caller
+	// that happens to remember.
+	//
+	// False rather than an error: parentage between two machines is not a
+	// question with an answer.
+	//
+	CWinProcess* pWinParent = qobject_cast<CWinProcess*>(pParent);
+	if (!pWinParent)
+		return false;
 
 	if (m_ProcessId == (quint64)SYSTEM_PROCESS_ID && pParent->GetProcessId() == (quint64)SYSTEM_IDLE_PROCESS_ID)
 		return true;
@@ -2137,7 +2646,7 @@ bool CWinProcess::ValidateParent(CProcessInfo* pParent) const
 	{
 		// We make sure that the process item we found is actually the parent process - its sequence number
 		// must not be higher than the supplied sequence.
-		quint64 uParentSN = qobject_cast<CWinProcess*>(pParent)->GetProcessSequenceNumber();
+		quint64 uParentSN = pWinParent->GetProcessSequenceNumber();
 		if (uParentSN != -1 && m->ProcessSequenceNumber != -1)
 		{
 			if (uParentSN <= m->ProcessSequenceNumber)
@@ -2148,7 +2657,7 @@ bool CWinProcess::ValidateParent(CProcessInfo* pParent) const
 	
 	// We make sure that the process item we found is actually the parent process - its start time
 	// must not be larger than the supplied time.
-	quint64 uParentCreationTime = qobject_cast<CWinProcess*>(pParent)->GetRawCreateTime();
+	quint64 uParentCreationTime = pWinParent->GetRawCreateTime();
 	if (uParentCreationTime <= m->CreateTime.QuadPart)
 		return true;
 	return false;
@@ -2173,68 +2682,48 @@ QString CWinProcess::GetWindowTitle() const
 	return pWnd ? pWnd->GetWindowTitle() : QString();
 }
 
-QString CWinProcess::GetWindowStatusString() const
-{
-	CWndPtr pWnd = GetMainWindow();
-	return pWnd.isNull() ? QString() : pWnd->IsHung() ? tr("Not responding") : tr("Running");
-}
-
 // OS context
 quint32 CWinProcess::GetOsContextVersion() const
 {
+	static_assert(eOsContextNone  == WINDOWS_ANCIENT, "os context none");
+	static_assert(eOsContextXp    == WINDOWS_XP,      "os context xp");
+	static_assert(eOsContextVista == WINDOWS_VISTA,   "os context vista");
+	static_assert(eOsContext7     == WINDOWS_7,       "os context 7");
+	static_assert(eOsContext8     == WINDOWS_8,       "os context 8");
+	static_assert(eOsContext81    == WINDOWS_8_1,     "os context 8.1");
+	static_assert(eOsContext10    == WINDOWS_10,      "os context 10");
+
 	QReadLocker Locker(&m_Mutex);
 	return m->OsContextVersion;
 }
 
-QString CWinProcess::GetOsContextString() const
+quint32 CWinProcess::GetMitigationFlags() const
 {
-	quint32 OsContext = GetOsContextVersion();
-    switch (OsContext)
-    {
-	case WINDOWS_ANCIENT:	return QString();
-    case WINDOWS_10:		return tr("10");
-    case WINDOWS_8_1:		return tr("8.1");
-    case WINDOWS_8:			return tr("8");
-    case WINDOWS_7:			return tr("7");
-    case WINDOWS_VISTA:		return tr("Vista");
-    case WINDOWS_XP:		return tr("XP");
-	default:				return QString::number(OsContext);
-    }
-}
+	quint32 Flags = 0;
 
-QString CWinProcess::GetMitigationsString() const
-{
-	QStringList Strs; // todo: cache this
-	if(m_pModuleInfo)
+	if (m_pModuleInfo)
 	{
 		QReadLocker Locker(&m_pModuleInfo->m_Mutex);
-		if(m_pModuleInfo.objectCast<CWinModule>()->m_ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE)
-			Strs.append(tr("ASLR"));
+		if (m_pModuleInfo.objectCast<CWinModule>()->m_ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE)
+			Flags |= eMitigationAslr;
 	}
 
 	QReadLocker Locker(&m_Mutex);
+
 	if (m->DepStatus & PH_PROCESS_DEP_ENABLED)
 	{
-        //if (m->DepStatus & PH_PROCESS_DEP_PERMANENT)
-        //    Strs.append(tr("DEP (permanent)"));
-        //else
-            Strs.append(tr("DEP"));
+		Flags |= eMitigationDep;
+		if (m->DepStatus & PH_PROCESS_DEP_PERMANENT)
+			Flags |= eMitigationDepPermanent;
 	}
 
-	if (m->IsControlFlowGuardEnabled)
-		Strs.append(tr("CFG"));
+	if (m->IsControlFlowGuardEnabled)	Flags |= eMitigationCfg;
+	if (m->IsXfgEnabled)				Flags |= eMitigationXfg;
+	if (m->IsXfgAuditEnabled)			Flags |= eMitigationXfgAudit;
+	if (m->IsCetEnabled)				Flags |= eMitigationCet;
+	if (m->IsCetStrictModeEnabled)		Flags |= eMitigationCetStrict;
 
-	if (m->IsXfgAuditEnabled)
-		Strs.append(tr("XFG Audit"));
-	else if (m->IsXfgEnabled)
-		Strs.append(tr("XFG"));
-	
-	if (m->IsCetStrictModeEnabled)
-		Strs.append(tr("CET strict"));
-	else if (m->IsCetEnabled)
-		Strs.append(tr("CET"));
-
-	return Strs.join(", ");
+	return Flags;
 }
 
 QMap<QString, CWinProcess::SEnvVar>	CWinProcess::GetEnvVariables() const
@@ -2335,7 +2824,7 @@ STATUS CWinProcess::EditEnvVariable(const QString& Name, const QString& Value)
 {
 	if (m->IsSuspended) 
 	{
-		return ERR(tr("Editing environment variable(s) of suspended processes is not supported."), ERROR_CONFIRM);
+		return ERR(TE_ConfirmEditEnvSuspended, ERROR_CONFIRM);
 	}
 
 	NTSTATUS status;
@@ -2363,82 +2852,55 @@ STATUS CWinProcess::EditEnvVariable(const QString& Name, const QString& Value)
 
 	if (!NT_SUCCESS(status))
 	{
-		return ERR(tr("Unable to set the environment variable."), status);
+		return ERR(TE_SetEnvironmentVariable, status);
 	}
 	if (status == STATUS_TIMEOUT)
 	{
-		return ERR(tr("Unable to delete the environment variable."), WAIT_TIMEOUT);
+		return ERR(TE_DeleteEnvironmentVariable, WAIT_TIMEOUT);
 	}
 	return OK;
 }
 
-QString CWinProcess::GetStatusString() const
+quint32 CWinProcess::GetStatusFlags() const
 {
-	QStringList Status; // todo: cache this
+	quint32 Flags = 0;
 
-	if(IsHiddenProcess())
-		Status.append(tr("Hidden (!)"));
-	else if(m_RemoveTimeStamp != 0)
-		Status.append(tr("Terminated"));
+	if (IsHiddenProcess())
+		Flags |= eStatusHidden;
+	else if (m_RemoveTimeStamp != 0)
+		Flags |= eStatusTerminated;
 
-	QReadLocker Locker(&m_Mutex); 
+	QReadLocker Locker(&m_Mutex);
 
-    if (m_IsCritical)
-        Status.append(tr("Critical"));
-	if (m->IsSandBoxed)
-        Status.append(tr("Sandboxed"));
-    if (m->IsBeingDebugged)
-        Status.append(tr("Debugged"));
-    if (m->IsSuspended)
-        Status.append(tr("Suspended"));
-    if (m->IsProtectedHandle)
-        Status.append(tr("Handle Filtered"));
-    if (m->IsElevated)
-	//if (m_pToken && m_pToken->IsElevated())
-        Status.append(tr("Elevated"));
-    if (m->IsSubsystemProcess) // Set when the type of the process subsystem is other than Win32 (like *NIX, such as Ubuntu.)
-        Status.append(tr("Pico"));
-	if (m->IsCrossSessionProcess) // Process was created across terminal sessions. Ex: Read CreateProcessAsUser for details.
-		Status.append(tr("Cross Session"));
-	if (m->IsFrozenProcess) // Immersive process is suspended (applies only to UWP processes.)
-		Status.append(tr("Frozen"));
-	if (m->IsBackgroundProcess) // Immersive process is in the Background task mode. UWP process may temporarily switch into performing a background task
-		Status.append(tr("Background"));
-	if (m->IsPackagedProcess) // UWP Strongly named process. The UWP package is digitally signed. Any modifications to files inside the package can be tracked.
-		Status.append(tr("Packaged (UWP)"));
-	if (m->IsSecureProcess) // Isolated User Mode process -- new security mode in Windows 10, with more stringent restrictions on what can "tap" into this process
-		Status.append(tr("Secure"));
-    if (m->IsImmersive)
-        Status.append(tr("Immersive"));
-    if (m->IsDotNet)
-        Status.append(tr("DotNet"));
-    if (m->IsPacked)
-        Status.append(tr("Packed"));
-    if (m->IsWow64Process)
-        Status.append(tr("Wow64"));
-	if (m->IsInSignificantJob)
-		Status.append(tr("InSignificantJob"));
-	if (m->IsReflectedProcess)
-		Status.append(tr("Reflected"));
-	if (m->IsSystemProcess)
-		Status.append(tr("System Process"));
-	if (m->IsSecureSystem)
-		Status.append(tr("Secure System"));
-
+	if (m_IsCritical)				Flags |= eStatusCritical;
+	if (m->IsSandBoxed)				Flags |= eStatusSandboxed;
+	if (m->IsBeingDebugged)			Flags |= eStatusDebugged;
+	if (m->IsSuspended)				Flags |= eStatusSuspended;
+	if (m->IsProtectedHandle)		Flags |= eStatusHandleFiltered;
+	if (m->IsElevated)				Flags |= eStatusElevated;
+	if (m->IsSubsystemProcess)		Flags |= eStatusPico;			// a subsystem other than Win32, such as WSL
+	if (m->IsCrossSessionProcess)	Flags |= eStatusCrossSession;
+	if (m->IsFrozenProcess)			Flags |= eStatusFrozen;			// a suspended UWP process
+	if (m->IsBackgroundProcess)		Flags |= eStatusBackground;		// a UWP process performing a background task
+	if (m->IsPackagedProcess)		Flags |= eStatusPackaged;
+	if (m->IsSecureProcess)			Flags |= eStatusSecure;			// isolated user mode
+	if (m->IsImmersive)				Flags |= eStatusImmersive;
+	if (m->IsDotNet)				Flags |= eStatusDotNet;
+	if (m->IsPacked)				Flags |= eStatusPacked;
+	if (m->IsWow64Process)			Flags |= eStatusWow64;
+	if (m->IsInSignificantJob)		Flags |= eStatusInSignificantJob;
+	if (m->IsReflectedProcess)		Flags |= eStatusReflected;
+	if (m->IsSystemProcess)			Flags |= eStatusSystemProcess;
+	if (m->IsSecureSystem)			Flags |= eStatusSecureSystem;
 
 	Locker.unlock();
 
-    //if (IsJobProcess())
-	if (IsInJob())
-        Status.append(tr("Job"));
-	if (IsServiceProcess())
-        Status.append(tr("Service"));
-	if (IsSystemProcess())
-        Status.append(tr("System"));
-	if (IsUserProcess())
-        Status.append(tr("Owned"));
+	if (IsInJob())					Flags |= eStatusInJob;
+	if (IsServiceProcess())			Flags |= eStatusService;
+	if (IsSystemProcess())			Flags |= eStatusSystem;
+	if (IsUserProcess())			Flags |= eStatusOwned;
 
-	return Status.join(tr(", "));
+	return Flags;
 }
 
 bool CWinProcess::HasDebugger() const
@@ -2488,7 +2950,7 @@ STATUS CWinProcess::AttachDebugger()
 
     if (PhIsNullOrEmptyString(DebuggerCommand))
     {
-		return ERR(tr("Unable to locate the debugger."));
+		return ERR(TE_LocateDebugger);
     }
 
     PhInitializeStringBuilder(&commandLineBuilder, DebuggerCommand->Length + 30);
@@ -2504,7 +2966,7 @@ STATUS CWinProcess::AttachDebugger()
 
     if (!NT_SUCCESS(status))
     {
-        return ERR(tr("Failed to create debugger process"), status);
+        return ERR(TE_CreateDebuggerProc, status);
     }
 
     return OK;
@@ -2536,12 +2998,12 @@ STATUS CWinProcess::DetachDebugger()
 
     if (status == STATUS_PORT_NOT_SET)
     {
-        return ERR(tr("The process is not being debugged."));
+        return ERR(TE_ProcDebugged);
     }
 
     if (!NT_SUCCESS(status))
     {
-		return ERR(tr("Failed to detach debugger"), status);
+		return ERR(TE_DetachDebugger, status);
     }
 
     return OK;
@@ -2688,122 +3150,104 @@ quint32 CWinProcess::GetDPIAwareness() const
 	return m->DpiAwareness;
 }
 
-QString CWinProcess::GetDPIAwarenessString() const
-{
-    switch (GetDPIAwareness())
-    {
-	case 0:	return "";
-    case 1: return tr("Unaware");
-    case 2: return tr("System aware");
-    case 3: return tr("Per-monitor aware");
-    }
-	return "";
-}
-
 quint8 CWinProcess::GetProtection() const
 {
 	QReadLocker Locker(&m_Mutex); 
 	return m->Protection.Level;
 }
 
-QString CWinProcess::GetPPLProtectionString() const
+//
+// The kernel packs the protection level and the signer behind it into one
+// byte. UCHAR_MAX means it did not report one at all, which is not the same as
+// reporting that a process is unprotected.
+//
+quint8 CWinProcess::GetProtectionType() const
 {
-	QReadLocker Locker(&m_Mutex); 
-    if (m->Protection.Level != UCHAR_MAX)
-    {
-        if (WindowsVersion >= WINDOWS_8_1)
-        {
-			static PCWSTR ProtectedSignerStrings[] = { L"", L"(Authenticode)", L"(CodeGen)", L"(Antimalware)", L"(Lsa)", L"(Windows)", L"(WinTcb)", L"(WinSystem)", L"(StoreApp)" };
+	QReadLocker Locker(&m_Mutex);
 
-			QString Signer;
-			if (m->Protection.Signer < sizeof(ProtectedSignerStrings) / sizeof(PWSTR))
-				Signer = QString::fromWCharArray(ProtectedSignerStrings[m->Protection.Signer]);
+	static_assert(eProtectionNone  == PsProtectedTypeNone,           "protection none");
+	static_assert(eProtectionLight == PsProtectedTypeProtectedLight, "protection light");
+	static_assert(eProtectionFull  == PsProtectedTypeProtected,      "protection full");
 
-            switch (m->Protection.Type)
-            {
-			case PsProtectedTypeNone:				return "";
-            case PsProtectedTypeProtectedLight:		return tr("Light %1").arg(Signer);
-            case PsProtectedTypeProtected:			return tr("Full %1").arg(Signer);
-            default:								return tr("Unknown %1").arg(Signer);
-            }
-        }
-        else
-        {
-            return m->IsProtectedProcess ? tr("Yes") : "";
-        }
-    }
-    return QString();
+	if (m->Protection.Level == UCHAR_MAX)
+		return eProtectionUnknown;
+
+	//
+	// Before 8.1 there was a single flag and no type to go with it.
+	//
+	if (WindowsVersion < WINDOWS_8_1)
+		return m->IsProtectedProcess ? eProtectionLegacy : eProtectionNone;
+
+	return m->Protection.Type;
 }
 
-QString CWinProcess::GetKPHProtectionString() const
+quint8 CWinProcess::GetProtectionSigner() const
 {
-	QReadLocker Locker(&m_Mutex); 
-	if (m->KphProcessState & KPH_PROCESS_VERIFIED_PROCESS) 
-	{
-		QString Level;
-		if		((m->KphProcessState & KPH_PROCESS_STATE_MAXIMUM) == KPH_PROCESS_STATE_MAXIMUM)	Level = "Max";	// 5
-		else if ((m->KphProcessState & KPH_PROCESS_STATE_HIGH) == KPH_PROCESS_STATE_HIGH)		Level = "High";	// 4
-		else if ((m->KphProcessState & KPH_PROCESS_STATE_MEDIUM) == KPH_PROCESS_STATE_MEDIUM)	Level = "Med";	// 3
-		else if ((m->KphProcessState & KPH_PROCESS_STATE_LOW) == KPH_PROCESS_STATE_LOW)			Level = "Low";	// 2
-		else if ((m->KphProcessState & KPH_PROCESS_STATE_MINIMUM) == KPH_PROCESS_STATE_MINIMUM)	Level = "Min";	// 1
-		else																					Level = "None";	// 0
-		
-		QString Str = tr("KPH %1").arg(Level);
+	QReadLocker Locker(&m_Mutex);
 
-#ifdef _DEBUG
-		QStringList Flags;
-		if (m->KphProcessState & KPH_PROCESS_SECURELY_CREATED)
-			Flags.append("SecuC");
-		if (m->KphProcessState & KPH_PROCESS_VERIFIED_PROCESS)
-			Flags.append("VProc");
-		if (m->KphProcessState & KPH_PROCESS_PROTECTED_PROCESS) {
-			Flags.append("PProc");
-			if (m->KphProcessState & KPH_PROCESS_NO_UNTRUSTED_IMAGES)
-				Flags.append("NoUnk");
-		}
-		if ((m->KphProcessState & KPH_PROCESS_HAS_FILE_OBJECT) == 0)
-			Flags.append("NoFile");
-		if ((m->KphProcessState & KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS) == 0)
-			Flags.append("NoSect");
-		if ((m->KphProcessState & KPH_PROCESS_NO_USER_WRITABLE_REFERENCES) == 0)
-			Flags.append("WrRef");
-		if ((m->KphProcessState & KPH_PROCESS_NO_FILE_TRANSACTION) == 0)
-			Flags.append("FileTx");
-		if ((m->KphProcessState & KPH_PROCESS_NOT_BEING_DEBUGGED) == 0)
-			Flags.append("Dbg");
+	static_assert(eSignerAuthenticode == PsProtectedSignerAuthenticode, "signer authenticode");
+	static_assert(eSignerCodeGen      == PsProtectedSignerCodeGen,      "signer codegen");
+	static_assert(eSignerAntimalware  == PsProtectedSignerAntimalware,  "signer antimalware");
+	static_assert(eSignerLsa          == PsProtectedSignerLsa,          "signer lsa");
+	static_assert(eSignerWindows      == PsProtectedSignerWindows,      "signer windows");
+	static_assert(eSignerWinTcb       == PsProtectedSignerWinTcb,       "signer wintcb");
+	static_assert(eSignerWinSystem    == PsProtectedSignerWinSystem,    "signer winsystem");
+	static_assert(eSignerStoreApp     == PsProtectedSignerApp,          "signer storeapp");
 
-		Str += QString(" (%2)").arg(Flags.join(", "));
-#endif
+	if (m->Protection.Level == UCHAR_MAX || WindowsVersion < WINDOWS_8_1)
+		return eSignerNone;
 
-		return Str;
-	}
-	return QString();
+	return m->Protection.Signer;
 }
 
-QString CWinProcess::GetProtectionString() const
+//
+// Which combination of observations adds up to which level is the driver's
+// own business and moves between its versions, so the level is worked out here
+// rather than left for a viewer to recompute from the flags.
+//
+qint8 CWinProcess::GetKphLevel() const
 {
-	QString PPLProtection = GetPPLProtectionString();
-	QString KPHProtection = GetKPHProtectionString();
-	if (!PPLProtection.isEmpty() && !KPHProtection.isEmpty())
-		return PPLProtection + " / " + KPHProtection;
-	else if (!PPLProtection.isEmpty())
-		return PPLProtection;
-	else if (!KPHProtection.isEmpty())
-		return KPHProtection;
-	return QString();
+	QReadLocker Locker(&m_Mutex);
+
+	if (!(m->KphProcessState & KPH_PROCESS_VERIFIED_PROCESS))
+		return eKphNotVerified;
+
+	if ((m->KphProcessState & KPH_PROCESS_STATE_MAXIMUM) == KPH_PROCESS_STATE_MAXIMUM)	return eKphMaximum;
+	if ((m->KphProcessState & KPH_PROCESS_STATE_HIGH)    == KPH_PROCESS_STATE_HIGH)		return eKphHigh;
+	if ((m->KphProcessState & KPH_PROCESS_STATE_MEDIUM)  == KPH_PROCESS_STATE_MEDIUM)	return eKphMedium;
+	if ((m->KphProcessState & KPH_PROCESS_STATE_LOW)     == KPH_PROCESS_STATE_LOW)		return eKphLow;
+	if ((m->KphProcessState & KPH_PROCESS_STATE_MINIMUM) == KPH_PROCESS_STATE_MINIMUM)	return eKphMinimum;
+
+	return eKphNone;
 }
 
-STATUS CWinProcess::SetProtectionFlag(quint8 Flag, bool bForce)
+quint32 CWinProcess::GetKphState() const
 {
-	return ERR(); // todo: xxxx si
-	/*if ((((CWindowsAPI*)theAPI)->GetDriverFeatures() & (1 << 31)) == 0)
-		return ERR(tr("The loaded driver does not support this feature."), STATUS_NOT_SUPPORTED);
+	QReadLocker Locker(&m_Mutex);
+
+	static_assert(eKphSecurelyCreated            == KPH_PROCESS_SECURELY_CREATED,            "kph securely created");
+	static_assert(eKphVerifiedProcess            == KPH_PROCESS_VERIFIED_PROCESS,            "kph verified");
+	static_assert(eKphProtectedProcess           == KPH_PROCESS_PROTECTED_PROCESS,           "kph protected");
+	static_assert(eKphNoUntrustedImages          == KPH_PROCESS_NO_UNTRUSTED_IMAGES,         "kph no untrusted images");
+	static_assert(eKphHasFileObject              == KPH_PROCESS_HAS_FILE_OBJECT,             "kph has file object");
+	static_assert(eKphHasSectionObjectPointers   == KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS, "kph has section pointers");
+	static_assert(eKphNoUserWritableReferences   == KPH_PROCESS_NO_USER_WRITABLE_REFERENCES, "kph no writable refs");
+	static_assert(eKphNoFileTransaction          == KPH_PROCESS_NO_FILE_TRANSACTION,         "kph no file transaction");
+	static_assert(eKphNotBeingDebugged           == KPH_PROCESS_NOT_BEING_DEBUGGED,          "kph not debugged");
+
+	return m->KphProcessState;
+}
+
+/*STATUS CWinProcess::SetProtectionFlag(quint8 Flag, bool bForce) // todo: xxxx si
+{
+	if ((((CWindowsAPI*)GetSystem().data())->GetDriverFeatures() & (1 << 31)) == 0)
+		return ERR(TE_DriverFeatureUnsupported, STATUS_NOT_SUPPORTED);
 
 	if (!KphIsVerified())
-		return ERR(tr("The client must be verifyed by the driver in order to unlock this feature."), STATUS_ACCESS_DENIED);
+		return ERR(TE_ClientNotVerified, STATUS_ACCESS_DENIED);
 
 	if (!bForce)
-		return ERR(tr("Changing Process Protection Flags may impact system stability!"), ERROR_CONFIRM);
+		return ERR(TE_ConfirmChangeProtection, ERROR_CONFIRM);
 
 	if (Flag == (quint8)-1)
 	{
@@ -2830,62 +3274,66 @@ STATUS CWinProcess::SetProtectionFlag(quint8 Flag, bool bForce)
 	);
 
 	if (!NT_SUCCESS(status))
-		return ERR(tr("Failed to Clear Process Protection flag"), status);
-	return OK;*/
-}
+		return ERR(TE_ClearProcProtection, status);
+	return OK;
+}*/
 
-QList<QPair<QString, QString>> CWinProcess::GetMitigationDetails() const
+QList<CProcessInfo::SMitigationDetail> CWinProcess::GetMitigationDetails() const
 {
-	QList<QPair<QString, QString>> List;
+	QList<SMitigationDetail> List;
 	if(!m->IsHandleFull)
 		return List;
 
+	//
+	// The policies the platform knows how to describe, in its own words.
+	//
 	PH_PROCESS_MITIGATION_POLICY_ALL_INFORMATION information;
-    if (NT_SUCCESS(PhGetProcessMitigationPolicy(m->QueryHandle, &information)))
-    {
-        for (int policy = 0; policy < MaxProcessMitigationPolicy; policy++)
-        {
+	if (NT_SUCCESS(PhGetProcessMitigationPolicy(m->QueryHandle, &information)))
+	{
+		for (int policy = 0; policy < MaxProcessMitigationPolicy; policy++)
+		{
 			PPH_STRING shortDescription;
 			PPH_STRING longDescription;
-            if (information.Pointers[policy] && PhDescribeProcessMitigationPolicy((PROCESS_MITIGATION_POLICY)policy, information.Pointers[policy], &shortDescription, &longDescription))
-            {
-				List.append(qMakePair(CastPhString(shortDescription), CastPhString(longDescription)));
-            }
-        }
-    }
+			if (information.Pointers[policy] && PhDescribeProcessMitigationPolicy((PROCESS_MITIGATION_POLICY)policy, information.Pointers[policy], &shortDescription, &longDescription))
+			{
+				SMitigationDetail Detail;
+				Detail.Name = CastPhString(shortDescription);
+				Detail.Description = CastPhString(longDescription);
+				List.append(Detail);
+			}
+		}
+	}
 
+	//
+	// A few more that are not in that table, recognised here and worded by the
+	// viewer.
+	//
 	PS_SYSTEM_DLL_INIT_BLOCK sysDllInitBlock = {0};
 	PPS_SYSTEM_DLL_INIT_BLOCK systemDllInitBlock = &sysDllInitBlock; // this requiers PROCESS_VM_READ
-    if (NT_SUCCESS(PhGetProcessSystemDllInitBlock(m->QueryHandle, &sysDllInitBlock)))
-    {
+	if (NT_SUCCESS(PhGetProcessSystemDllInitBlock(m->QueryHandle, &sysDllInitBlock)))
+	{
 		if (systemDllInitBlock && RTL_CONTAINS_FIELD(systemDllInitBlock, systemDllInitBlock->Size, MitigationOptionsMap))
-        {
-            if (systemDllInitBlock->MitigationOptionsMap.Map[0] & PROCESS_CREATION_MITIGATION_POLICY2_LOADER_INTEGRITY_CONTINUITY_ALWAYS_ON)
-            {
-				List.append(qMakePair(tr("Loader Integrity"),tr("OS signing levels for dependent module loads are enabled.")));
-            }
+		{
+			static const struct { ULONG64 Flag; int Extra; } Extras[] =
+			{
+				{ PROCESS_CREATION_MITIGATION_POLICY2_LOADER_INTEGRITY_CONTINUITY_ALWAYS_ON,		SMitigationDetail::eExtraLoaderIntegrity },
+				{ PROCESS_CREATION_MITIGATION_POLICY2_MODULE_TAMPERING_PROTECTION_ALWAYS_ON,		SMitigationDetail::eExtraModuleTampering },
+				{ PROCESS_CREATION_MITIGATION_POLICY2_RESTRICT_INDIRECT_BRANCH_PREDICTION_ALWAYS_ON,	SMitigationDetail::eExtraIndirectBranchPrediction },
+				{ PROCESS_CREATION_MITIGATION_POLICY2_ALLOW_DOWNGRADE_DYNAMIC_CODE_POLICY_ALWAYS_ON,	SMitigationDetail::eExtraDynamicCodeDowngrade },
+				{ PROCESS_CREATION_MITIGATION_POLICY2_SPECULATIVE_STORE_BYPASS_DISABLE_ALWAYS_ON,	SMitigationDetail::eExtraSpeculativeStoreBypass },
+			};
 
-            if (systemDllInitBlock->MitigationOptionsMap.Map[0] & PROCESS_CREATION_MITIGATION_POLICY2_MODULE_TAMPERING_PROTECTION_ALWAYS_ON)
-            {
-				List.append(qMakePair(tr("Module Tampering"),tr("Module Tampering protection is enabled.")));
-            }
-
-            if (systemDllInitBlock->MitigationOptionsMap.Map[0] & PROCESS_CREATION_MITIGATION_POLICY2_RESTRICT_INDIRECT_BRANCH_PREDICTION_ALWAYS_ON)
-            {
-				List.append(qMakePair(tr("Indirect branch prediction"),tr("Protects against sibling hardware threads (hyperthreads) from interfering with indirect branch predictions.")));
-            }
-
-            if (systemDllInitBlock->MitigationOptionsMap.Map[0] & PROCESS_CREATION_MITIGATION_POLICY2_ALLOW_DOWNGRADE_DYNAMIC_CODE_POLICY_ALWAYS_ON)
-            {
-				List.append(qMakePair(tr("Dynamic code (downgrade)"),tr("Allows a broker to downgrade the dynamic code policy for a process.")));
-            }
-
-            if (systemDllInitBlock->MitigationOptionsMap.Map[0] & PROCESS_CREATION_MITIGATION_POLICY2_SPECULATIVE_STORE_BYPASS_DISABLE_ALWAYS_ON)
-            {
-				List.append(qMakePair(tr("Speculative store bypass"),tr("Disables spectre mitigations for the process.")));
-            }
-        }
-    }
+			for (size_t i = 0; i < sizeof(Extras) / sizeof(Extras[0]); i++)
+			{
+				if (systemDllInitBlock->MitigationOptionsMap.Map[0] & Extras[i].Flag)
+				{
+					SMitigationDetail Detail;
+					Detail.Extra = Extras[i].Extra;
+					List.append(Detail);
+				}
+			}
+		}
+	}
 
 	return List;
 }
@@ -2974,52 +3422,6 @@ int CWinProcess::GetGhostCount() const
 	return m->UptimeInfo.GhostCount;
 }
 
-QString CWinProcess::GetPriorityString(quint32 value)
-{
-	switch (value)
-    {
-	case PROCESS_PRIORITY_CLASS_REALTIME:		return tr("Real time");
-    case PROCESS_PRIORITY_CLASS_HIGH:			return tr("High");
-    case PROCESS_PRIORITY_CLASS_ABOVE_NORMAL:	return tr("Above normal");
-    case PROCESS_PRIORITY_CLASS_NORMAL:			return tr("Normal");
-	case PROCESS_PRIORITY_CLASS_BELOW_NORMAL:	return tr("Below normal");
-    case PROCESS_PRIORITY_CLASS_IDLE:			return tr("Idle");
-	default:									return tr("Unknown %1").arg(value);
-    }
-}
-
-QString CWinProcess::GetBasePriorityString(quint32 value)
-{
-	return QString::number(value);
-}
-
-QString CWinProcess::GetPagePriorityString(quint32 value)
-{
-	switch (value)
-    {
-	case MEMORY_PRIORITY_NORMAL:		return tr("Normal");
-    case MEMORY_PRIORITY_BELOW_NORMAL:	return tr("Below normal");
-    case MEMORY_PRIORITY_MEDIUM:		return tr("Medium");
-    case MEMORY_PRIORITY_LOW:			return tr("Low");
-	case MEMORY_PRIORITY_VERY_LOW:		return tr("Very low");
-    case MEMORY_PRIORITY_LOWEST:		return tr("Lowest");
-	default:							return tr("Unknown %1").arg(value);
-    }
-}
-
-QString CWinProcess::GetIOPriorityString(quint32 value)
-{
-	switch (value)
-    {
-	case IoPriorityCritical:	return tr("Critical");
-    case IoPriorityHigh:		return tr("High");
-    case IoPriorityNormal:		return tr("Normal");
-    case IoPriorityLow:			return tr("Low");
-	case IoPriorityVeryLow:		return tr("Very low");
-	default:					return tr("Unknown %1").arg(value);
-    }
-}
-
 STATUS CWinProcess::SetPriorityBoost(bool Value)
 {
 	NTSTATUS status;
@@ -3041,7 +3443,7 @@ STATUS CWinProcess::SetPriorityBoost(bool Value)
 				return OK;
 		}
 
-		return ERR(tr("Failed to set Process priority boost"), status);
+		return ERR(TE_SetProcPriorityBoost, status);
 	}
 	return OK;
 }
@@ -3096,7 +3498,7 @@ STATUS CWinProcess::SetPowerThrottled(bool Value)
 	}
 
 	if (!NT_SUCCESS(status))
-		return ERR(tr("Failed to set Process efficiency"), status);
+		return ERR(TE_SetProcEfficiency, status);
 	return OK;
 }
 
@@ -3136,7 +3538,7 @@ STATUS CWinProcess::SetPriority(qint32 Value)
 				return OK;
 		}
 
-		return ERR(tr("Failed to set Process priority"), status);
+		return ERR(TE_SetProcPriority, status);
     }
 	return OK;
 }
@@ -3176,7 +3578,7 @@ STATUS CWinProcess::SetPagePriority(qint32 Value)
 				return OK;
 		}
 
-		return ERR(tr("Failed to set Page priority"), status);
+		return ERR(TE_SetPagePriority, status);
     }
 	return OK;
 }
@@ -3216,7 +3618,7 @@ STATUS CWinProcess::SetIOPriority(qint32 Value)
 				return OK;
 		}
 
-		return ERR(tr("Failed to set I/O priority"), status);
+		return ERR(TE_SetIoPriority, status);
     }
 	return OK;
 }
@@ -3235,49 +3637,22 @@ quint16 CWinProcess::GetCodePage() const
 
 quint16 CWinProcess::GetTlsBitmapCount() const
 {
+	static_assert(eTlsMinimumAvailable == TLS_MINIMUM_AVAILABLE, "tls minimum available");
+	static_assert(eTlsExpansionSlots   == TLS_EXPANSION_SLOTS,   "tls expansion slots");
+
 	QReadLocker Locker(&m_Mutex);
 	return m->TlsBitmapCount;
 }
 
-QString CWinProcess::GetTlsBitmapCountString() const
-{
-	QReadLocker Locker(&m_Mutex);
-
-	QString Info;
-	if (m->TlsBitmapCount != 0)
-	{
-		if (m->TlsBitmapCount > TLS_MINIMUM_AVAILABLE)
-		{
-			Info = tr("64 (100%%) | %1 (%2%%)").arg(m->TlsBitmapCount - TLS_MINIMUM_AVAILABLE).arg((m->TlsBitmapCount - TLS_MINIMUM_AVAILABLE) * 100.f / TLS_EXPANSION_SLOTS, 0, 'f', 2);
-		}
-		else
-		{
-			Info = tr("%1 (%2%%) | 0 (0%%)").arg(m->TlsBitmapCount).arg(m->TlsBitmapCount * 100.f / TLS_MINIMUM_AVAILABLE, 0, 'f', 2);
-		}
-	}
-	return Info;
-}
-
 quint32 CWinProcess::GetErrorMode() const
 {
+	static_assert(eErrModeFailCriticalErrors     == SEM_FAILCRITICALERRORS,     "sem fail critical");
+	static_assert(eErrModeNoGpFaultErrorBox      == SEM_NOGPFAULTERRORBOX,      "sem no gp fault box");
+	static_assert(eErrModeNoAlignmentFaultExcept == SEM_NOALIGNMENTFAULTEXCEPT, "sem no alignment fault");
+	static_assert(eErrModeNoOpenFileErrorBox     == SEM_NOOPENFILEERRORBOX,     "sem no openfile box");
+
 	QReadLocker Locker(&m_Mutex);
 	return m->ErrorMode;
-}
-
-QString CWinProcess::GetErrorModeString() const
-{
-	QStringList Info;
-
-	if (m->ErrorMode & SEM_FAILCRITICALERRORS)
-		Info.append(tr("Fail critical"));
-	if (m->ErrorMode & SEM_NOGPFAULTERRORBOX)
-		Info.append(tr("GP faults"));
-	if (m->ErrorMode & SEM_NOALIGNMENTFAULTEXCEPT)
-		Info.append(tr("Alignment faults"));
-	if (m->ErrorMode & SEM_NOOPENFILEERRORBOX)
-		Info.append(tr("Openfile faults"));
-
-	return Info.join(", ");
 }
 
 quint32 CWinProcess::GetReferenceCount()
@@ -3290,12 +3665,6 @@ quint32 CWinProcess::GetAccessMask()
 {
 	QReadLocker Locker(&m_Mutex);
 	return m->AccessMask;
-}
-
-QString CWinProcess::GetAccessMaskString()
-{
-	QReadLocker Locker(&m_Mutex);
-	return tr("0x%1").arg(m->AccessMask, 0, 16);
 }
 
 STATUS CWinProcess::SetAffinityMask(quint64 Value)
@@ -3324,7 +3693,7 @@ STATUS CWinProcess::SetAffinityMask(quint64 Value)
 				return OK;
 		}
 
-		return ERR(tr("Failed to set CPU affinity"), status);
+		return ERR(TE_SetCpuAffinity, status);
     }
 	return OK;
 }
@@ -3347,7 +3716,7 @@ STATUS CWinProcess::Terminate(bool bForce)
 			if (breakOnTermination /*m_IsCritical*/)
 			{
 				NtClose(processHandle);
-				return ERR(tr("You are about to terminate one or more critical processes. This will shut down the operating system immediately."), ERROR_CONFIRM);
+				return ERR(TE_ConfirmTerminateCriticalProc, ERROR_CONFIRM);
 			}
 		}
 
@@ -3367,7 +3736,7 @@ STATUS CWinProcess::Terminate(bool bForce)
 				return OK;
 		}
 
-		return ERR(tr("Failed to terminate process"), status);
+		return ERR(TE_TerminateProc, status);
     }
 	return OK;
 }
@@ -3398,7 +3767,7 @@ STATUS CWinProcess::Suspend()
 				return OK;
 		}
 
-		return ERR(tr("Failed to suspend process"), status);
+		return ERR(TE_SuspendProc, status);
     }
 	return OK;
 }
@@ -3423,7 +3792,7 @@ STATUS CWinProcess::Resume()
 				return OK;
 		}
 
-		return ERR(tr("Failed to resume process"), status);
+		return ERR(TE_ResumeProc, status);
     }
 	return OK;
 }
@@ -3437,12 +3806,12 @@ bool CWinProcess::IsFrozen() const
 STATUS CWinProcess::Freeze()
 {
 	if (ReadPointerAcquire(&m->FreezeHandle))
-		return ERR(tr("Process already frozen"), STATUS_UNSUCCESSFUL);
+		return ERR(TE_ProcAlreadyFrozen, STATUS_UNSUCCESSFUL);
 
 	HANDLE freezeHandle;
 	NTSTATUS status = PhFreezeProcess(&freezeHandle, m->UniqueProcessId);
 	if (!NT_SUCCESS(status))
-		return ERR(tr("Failed to freeze process"), status);
+		return ERR(TE_FreezeProc, status);
 
 	InterlockedExchangePointer(&m->FreezeHandle, freezeHandle);
 
@@ -3452,11 +3821,11 @@ STATUS CWinProcess::Freeze()
 STATUS CWinProcess::UnFreeze()
 {
 	if (!ReadPointerAcquire(&m->FreezeHandle))
-		return ERR(tr("Process is not frozen"), STATUS_UNSUCCESSFUL);
+		return ERR(TE_ProcFrozen, STATUS_UNSUCCESSFUL);
 	
 	NTSTATUS status = PhThawProcess(m->FreezeHandle, m->UniqueProcessId);
 	if (!NT_SUCCESS(status))
-		return ERR(tr("Failed to un-freeze process"), status);
+		return ERR(TE_UnFreezeProc, status);
 
 	if (HANDLE freezeHandle = InterlockedExchangePointer(&m->FreezeHandle, NULL))
 		NtClose(freezeHandle);
@@ -3503,7 +3872,7 @@ STATUS CWinProcess::SetCriticalProcess(bool bSet, bool bForce)
 				{
 					NtClose(processHandle);
 
-					return ERR(tr("If the process ends, the operating system will shut down immediately."), ERROR_CONFIRM);
+					return ERR(TE_ConfirmCriticalProcShutdown, ERROR_CONFIRM);
 				}
 
 				status = PhSetProcessBreakOnTermination(processHandle, TRUE);
@@ -3515,7 +3884,7 @@ STATUS CWinProcess::SetCriticalProcess(bool bSet, bool bForce)
 
     if (!NT_SUCCESS(status))
     {
-        return ERR(tr("Unable to change the process critical status."), status);
+        return ERR(TE_ChangeProcCritical, status);
     }
 
 	m_IsCritical = bSet;
@@ -3543,7 +3912,7 @@ STATUS CWinProcess::ReduceWS()
 
     if (!NT_SUCCESS(status))
     {
-		return ERR(tr("Unable to reduce the working set of a process"), status);
+		return ERR(TE_ReduceWorkingSet, status);
     }
 
 	return OK;
@@ -3557,7 +3926,7 @@ bool CWinProcess::IsSandBoxed() const
 
 QString CWinProcess::GetSandBoxName() const
 {
-	CSandboxieAPI* pSandboxieAPI = ((CWindowsAPI*)theAPI)->GetSandboxieAPI();
+	CSandboxieAPI* pSandboxieAPI = ((CWindowsAPI*)GetSystem().data())->GetSandboxieAPI();
 	return pSandboxieAPI ? pSandboxieAPI->GetSandBoxName(GetProcessId()) : QString();
 }
 
@@ -3667,7 +4036,7 @@ STATUS CWinProcess::LoadModule(const QString& Path)
 
 	if (!NT_SUCCESS(status))
 	{
-		return ERR(tr("load the DLL into"), status);
+		return ERR(TE_LoadDllInto, status);
 	}
     return OK;
 }
@@ -3677,18 +4046,20 @@ NTSTATUS NTAPI CWinProcess_OpenProcessPermissions(_Out_ PHANDLE Handle, _In_ ACC
     return PhOpenProcess(Handle, DesiredAccess, (HANDLE)Context);
 }
 
-void CWinProcess::OpenPermissions()
+CSecurityEditablePtr CWinProcess::GetSecurityObject() const
 {
-    PhEditSecurity(NULL, (wchar_t*)m_ProcessName.toStdWString().c_str(), L"Process", CWinProcess_OpenProcessPermissions, NULL, (HANDLE)GetProcessId());
+	return CSecurityEditablePtr(new CWinSecurityObject(
+		m_ProcessName, "Process",
+		(CWinSecurityObject::POpenObject)CWinProcess_OpenProcessPermissions, GetProcessId(), GetProcessId()));
 }
 
-CWinJobPtr CWinProcess::GetJob() const
+CJobInfoPtr CWinProcess::GetJob() const
 {
 	QReadLocker Locker(&m_Mutex); 
 
 	if (!m->QueryHandle)
 		return CWinJobPtr();
-	return CWinJobPtr(CWinJob::JobFromProcess(m->QueryHandle));
+	return CWinJobPtr(CWinJob::JobFromProcess(GetSystem(), m->QueryHandle));
 }
 
 QMap<quint64, CMemoryPtr> CWinProcess::GetMemoryMap() const
@@ -3696,7 +4067,53 @@ QMap<quint64, CMemoryPtr> CWinProcess::GetMemoryMap() const
 	ULONG Flags = PH_QUERY_MEMORY_REGION_TYPE | PH_QUERY_MEMORY_WS_COUNTERS;
 	QMap<quint64, CMemoryPtr> MemoryMap;
 	PhQueryMemoryItemList((HANDLE)GetProcessId(), Flags, MemoryMap);
+	for (QMap<quint64, CMemoryPtr>::iterator I = MemoryMap.begin(); I != MemoryMap.end(); ++I)
+		I.value()->SetSystem(GetSystem()); // phlib builds these, so stamp them on the way out
 	return MemoryMap;
+}
+
+QMap<quint64, CGdiPtr> CWinProcess::GetGdiList() const
+{
+	QMap<quint64, CGdiPtr> List;
+
+	//
+	// The table is a system-wide section the kernel maps into a process the
+	// first time that process touches win32k - not when gdi32 is merely loaded.
+	// A viewer has always touched it long before anyone opens this tab, so this
+	// used to be a null check that never fired. A daemon answering the same
+	// question for a viewer on another machine may never have drawn anything,
+	// and came back with an empty list that looked like a process holding no
+	// graphics objects at all.
+	//
+	// One call is enough, and the cheapest one that goes through win32k. Done
+	// here rather than at startup so that a server nobody asks stays a console
+	// program.
+	//
+	PGDI_SHARED_MEMORY gdiShared = (PGDI_SHARED_MEMORY)NtCurrentPeb()->GdiSharedHandleTable;
+	if (!gdiShared)
+	{
+		if (HDC hScreen = GetDC(NULL))
+			ReleaseDC(NULL, hScreen);
+		gdiShared = (PGDI_SHARED_MEMORY)NtCurrentPeb()->GdiSharedHandleTable;
+	}
+	if (!gdiShared)
+		return List;
+
+	const QString ProcessName = GetName();
+	const USHORT ProcessId = (USHORT)GetProcessId();
+
+	for (ULONG i = 0; i < GDI_MAX_HANDLE_COUNT; i++)
+	{
+		PGDI_HANDLE_ENTRY handle = &gdiShared->Handles[i];
+		if (handle->Owner.ProcessId != ProcessId)
+			continue;
+
+		QSharedPointer<CWinGDI> pWinGDI = QSharedPointer<CWinGDI>(new CWinGDI());
+		pWinGDI->SetSystem(GetSystem());
+		pWinGDI->InitData(i, handle, ProcessName);
+		List.insert(GDI_MAKE_HANDLE(i, handle->Unique), pWinGDI);
+	}
+	return List;
 }
 
 QMap<quint64, CHeapPtr> CWinProcess::GetHeapList() const
@@ -3723,7 +4140,10 @@ QMap<quint64, CHeapPtr> CWinProcess::GetHeapList() const
 	else
 	{
 #endif
-		Heaps = GetProcessHeaps(m_ProcessId);
+		qint32 status = 0;
+		Heaps = GetProcessHeaps(m_ProcessId, &status);
+		if (!NT_SUCCESS(status))
+			qWarning("CWinProcess::GetHeapList: pid %llu: 0x%08X", m_ProcessId, (quint32)status);
 #ifdef _WIN64
 	}
 #endif
@@ -3735,6 +4155,7 @@ QMap<quint64, CHeapPtr> CWinProcess::GetHeapList() const
 		QVariantMap Heap = vHeap.toMap();
 
 		CWinHeapPtr pHeapInfo = CWinHeapPtr(new CWinHeap());
+		pHeapInfo->SetSystem(GetSystem());
 		HeapList.insert(Heap["BaseAddress"].toULongLong(), pHeapInfo);
 
 		pHeapInfo->m_Flags = Heap["Flags"].toUInt();
@@ -3749,9 +4170,11 @@ QMap<quint64, CHeapPtr> CWinProcess::GetHeapList() const
 	return HeapList;
 }
 
-QVariantList GetProcessHeaps(quint64 ProcessId)
+QVariantList GetProcessHeaps(quint64 ProcessId, qint32* pStatus)
 {
 	QVariantList List;
+	if (pStatus)
+		*pStatus = STATUS_SUCCESS;
 
 	QMap<quint64, CHeapPtr> HeapList;
 
@@ -3815,7 +4238,13 @@ QVariantList GetProcessHeaps(quint64 ProcessId)
 
 	if (!NT_SUCCESS(status))
 	{
-		//PhShowStatus(Context->WindowHandle, L"Unable to query heap information.", status, 0);
+		//
+		// Reported rather than swallowed. An empty heap list that cannot say why
+		// it is empty looks exactly like a process with no heaps, and the two
+		// want very different reactions from whoever is looking.
+		//
+		if (pStatus)
+			*pStatus = (qint32)status;
 		goto CleanupExit;
 	}
 
@@ -3873,7 +4302,7 @@ STATUS CWinProcess::FlushHeaps()
 
 	if (!NT_SUCCESS(status))
 	{
-		return ERR(tr("Failed Flush Heaps"), status);
+		return ERR(TE_FlushHeaps, status);
 	}
 
 	return OK;
@@ -3886,7 +4315,7 @@ QList<CWndPtr> CWinProcess::GetWindows() const
 	QList<quint64> Windows;
 	QList<quint64> ImmersiveWindows;
 
-	QMultiMap<quint64, quint64> WindowList = ((CWindowsAPI*)theAPI)->GetWindowByPID(GetProcessId());
+	QMultiMap<quint64, quint64> WindowList = ((CWindowsAPI*)GetSystem().data())->GetWindowByPID(GetProcessId());
 	foreach(quint64 hWnd, WindowList)
 	{
 		HWND WindowHandle = (HWND)hWnd;
@@ -3913,6 +4342,37 @@ QList<CWndPtr> CWinProcess::GetWindows() const
 		Windows = ImmersiveWindows;
 
 	((CWinProcess*)this)->UpdateWindows();
+
+	//
+	// And the ones only an agent can see.
+	//
+	// The tests above are Win32 calls on a handle from this session; for a
+	// window in another one they answer nothing rather than no. So the agent's
+	// own report is used instead - it made the same three judgements standing
+	// where the window is, which is the only place they can be made.
+	//
+	foreach(const CWndAgents::SWindow& Window, CWndAgents::Instance()->GetWindows(GetProcessId()))
+	{
+		if (!Window.Visible || Window.Title.isEmpty() || Windows.contains(Window.hWnd))
+			continue;
+
+		//
+		// Top level only, judged the same way: a window whose parent is also in
+		// the list is a child of something already offered.
+		//
+		if (Window.Parent && CWndAgents::Instance()->GetWindows(GetProcessId()).size() > 1)
+		{
+			bool bHasVisibleParent = false;
+			foreach(const CWndAgents::SWindow& Other, CWndAgents::Instance()->GetWindows(GetProcessId()))
+			{
+				if (Other.hWnd == Window.Parent && Other.Visible) { bHasVisibleParent = true; break; }
+			}
+			if (bHasVisibleParent)
+				continue;
+		}
+
+		Windows.append(Window.hWnd);
+	}
 
 	QList<CWndPtr> WindowObjects;
 	foreach(quint64 hWnd, Windows)
@@ -3970,7 +4430,7 @@ QList<CWinProcess::STask> CWinProcess::GetTasks() const
 	
     // Initialization code
 	HRESULT result = -1;
-	if(QThread::currentThread() != theAPI->thread())
+	if(QThread::currentThread() != GetSystem()->thread())
 		result = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
 	static CLSID CLSID_TaskScheduler_I = { 0x0f87369f, 0xa4e5, 0x4cfc, { 0xbd, 0x3e, 0x73, 0xe6, 0x15, 0x45, 0x72, 0xdd } };
@@ -4021,8 +4481,8 @@ QList<CWinProcess::STask> CWinProcess::GetTasks() const
                                 IRunningTask_get_Path(runningTask, &path);
 
 								STask Task;
-								Task.Name = action ? QString::fromWCharArray(action) : tr("Unknown action");
-								Task.Path = path ? QString::fromWCharArray(path) : tr("Unknown path");
+								Task.Name = action ? QString::fromWCharArray(action) : MakePlaceholder(TE_NAME_UNKNOWN_ACTION);
+								Task.Path = path ? QString::fromWCharArray(path) : MakePlaceholder(TE_NAME_UNKNOWN_PATH);
 								Tasks.append(Task);
 
                                 if (action)
@@ -4233,7 +4693,7 @@ QList<CWinProcess::SWmiProvider> CWinProcess::QueryWmiProviders() const
 
     // Initialization code
 	HRESULT result = -1;
-	if (QThread::currentThread() != theAPI->thread())
+	if (QThread::currentThread() != GetSystem()->thread())
 		result = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
     HRESULT status;
@@ -4314,4 +4774,8 @@ quint64 CWinProcess::GetLXSSProcessId() const
 {
 	QReadLocker Locker(&m_Mutex);
 	return m->LxssProcessId;
+}
+CAssemblyEnumerator* CWinProcess::GetAssemblyEnumerator(QObject* parent) const
+{
+	return new CAssemblyEnum(GetProcessId(), parent);
 }

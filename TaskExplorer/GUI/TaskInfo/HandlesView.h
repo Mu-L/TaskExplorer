@@ -4,7 +4,9 @@
 #include "../../../MiscHelpers/Common/TreeViewEx.h"
 #include "../../../MiscHelpers/Common/PanelView.h"
 #include "../../API/ProcessInfo.h"
+#include "../../API/SystemAPI.h"	// for SHandleType, held by the type filter below
 #include "../Models/HandleModel.h"
+#include <QStandardItemModel>
 #include "../../../MiscHelpers/Common/SortFilterProxyModel.h"
 
 /*class CHandleFilterModel: public CSortFilterProxyModel
@@ -79,6 +81,13 @@ public slots:
 	//void					OnShowDetails();
 
 private slots:
+	//
+	// The panels now show a different machine, so what is held belongs to the
+	// old one - both the model and the cached list, or the next Refresh would
+	// simply sync the old entries back in.
+	//
+	void					OnViewSystemChanged();
+
 	void					OnResetColumns();
 	void					OnColumnsChanged();
 
@@ -114,6 +123,15 @@ protected:
 	int						m_ShowAllFiles;
 	QList<CProcessPtr>		m_Processes;
 	int						m_PendingUpdates;
+
+	//
+	// The type filter as it was last built, so a rebuild that would change
+	// nothing does not throw away the user's selection every refresh.
+	//
+	QList<CSystemAPI::SHandleType>	m_HandleTypes;
+
+	void					RebuildTypeFilter();
+	QStandardItemModel*		m_pTypeModel = nullptr;
 
 	QMap<quint64, CHandlePtr> m_Handles;
 

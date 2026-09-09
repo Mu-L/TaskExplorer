@@ -106,10 +106,11 @@ ECHO Copying 32-bit Helper
 
 mkdir %instPath%\x86
 copy /y %~dp0..\Win32\Release\TaskHelper.exe %instPath%\x86\
+copy /y %~dp0..\Win32\Release\MiniDump.exe %instPath%\x86\
 
 
 ECHO sign with EV Cert
-REM call sign_files.cmd
+call sign_files.cmd
 
 
 ECHO Copying VC Runtime files
@@ -139,28 +140,30 @@ rmdir /S /Q %instPath%\translations\
 
 ECHO Sign Files
 
-REM
-REM Skipped on a build server: kph-sign-dir needs the EV signing certificate,
-REM which is not present there and must not be. The .sig files are what the
-REM kernel driver checks before it will load, so a CI build is a testing build -
-REM the driver stays unloadable until the folder is signed on a machine that has
-REM the certificate.
-REM
-IF "%TE_CI%" == "1" GOTO :skip_signing
-
 call kph-sign-dir.cmd %instPath%\
 del %instPath%\UpdUtil.sig
 REM del %instPath%\TaskHelper.sig
 del %instPath%\x86\TaskHelper.sig
-
-:skip_signing
+del %instPath%\x86\MiniDump.sig
 
 
 
 
 ECHO Copying resources
 
-copy /y %~dp0.\Resources\* %instPath%\
+copy /y %~dp0.\Resources\* %instPath%
+
+ECHO Copying distribution logos
+
+REM Loose PNGs beside the executable rather than compiled-in Qt resources, so a
+REM logo can be added for a new distribution without a rebuild - and so the
+REM trademarks stay a packaging decision. Shipped with the Windows build as
+REM well, because this is the viewer that watches a Linux machine through a
+REM daemon and draws its logo in the System panel. See
+REM TaskExplorer\Resources\DistroLogos\README.txt.
+
+mkdir %instPath%\DistroLogos
+copy /y %~dp0..\TaskExplorer\Resources\DistroLogos\* %instPath%\DistroLogos\
 
 
 ECHO Copying drivers
@@ -174,8 +177,4 @@ copy /y %~dp0.\Drivers\TaskExplorer_x64\* %instPath%\AMD64\
 
 
 
-REM
-REM Interactive only. On a build server there is nobody to press a key, and an
-REM unguarded pause holds the job open until it is cancelled, so set TE_CI=1.
-REM
-IF NOT "%TE_CI%" == "1" pause
+pause

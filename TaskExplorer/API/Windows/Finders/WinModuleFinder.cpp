@@ -23,7 +23,7 @@ void CWinModuleFinder::run()
 
 	quint64 TimeStamp = GetTime() * 1000;
 
-	QMap<quint64, CProcessPtr> Processes = theAPI->GetProcessList();
+	QMap<quint64, CProcessPtr> Processes = m_pSystem->GetProcessList();
 	int Modulo = Processes.count() / 100;
 	int i = 0;
 	for (QMap<quint64, CProcessPtr>::iterator I = Processes.begin(); I != Processes.end() && !m_bCancel; ++I)

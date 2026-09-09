@@ -73,7 +73,7 @@ CProcessPicker::CProcessPicker(QWidget* parent)
 	else
 		m_pProcessList->restoreState(Columns);
 
-	m_ProcessList = theAPI->GetProcessList();
+	m_ProcessList = theSystem->GetProcessList();
 
 	Refresh();
 }
@@ -91,7 +91,7 @@ void CProcessPicker::OnResetColumns()
 	m_pProcessList->SetColumnHidden(CProcessModel::ePID, false);
 	m_pProcessList->SetColumnHidden(CProcessModel::eCPU, false);
 	m_pProcessList->SetColumnHidden(CProcessModel::eIO_TotalRate, false);
-	//m_pProcessList->SetColumnHidden(CProcessModel::eStaus, false);
+	//m_pProcessList->SetColumnHidden(CProcessModel::eStatus, false);
 	//m_pProcessList->SetColumnHidden(CProcessModel::ePrivateBytes, false);
 	//m_pProcessList->SetColumnHidden(CProcessModel::ePriorityClass, false);
 	//m_pProcessList->SetColumnHidden(CProcessModel::eGDI_Handles, false);

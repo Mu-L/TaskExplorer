@@ -2,9 +2,6 @@
 #include "ModuleSearch.h"
 #include "../TaskExplorer.h"
 #include "../../API/Finders/AbstractFinder.h"
-#ifdef WIN32
-#include "../../API/Windows/ProcessHacker.h"
-#endif
 
 CModuleSearch::CModuleSearch(QWidget *parent) 
 	: CSearchWindow(parent)

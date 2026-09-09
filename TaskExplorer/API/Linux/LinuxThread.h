@@ -19,17 +19,20 @@ public:
 
 	virtual QString			GetName() const;
 	virtual QString			GetStartAddressString() const;
-	virtual QString			GetStateString() const;
 
 	virtual bool			HasPriorityBoost() const;
 	virtual STATUS			SetPriorityBoost(bool Value);
-	virtual QString			GetPriorityString() const;
+	virtual qint32			GetSchedPolicy() const	{ QReadLocker Locker(&m_Mutex); return m_SchedPolicy; }
 	virtual STATUS			SetPriority(qint32 Value);
-	virtual QString			GetBasePriorityString() const;
+
+	//
+	// Windows separates a thread's base priority from the increment applied to
+	// it; Linux has only the one number, so both report the same thing and the
+	// Base priority column reads the same as it always did.
+	//
+	virtual quint64			GetBasePriorityIncrement() const		{ return (quint64)GetBasePriority(); }
 	virtual STATUS			SetBasePriority(qint32 Value);
-	virtual QString			GetPagePriorityString() const;
 	virtual STATUS			SetPagePriority(qint32 Value);
-	virtual QString			GetIOPriorityString() const;
 	virtual STATUS			SetIOPriority(qint32 Value);
 	virtual STATUS			SetAffinityMask(quint64 Value);
 

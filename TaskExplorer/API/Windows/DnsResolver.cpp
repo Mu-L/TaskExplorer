@@ -57,6 +57,8 @@ struct SDnsResolver
 
 CDnsResolver::CDnsResolver(QObject* parent)
 {
+	m_pSystem = NULL;
+
 	m_bRunning = false;
 
 	m_LastCacheTraverse = 0;
@@ -307,6 +309,7 @@ bool CDnsResolver::UpdateDnsCache()
 			if (I == OldEntries.constEnd())
 			{
 				pEntry = CDnsCacheEntryPtr(new CDnsCacheEntry(HostName, Type, Address, ResolvedString));
+				pEntry->SetSystem(m_pSystem);
 				QWriteLocker Locker(&m_Mutex);
 				m_DnsCache.insertMulti(HostName, pEntry);
 				if(!Address.isNull())
@@ -616,6 +619,7 @@ void CDnsResolver::run()
 				if (I == m_DnsCache.constEnd())
 				{
 					pEntry = CDnsCacheEntryPtr(new CDnsCacheEntry(AddressReverse, DNS_TYPE_PTR, Address, ResolvedString));
+					pEntry->SetSystem(m_pSystem);
 					m_DnsCache.insertMulti(AddressReverse, pEntry);
 					m_AddressCache.insertMulti(Address, pEntry);
 				}
@@ -642,3 +646,17 @@ void CDnsResolver::run()
 		Locker.unlock();
 	}
 }
+
+//
+// The record types CDnsCacheEntry names are IANA's; the platform's own header
+// spells the same numbers, so a typo has to break the build rather than
+// mislabel a record.
+//
+static_assert(CDnsCacheEntry::eDnsA     == DNS_TYPE_A,     "dns a");
+static_assert(CDnsCacheEntry::eDnsNs    == DNS_TYPE_NS,    "dns ns");
+static_assert(CDnsCacheEntry::eDnsCname == DNS_TYPE_CNAME, "dns cname");
+static_assert(CDnsCacheEntry::eDnsPtr   == DNS_TYPE_PTR,   "dns ptr");
+static_assert(CDnsCacheEntry::eDnsMx    == DNS_TYPE_MX,    "dns mx");
+static_assert(CDnsCacheEntry::eDnsText  == DNS_TYPE_TEXT,  "dns txt");
+static_assert(CDnsCacheEntry::eDnsAaaa  == DNS_TYPE_AAAA,  "dns aaaa");
+static_assert(CDnsCacheEntry::eDnsSrv   == DNS_TYPE_SRV,   "dns srv");

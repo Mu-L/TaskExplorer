@@ -205,19 +205,15 @@ bool CWinDiskMonitor::UpdateDisks()
 				diskEntry->DevicePresent = true;
 				diskEntry->DeviceSupported = true;
 
+				//
+				// The number, the mount points and the description, each as it
+				// stands. Putting them into one line is the viewer's job.
+				//
+				diskEntry->DiskNumber = diskIndex;
+				diskEntry->DeviceDescription = QString::fromWCharArray(deviceDescription->Buffer, deviceDescription->Length / sizeof(wchar_t));
+
 				if (!PhIsNullOrEmptyString(diskMountPoints))
-				{
-					//diskEntry->DeviceMountPoints = QString::fromWCharArray(diskMountPoints->Buffer, diskMountPoints->Length / sizeof(wchar_t));
-					diskEntry->DeviceMountPoints = tr("Disk %1 (%2) [%3]").arg(diskIndex)
-						.arg(QString::fromWCharArray(diskMountPoints->Buffer, diskMountPoints->Length / sizeof(wchar_t)))
-						.arg(QString::fromWCharArray(deviceDescription->Buffer, deviceDescription->Length / sizeof(wchar_t)));
-				}
-				else
-				{
-					//diskEntry->DeviceMountPoints = tr("Disk %1").arg(diskIndex);
-					diskEntry->DeviceMountPoints = tr("Disk %1 [%2]").arg(diskIndex)
-						.arg(QString::fromWCharArray(deviceDescription->Buffer, deviceDescription->Length / sizeof(wchar_t)));
-				}
+					diskEntry->DeviceMountPoints = QString::fromWCharArray(diskMountPoints->Buffer, diskMountPoints->Length / sizeof(wchar_t));
 			}
 			else
 				diskEntry->DevicePresent = false;

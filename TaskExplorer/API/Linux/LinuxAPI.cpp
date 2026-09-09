@@ -1,21 +1,26 @@
 #include "stdafx.h"
 #include "LinuxAPI.h"
 #include "LinuxHelper.h"
+#include "../../SVC/TaskService.h"
 #include "ProcFs.h"
 #include "SockDiag.h"
 #include "X11Helper.h"
 
 #include "LinuxHandle.h"
+#include "LinuxWineHelper.h"
+#include "LinuxWineHandle.h"
+#include "LinuxWineToken.h"
 #include "UdevMonitor.h"
 
 #include "Monitors/LinuxDiskMonitor.h"
 #include "Monitors/LinuxGpuMonitor.h"
 #include "Monitors/LinuxNetMonitor.h"
 
-#include "../../GUI/TaskExplorer.h"
 #include "../../../MiscHelpers/Common/Settings.h"
 
 #include <QDir>
+#include <QFileInfo>
+#include <QUrl>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -104,7 +109,7 @@ bool CLinuxAPI::Init()
 // os-release LOGO key names an icon-theme entry, and most distributions also
 // drop a PNG in /usr/share/pixmaps.
 //
-static QPixmap FindDistroLogo(const QMap<QString, QString>& OsRelease)
+static QByteArray FindDistroLogo(const QMap<QString, QString>& OsRelease)
 {
 	const QString LogoDir = QCoreApplication::applicationDirPath() + "/DistroLogos/";
 
@@ -126,45 +131,70 @@ static QPixmap FindDistroLogo(const QMap<QString, QString>& OsRelease)
 
 	Candidates.append(LogoDir + "linux.png");
 
-	for (const QString& Path : Candidates)
-	{
-		QPixmap Logo(Path);
-		if (!Logo.isNull())
-			return Logo;
-	}
-
+	//
 	// Fall back to whatever the distribution itself installed.
+	//
+	// Both extensions, and SVG is not the afterthought it looks like: Ubuntu
+	// ships /usr/share/pixmaps/ubuntu-logo.svg and no PNG of that name at all,
+	// so looking only for .png found nothing on the most common desktop Linux
+	// there is. The comment below used to assert that a distribution setting
+	// LOGO also ships a PNG; it does not.
+	//
+	// A derivative gets its parent's too - a Debian derivative with no logo of
+	// its own has /usr/share/pixmaps/debian-logo.png sitting right there.
+	//
+	QStringList Names;
 	const QString LogoName = OsRelease.value("LOGO");
 	if (!LogoName.isEmpty())
-	{
-		const QIcon ThemeIcon = QIcon::fromTheme(LogoName);
-		if (!ThemeIcon.isNull())
-		{
-			const QPixmap Logo = ThemeIcon.pixmap(128, 128);
-			if (!Logo.isNull())
-				return Logo;
-		}
+		Names.append(LogoName);
+	if (!Id.isEmpty())
+		Names.append(Id + "-logo");
+	for (const QString& Like : OsRelease.value("ID_LIKE").toLower().split(' ', Qt::SkipEmptyParts))
+		Names.append(Like + "-logo");
 
-		QPixmap Logo("/usr/share/pixmaps/" + LogoName + ".png");
-		if (!Logo.isNull())
-			return Logo;
+	for (const QString& Name : Names)
+	{
+		Candidates.append("/usr/share/pixmaps/" + Name + ".png");
+		Candidates.append("/usr/share/pixmaps/" + Name + ".svg");
 	}
 
-	if (!Id.isEmpty())
+	//
+	// The files are read rather than loaded into an image: what is wanted is
+	// the bytes of a PNG, which is what is already on disk. That also means
+	// this works with no display and nothing to draw on - see
+	// CModuleInfo::GetFileIcon.
+	//
+	// The icon-theme lookup that used to sit here is gone with it. QIcon is a
+	// drawing class and resolving a theme needs a platform plugin, neither of
+	// which a collector can count on having; what a distribution setting LOGO
+	// ships under /usr/share/pixmaps is looked for above instead - as a PNG or
+	// an SVG, because which of the two you get depends on the distribution.
+	//
+	// Sending an SVG is fine and is the reason nothing is decoded here: these
+	// are bytes on their way to a viewer, which may be on another machine and
+	// is the only end that has to draw them. Qt renders SVG through its image
+	// plugin, so a viewer without that plugin gets nothing - which is the same
+	// as the no-logo case and is already handled.
+	//
+	for (const QString& Path : Candidates)
 	{
-		QPixmap Logo("/usr/share/pixmaps/" + Id + "-logo.png");
-		if (!Logo.isNull())
-			return Logo;
+		QFile File(Path);
+		if (!File.open(QIODevice::ReadOnly))
+			continue;
+
+		const QByteArray Bytes = File.readAll();
+		if (!Bytes.isEmpty())
+			return Bytes;
 	}
 
 	// Nothing found; the system view simply shows no icon.
-	return QPixmap();
+	return QByteArray();
 }
 
 bool CLinuxAPI::InitSystemInfo()
 {
 	const QMap<QString, QString> OsRelease = ProcFs::ReadOsRelease();
-	const QPixmap Logo = FindDistroLogo(OsRelease);
+	const QByteArray Logo = FindDistroLogo(OsRelease);
 
 	QWriteLocker Locker(&m_Mutex);
 
@@ -357,6 +387,36 @@ void CLinuxAPI::UpdateMemStats()
 	m_ReservedMemory = 0;
 }
 
+quint64 CLinuxAPI::GetCpuTimeDivider() const
+{
+	return CPU_TIME_DIVIDER;
+}
+
+bool CLinuxAPI::HasCapability(ECapability Capability) const
+{
+	CLinuxAPI* This = const_cast<CLinuxAPI*>(this);
+	switch (Capability)
+	{
+	//
+	// cgroup v2 accounting is only readable where the unified hierarchy is
+	// mounted, which is everywhere modern but not guaranteed.
+	//
+	case eCapCGroups:			return QFile::exists("/sys/fs/cgroup/cgroup.controllers");
+	case eCapMemoryWrite:		return This->RootAvaiable();
+	case eCapProcessDump:		return true;
+	case eCapSymbols:			return true;
+	//
+	// /proc exposes the full per-process counter set to anyone who can read
+	// the entry, so there is no reduced mode to distinguish here.
+	//
+	case eCapExtProcInfo:		return true;
+	//
+	// No Linux counterpart: ETW, the Windows kernel driver, the pool table,
+	// the firewall event log, Sandboxie.
+	//
+	default:					return CSystemAPI::HasCapability(Capability);
+	}
+}
 bool CLinuxAPI::RootAvaiable()
 {
 	if (geteuid() == 0)
@@ -517,6 +577,151 @@ bool CLinuxAPI::UpdateSysStats()
 	return true;
 }
 
+//
+// Pair the two halves of every Wine process on this machine.
+//
+// Nothing in Wine exposes the Unix pid to Windows code or the Windows pid to
+// Linux - that was measured, see NEXT.md 5.16 - so the two lists are matched
+// rather than joined. Both are ordered by creation, in their own numbering, and
+// both carry the image path, so processes are grouped by image and paired in
+// order within each group.
+//
+// The rule that keeps this honest is the count. A group is paired only when
+// both sides hold the same number of it; where they disagree - a process
+// started or exited between the two enumerations - the whole group is left
+// unpaired. A Windows pid on the wrong process would be worse than none, and
+// would be believed.
+//
+void CLinuxAPI::UpdateWineIds()
+{
+	if (!CWineHelpers::IsAvailable())
+		return;
+
+	//
+	// Not more than once a minute per prefix. A Wine start is expensive and the
+	// answer is nearly static; the refresh that wants it runs every second.
+	//
+	const quint64 Now = GetCurTick();
+	if (m_LastWineQuery != 0 && Now - m_LastWineQuery < c_WineQueryMaxAge)
+		return;
+
+	//
+	// Who is in which prefix, from what the collector already knows. A machine
+	// with no Wine on it does no work here beyond this loop.
+	//
+	QMap<QString, QList<QSharedPointer<CLinuxProcess> > > ByPrefix;
+	QMap<QString, quint32> PrefixOwner;
+	{
+		QReadLocker Locker(&m_ProcessMutex);
+		foreach(const CProcessPtr& pProcess, m_ProcessByPID)
+		{
+			QSharedPointer<CLinuxProcess> pLinux = pProcess.objectCast<CLinuxProcess>();
+			if (pLinux.isNull())
+				continue;
+
+			const SWineInfo Wine = pLinux->GetWineInfo();
+			if (!Wine.Valid || Wine.Prefix.isEmpty() || Wine.ImagePath.isEmpty())
+				continue;	// not Wine, or a Unix-side part of it with no Windows image
+
+			ByPrefix[Wine.Prefix].append(pLinux);
+			PrefixOwner.insert(Wine.Prefix, pLinux->GetUid());
+		}
+	}
+
+	if (ByPrefix.isEmpty())
+	{
+		//
+		// Nothing under Wine any more - the last program in the last prefix has
+		// gone. The helpers go with it rather than sitting in prefixes nobody is
+		// looking at.
+		//
+		CWineHelpers::Instance()->StopAll();
+		return;
+	}
+
+	m_LastWineQuery = Now;
+
+	//
+	// And retire the ones nothing is looking at any more - a prefix whose last
+	// program has exited, or one deleted while the daemon was running. Done here
+	// rather than on a timer of its own: this is the only place that knows which
+	// prefixes are still in use.
+	//
+	CWineHelpers::Instance()->StopIdle();
+
+	for (QMap<QString, QList<QSharedPointer<CLinuxProcess> > >::const_iterator I = ByPrefix.begin();
+		 I != ByPrefix.end(); ++I)
+	{
+		//
+		// The bitness the prefix can host. A win32 prefix cannot load the 64-bit
+		// helper at all, and asking it to is a Wine start that can only fail.
+		//
+		const int Bits = CWineHelpers::PrefixBits(I.key());
+		if (!Bits || !CWineHelpers::IsAvailable(Bits))
+			continue;
+
+		CWineHelper* pHelper = CWineHelpers::Instance()->Get(I.key(), Bits, PrefixOwner.value(I.key()));
+		const QList<SWineProcess> Windows = pHelper->ListProcesses();
+		if (Windows.isEmpty())
+			continue;
+
+		//
+		// Grouped by image path, case insensitively - one side got the string
+		// from a Windows API and the other out of a command line, and Windows
+		// does not consider the difference meaningful.
+		//
+		QMap<QString, QList<QSharedPointer<CLinuxProcess> > > LinuxByImage;
+		foreach(const QSharedPointer<CLinuxProcess>& pLinux, I.value())
+			LinuxByImage[pLinux->GetWineInfo().ImagePath.toLower()].append(pLinux);
+
+		QMap<QString, QList<SWineProcess> > WinByImage;
+		foreach(const SWineProcess& Win, Windows)
+			WinByImage[Win.ImagePath.toLower()].append(Win);
+
+		for (QMap<QString, QList<QSharedPointer<CLinuxProcess> > >::iterator J = LinuxByImage.begin();
+			 J != LinuxByImage.end(); ++J)
+		{
+			QList<SWineProcess> Peers = WinByImage.value(J.key());
+			if (Peers.count() != J.value().count())
+				continue;	// the two sides disagree; pair none of them
+
+			//
+			// Both into creation order. The Linux side by pid, which rises with
+			// time within one boot, and the Windows side by Wine's own pid,
+			// which rises with time within one prefix - measured on three
+			// processes that were identical in every other way.
+			//
+			QList<QSharedPointer<CLinuxProcess> > Ours = J.value();
+			std::sort(Ours.begin(), Ours.end(),
+				[](const QSharedPointer<CLinuxProcess>& a, const QSharedPointer<CLinuxProcess>& b)
+				{ return a->GetProcessId() < b->GetProcessId(); });
+			std::sort(Peers.begin(), Peers.end(),
+				[](const SWineProcess& a, const SWineProcess& b) { return a.Pid < b.Pid; });
+
+			for (int k = 0; k < Ours.count(); k++)
+			{
+				Ours[k]->SetWineIds(Peers[k].Pid, Peers[k].ParentPid);
+
+				//
+				// And the token, once, in the same round that learned the pid.
+				//
+				// Only for processes that have not got one yet: a token does not
+				// change over the life of a process, and this is a round trip
+				// into Wine per process. The pairing above runs once a minute at
+				// most, so a prefix full of programs costs its round trips once
+				// and then never again.
+				//
+				if (Ours[k]->GetToken().isNull())
+				{
+					CWineTokenPtr pToken(new CWineToken());
+					if (pHelper->GetToken(Peers[k].Pid, pToken.data()))
+						Ours[k]->SetWineToken(pToken);
+				}
+			}
+		}
+	}
+}
+
 bool CLinuxAPI::UpdateProcessList()
 {
 	//
@@ -571,6 +776,7 @@ bool CLinuxAPI::UpdateProcessList()
 			if (pProcessRef.isNull())
 			{
 				pProcessRef = QSharedPointer<CLinuxProcess>(new CLinuxProcess());
+				pProcessRef->SetSystem(sharedFromThis());
 				m_ProcessByPID[Pid] = pProcessRef;
 			}
 			pProcess = pProcessRef.staticCast<CLinuxProcess>();
@@ -726,6 +932,17 @@ bool CLinuxAPI::UpdateProcessList()
 	if (LinuxHelperNeeded() && theConf->GetBool("Options/UseTaskHelper", false))
 		UpdateHelperProcIo();
 
+	//
+	// And what Windows thinks, for the processes running under Wine.
+	//
+	// Opt-in and throttled hard for the same reason as above and one more: this
+	// starts a Wine process, which costs the better part of a second. What it
+	// learns - which Windows pid belongs to which Linux one - changes only when
+	// a program in the prefix starts or stops.
+	//
+	if (theConf->GetBool("Options/UseWineBridge", false))
+		UpdateWineIds();
+
 	emit ProcessListUpdated(Added, Changed, Removed);
 
 	QWriteLocker StatsLocker(&m_StatsMutex);
@@ -743,14 +960,33 @@ bool CLinuxAPI::UpdateProcessList()
 //
 static QMultiMap<quint64, CSocketPtr>::iterator FindSocketEntry(QMultiMap<quint64, CSocketPtr>& Sockets,
 	quint64 ProcessId, quint32 ProtocolType, const QHostAddress& LocalAddress, quint16 LocalPort,
-	const QHostAddress& RemoteAddress, quint16 RemotePort, CSocketInfo::EMatchMode Mode)
+	const QHostAddress& RemoteAddress, quint16 RemotePort, CSocketInfo::EMatchMode Mode, quint64 Inode)
 {
-	const quint64 HashID = CSocketInfo::MkHash(ProcessId, ProtocolType, LocalAddress, LocalPort, RemoteAddress, RemotePort);
+	quint64 HashID = CSocketInfo::MkHash(ProcessId, ProtocolType, LocalAddress, LocalPort, RemoteAddress, RemotePort);
+
+	//
+	// The same addition CLinuxSocket makes to its own key, and for the same
+	// reason: a unix socket has no address and no port, so the tuple cannot tell
+	// two of them apart. See CLinuxSocket::InitStaticData.
+	//
+	const bool bUnix = (ProtocolType & NET_TYPE_NETWORK_UNIX) != 0;
+	if (bUnix)
+		HashID ^= Inode;
 
 	for (auto I = Sockets.find(HashID); I != Sockets.end() && I.key() == HashID; ++I)
 	{
-		if (I.value()->Match(ProcessId, ProtocolType, LocalAddress, LocalPort, RemoteAddress, RemotePort, Mode))
-			return I;
+		if (!I.value()->Match(ProcessId, ProtocolType, LocalAddress, LocalPort, RemoteAddress, RemotePort, Mode))
+			continue;
+
+		//
+		// Match compares a tuple that is empty for a unix socket, so on that
+		// family it says yes to anything in the bucket. The inode is what
+		// actually distinguishes them.
+		//
+		if (bUnix && I.value().staticCast<CLinuxSocket>()->GetInode() != Inode)
+			continue;
+
+		return I;
 	}
 
 	return Sockets.end();
@@ -810,7 +1046,25 @@ bool CLinuxAPI::UpdateSocketList()
 	// resolved by scanning every process's fd table. That is the expensive part
 	// of this refresh, so it is done once here rather than per connection.
 	//
-	const QMap<quint64, quint64> InodeToPid = ProcFs::BuildSocketInodeMap();
+	const QMultiMap<quint64, quint64> InodeToPid = ProcFs::BuildSocketInodeMap();
+
+	//
+	// Who is at the other end of each unix socket.
+	//
+	// The dump gives a peer as an inode, and the name resolution in SockDiag
+	// turns that into a path where the peer has one - which is the listening
+	// socket's case. For a connected pair both ends are usually anonymous, and
+	// then the useful answer is not a name at all but which program is on the
+	// other side: the display server, the bus, wineserver. That needs the same
+	// fd scan the ownership above needs, so it is done here where it is already
+	// in hand rather than by walking /proc a second time.
+	//
+	for (int i = 0; i < Connections.count(); i++)
+	{
+		if (!Connections[i].PeerInode)
+			continue;
+		Connections[i].PeerPid = InodeToPid.value(Connections[i].PeerInode, 0);
+	}
 
 	QSet<quint64> Added;
 	QSet<quint64> Changed;
@@ -818,18 +1072,37 @@ bool CLinuxAPI::UpdateSocketList()
 
 	QMultiMap<quint64, CSocketPtr> OldSockets = GetSocketList();
 
-	for (const ProcFs::SNetConnection& Conn : Connections)
+	foreach(const ProcFs::SNetConnection& Conn, Connections)
 	{
-		const quint64 ProcessId = InodeToPid.value(Conn.Inode, 0);
+		//
+		// One entry per process holding the socket, not one per socket.
+		//
+		// A socket can be held by more than one process - inherited across a
+		// fork, passed over a unix socket, or held by both a program and the
+		// emulator running it. Each holder gets its own entry, which is what
+		// makes it appear in each of their Sockets tabs; the entries differ by
+		// pid and so do their keys, because MkHash takes the process id.
+		//
+		// An empty list means nothing on this machine holds it - a socket in
+		// TIME_WAIT with no owner left - and that is still worth listing, under
+		// no process.
+		//
+		QList<quint64> Owners = InodeToPid.values(Conn.Inode);
+		if (Owners.isEmpty())
+			Owners.append(0);
 
+
+		foreach(const quint64 ProcessId, Owners)
+		{
 		auto I = FindSocketEntry(OldSockets, ProcessId, Conn.ProtocolType,
-			Conn.LocalAddress, Conn.LocalPort, Conn.RemoteAddress, Conn.RemotePort, CSocketInfo::eStrict);
+			Conn.LocalAddress, Conn.LocalPort, Conn.RemoteAddress, Conn.RemotePort, CSocketInfo::eStrict, Conn.Inode);
 
 		QSharedPointer<CLinuxSocket> pSocket;
 		bool bAdd = false;
 		if (I == OldSockets.end())
 		{
 			pSocket = QSharedPointer<CLinuxSocket>(new CLinuxSocket());
+			pSocket->SetSystem(sharedFromThis());
 			pSocket->InitStaticData(ProcessId, Conn);
 
 			if (ProcessId)
@@ -862,6 +1135,7 @@ bool CLinuxAPI::UpdateSocketList()
 			Added.insert(pSocket->GetHashID());
 		else if (bChanged)
 			Changed.insert(pSocket->GetHashID());
+		}
 	}
 
 	// Anything still in OldSockets was not in this sample, i.e. it closed.
@@ -912,16 +1186,84 @@ bool CLinuxAPI::UpdateOpenFileList()
 
 	QMap<quint64, CHandlePtr> OldHandles = GetOpenFilesList();
 
+	//
+	// Whether an elevated helper may be asked for the processes this one cannot
+	// read. Decided once rather than per process: it is two settings lookups
+	// and a file test, and the answer cannot change inside one sweep.
+	//
+	//
+	// Resolved once, before the loop, and this matters more than it looks.
+	//
+	// Asking per process means asking forty times, and a probe for a helper
+	// that is configured but not running costs the better part of two seconds
+	// each - CTaskService::SendCommand retries four times before giving up. A
+	// minute of that inside the collector's own thread is not a slow sweep, it
+	// is a daemon that has stopped answering, which is exactly what happened
+	// the first time this was written the obvious way.
+	//
+	const bool bUseHelper = LinuxHelperNeeded()
+		&& theConf->GetBool("Options/UseTaskHelper", false)
+		&& !CTaskService::GetRunningWorker(true).isEmpty();
+
 	for (quint64 Pid : ProcFs::EnumProcesses())
 	{
-		for (quint64 Fd : ProcFs::EnumFds(Pid))
+		//
+		// Directly where the directory can be read, through the helper where it
+		// cannot - which for an unprivileged viewer is every process but its
+		// own. Without this the Files view showed a fraction of the machine and
+		// said nothing about the rest: measured on one WSL box, eighteen open
+		// files against a hundred and twenty four.
+		//
+		// The per-process Handles tab has done exactly this for some time - see
+		// CLinuxProcess::UpdateHandles - so the mechanism was already here and
+		// only this sweep was not using it.
+		//
+		QList<QMap<QString, QVariant>> HelperFds;
+		QList<quint64> Fds;
+
+		if (::access(ProcFs::ProcPath(Pid, "fd").toLocal8Bit().constData(), R_OK) == 0)
+			Fds = ProcFs::EnumFds(Pid);
+		else if (bUseHelper)
 		{
+			//
+			// Never *starting* one, only using one that is already there.
+			//
+			// This runs once per process across the whole machine, and starting
+			// a helper costs an authentication prompt and up to a minute of
+			// waiting - which for forty processes is not a slow sweep, it is a
+			// hung collector. Asked for by the user the toggle starts one and
+			// keeps it; this sweep then finds it and is rich. Without it the
+			// sweep is exactly as cheap as it was.
+			//
+			HelperFds = LinuxHelperListFds(Pid, false);
+		}
+
+		//
+		// The two sources reduced to one shape - a descriptor, where it points,
+		// and its fdinfo - so that everything below reads the same either way.
+		// The helper hands back all three in one reply; a direct read fetches
+		// the link now and lets InitStaticData do the rest.
+		//
+		struct SEntry { quint64 Fd; QString Target; QByteArray Info; bool bFromHelper; };
+		QList<SEntry> Entries;
+
+		foreach(quint64 Fd, Fds)
+			Entries.append({ Fd, ProcFs::ReadLink(ProcFs::ProcPath(Pid, QString("fd/%1").arg(Fd))), QByteArray(), false });
+
+		foreach(const auto& One, HelperFds)
+			Entries.append({ One.value("Fd").toULongLong(), One.value("Target").toString(),
+							 One.value("Info").toByteArray(), true });
+
+		foreach(const SEntry& Entry, Entries)
+		{
+			const quint64 Fd = Entry.Fd;
+
 			//
 			// Pre-filter on the raw link target so a CLinuxHandle is only built
 			// for entries that will actually be listed. The full InitStaticData
 			// does several more reads per fd.
 			//
-			const QString Target = ProcFs::ReadLink(ProcFs::ProcPath(Pid, QString("fd/%1").arg(Fd)));
+			const QString Target = Entry.Target;
 			if (Target.isEmpty() || !Target.startsWith('/'))
 				continue; // closed, not permitted, or a socket/pipe/anon_inode
 
@@ -936,7 +1278,17 @@ bool CLinuxAPI::UpdateOpenFileList()
 			if (pHandle.isNull())
 			{
 				pHandle = QSharedPointer<CLinuxHandle>(new CLinuxHandle());
-				if (!pHandle->InitStaticData(Pid, Fd))
+				pHandle->SetSystem(sharedFromThis());
+
+				//
+				// The helper's answer is passed through rather than re-read:
+				// the reads that filled it are the ones this process could not
+				// make in the first place.
+				//
+				const bool bOk = Entry.bFromHelper
+					? pHandle->InitStaticData(Pid, Fd, Target, Entry.Info)
+					: pHandle->InitStaticData(Pid, Fd);
+				if (!bOk)
 					continue;
 
 				pHandle->SetProcess(GetProcessByID(Pid));
@@ -1096,6 +1448,7 @@ bool CLinuxAPI::UpdateServiceList(bool bRefresh)
 		if (pService.isNull())
 		{
 			pService = QSharedPointer<CLinuxService>(new CLinuxService());
+			pService->SetSystem(sharedFromThis());
 			pService->InitStaticData(Unit.Name);
 			pService->SetObjectPath(Unit.Path.path());
 
@@ -1118,11 +1471,13 @@ bool CLinuxAPI::UpdateServiceList(bool bRefresh)
 		// full fetch is limited to those. Everything else gets the unit file
 		// path only, and only once (FetchProperties caches it).
 		//
+		// Forced when the unit's own state moved, throttled otherwise - see
+		// CLinuxService::FetchProperties.
 		const bool bRunning = (Unit.ActiveState == "active" || Unit.ActiveState == "activating");
 		if (bRunning)
-			bChanged |= pService->FetchProperties(false);
+			bChanged |= pService->FetchProperties(false, bChanged || bAdd);
 		else if (bAdd)
-			bChanged |= pService->FetchProperties(true);
+			bChanged |= pService->FetchProperties(true, true);
 
 		if (bAdd)
 			Added.insert(Unit.Name);
@@ -1153,6 +1508,69 @@ bool CLinuxAPI::UpdateServiceList(bool bRefresh)
 	emit ServiceListUpdated(Added, Changed, Removed);
 
 	return true;
+}
+
+//
+// The kinds of thing an fd can point at.
+//
+// Fixed rather than discovered: unlike a Windows object table, which is built by
+// whatever drivers are loaded and has to be read from the kernel, this list is
+// the classification CLinuxHandle itself applies and cannot change at run time.
+//
+//
+// Which of the kinds above the Files views mean by "a file". Defined here
+// rather than in the header, where CLinuxHandle is not yet a complete type.
+//
+int CLinuxAPI::GetFileHandleTypeIndex() const
+{
+	return (int)CLinuxHandle::eFile;
+}
+
+QList<CSystemAPI::SHandleType> CLinuxAPI::GetHandleTypes() const
+{
+	QList<SHandleType> Types;
+
+	static const struct { CLinuxHandle::EHandleType Type; const char* Name; } c_Types[] = {
+		{ CLinuxHandle::eFile,			"File" },
+		{ CLinuxHandle::eDirectory,		"Directory" },
+		{ CLinuxHandle::eSocket,		"Socket" },
+		{ CLinuxHandle::ePipe,			"Pipe" },
+		{ CLinuxHandle::eAnonInode,		"AnonInode" },
+		{ CLinuxHandle::eCharDevice,	"CharDevice" },
+		{ CLinuxHandle::eBlockDevice,	"BlockDevice" },
+	};
+
+	for (size_t i = 0; i < sizeof(c_Types) / sizeof(c_Types[0]); i++)
+	{
+		SHandleType Type;
+		Type.Name = c_Types[i].Name;
+		Type.Index = (int)c_Types[i].Type;
+		Types.append(Type);
+	}
+
+	//
+	// And what wineserver can hold, on a machine that has Wine.
+	//
+	// Sent whether or not anything is running under Wine at this moment: the
+	// list travels once, with the handshake, and a program started in a prefix
+	// an hour later must not need a reconnection to be filtered properly. They
+	// are a group of their own, so a viewer offers them only for the processes
+	// that can have them - see SHandleType::Group.
+	//
+	if (CWineHelpers::IsAvailable())
+		Types.append(CWineHandle::GetTypes());
+
+	return Types;
+}
+
+int CLinuxAPI::GetHandleTypeGroup(int Index) const
+{
+	//
+	// By the numbering rather than by a search: the two sets were given
+	// non-overlapping ranges precisely so that this question has an answer that
+	// costs nothing. See CWineHandle::c_TypeBase.
+	//
+	return (Index >= (int)CWineHandle::c_TypeBase) ? eHandleGroupWine : eHandleGroupNative;
 }
 
 bool CLinuxAPI::UpdateDriverList()
@@ -1193,6 +1611,7 @@ bool CLinuxAPI::UpdateDriverList()
 		if (pDriver.isNull())
 		{
 			pDriver = QSharedPointer<CLinuxDriver>(new CLinuxDriver());
+			pDriver->SetSystem(sharedFromThis());
 			pDriver->InitStaticData(Name);
 
 			QWriteLocker Locker(&m_DriverMutex);
@@ -1302,11 +1721,20 @@ QList<CSystemAPI::SUser> CLinuxAPI::GetUsers() const
 		User.UserName = UserName;
 
 		//
-		// The GUI's "session id" column is numeric. logind session ids are
-		// strings ("2", "c1" for a greeter), so the numeric prefix is used
-		// where there is one.
+		// Kept as logind gives it, and *also* reduced to a number.
 		//
+		// The string is the real identity - it is what distinguishes "c1" from
+		// "c2", both of which come out of toUInt as zero. Anything that has to
+		// tell two sessions apart uses this one.
+		//
+		// The number is kept because the action API takes one and the column has
+		// always shown one. It is a lossy reading of the id and is treated as
+		// such: nothing on this platform acts on it.
+		//
+		User.SessionKey = SessionId;
 		User.SessionId = SessionId.toUInt();
+
+		User.Seat = Seat;
 
 		//
 		// State is one of online / active / closing. Reading it costs a
@@ -1316,12 +1744,41 @@ QList<CSystemAPI::SUser> CLinuxAPI::GetUsers() const
 		                       "org.freedesktop.DBus.Properties", Bus);
 		if (Session.isValid())
 		{
+			//
+			// The class first, because it decides whether this is a session at
+			// all as far as anybody reading a user list is concerned.
+			//
+			// logind lists more than logins. Every user with a running
+			// `systemd --user` has a second session of class "manager" beside
+			// their real one, and root gets "manager-early" the same way - so a
+			// machine with two people logged in reports four sessions, two of
+			// them nobody. That is what put each name in the users menu twice.
+			//
+			// Excluded by family rather than listed by name: "manager",
+			// "manager-early" and the "background" classes are the ones that are
+			// not a person, and a class that is a person - user, user-early,
+			// user-incomplete, greeter, lock-screen - should be shown even if
+			// systemd adds another kind of it later. who(1) and loginctl
+			// list-users draw the same line.
+			//
+			const QDBusReply<QVariant> ClassReply =
+				Session.call("Get", "org.freedesktop.login1.Session", "Class");
+			if (ClassReply.isValid())
+			{
+				const QString Class = ClassReply.value().toString();
+				if (Class.startsWith("manager") || Class.startsWith("background"))
+					continue;
+			}
+
 			QDBusReply<QVariant> StateReply = Session.call("Get", "org.freedesktop.login1.Session", "State");
 			if (StateReply.isValid())
-				User.Status = StateReply.value().toString();
+			{
+				const QString State = StateReply.value().toString();
+				if (State == "active")			User.State = eSessionActive;
+				else if (State == "online")		User.State = eSessionOnline;
+				else if (State == "closing")	User.State = eSessionClosing;
+			}
 		}
-		if (User.Status.isEmpty())
-			User.Status = Seat.isEmpty() ? tr("remote") : Seat;
 
 		Users.append(User);
 	}
@@ -1577,6 +2034,7 @@ bool CLinuxAPI::UpdateDnsCache()
 				if (pEntry.isNull())
 				{
 					pEntry = CDnsCacheEntryPtr(new CDnsCacheEntry(HostName, Type, Address, Resolved));
+					pEntry->SetSystem(sharedFromThis());
 					bChanged = true;
 				}
 
@@ -1648,4 +2106,10 @@ void CLinuxAPI::OnHardwareChanged()
 	m_pGpuMonitor->UpdateAdapters();
 	m_pNetMonitor->UpdateAdapters();
 	m_pDiskMonitor->UpdateDisks();
+}
+
+SProcessNamespaces CLinuxAPI::GetHostNamespaces() const
+{
+	static const SProcessNamespaces Host = ProcFs::ReadNamespaces(1);
+	return Host;
 }

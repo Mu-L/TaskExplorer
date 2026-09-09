@@ -1,6 +1,7 @@
 #pragma once
 #include <qwidget.h>
-#include "../Common/IncrementalPlot.h"
+#include "../../MiscHelpers/Common/IncrementalPlot.h"
+#include "../API/AbstractInfo.h"
 
 
 class CGraphBar : public QWidget
@@ -26,6 +27,15 @@ private slots:
 	void					OnMenu(const QPoint& Point);
 
 	void					ClearGraphs();
+
+	//
+	// Clears only where the machine the graphs read from has actually changed.
+	//
+	// The view can move between machines without moving what the bar plots -
+	// see CCluster::GetActiveSystem - and a reset in that case throws away the
+	// history of the very machine still being shown.
+	//
+	void					OnViewSystemChanged();
 
 	//void					OnEntered();
 	//void					OnMoveed(QMouseEvent* event);
@@ -55,10 +65,8 @@ private:
 		eNetworkPlot,
 		eGpuPlot,
 		eCpuPlot,
-#ifndef WIN32
 		// Pressure Stall Information; Linux only, there is no Windows analogue.
 		ePressurePlot,
-#endif
 		eCount
 	};
 
@@ -82,6 +90,8 @@ private:
 	int						m_Rows;
 
 	int						m_PlotLimit;
+
+	QWeakPointer<CSystemAPI>	m_pPlotted;
 
 	struct SGraph
 	{

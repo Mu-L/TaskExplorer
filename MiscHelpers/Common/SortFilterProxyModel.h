@@ -1,11 +1,11 @@
 #pragma once
 
-#include "../mischelpers_global.h"
+#include "../guihelpers_global.h"
 #include <QSortFilterProxyModel>
 #include <QTreeView>
 #include "Finder.h"
 
-class MISCHELPERS_EXPORT CSortFilterProxyModel: public QSortFilterProxyModel
+class GUIHELPERS_EXPORT CSortFilterProxyModel: public QSortFilterProxyModel
 {
 	Q_OBJECT
 

@@ -38,10 +38,9 @@ public:
 	virtual bool			ValidateParent(CProcessInfo* pParent) const;
 
 	// ---- identity ----
-	virtual QString			GetArchString() const;
+	virtual quint16			GetArchitecture() const;
 	virtual quint64			GetSessionID() const;
 	virtual quint16			GetSubsystem() const;
-	virtual QString			GetSubsystemString() const;
 	virtual QString			GetWorkingDirectory() const;
 
 	// ---- counters ----
@@ -53,7 +52,7 @@ public:
 	virtual quint64			GetMinimumWS() const;
 	virtual quint64			GetMaximumWS() const;
 
-	virtual QString			GetStatusString() const;
+	virtual int				GetRunState() const;
 
 	// ---- classification ----
 	virtual bool			IsSystemProcess() const;
@@ -70,13 +69,10 @@ public:
 	// ---- priority / scheduling ----
 	virtual bool			HasPriorityBoost() const;
 	virtual STATUS			SetPriorityBoost(bool Value);
-	virtual QString			GetPriorityString() const;
+	virtual qint32			GetSchedPolicy() const	{ QReadLocker Locker(&m_Mutex); return m_SchedPolicy; }
 	virtual STATUS			SetPriority(qint32 Value);
-	virtual QString			GetBasePriorityString() const;
 	virtual STATUS			SetBasePriority(qint32 Value);
-	virtual QString			GetPagePriorityString() const;
 	virtual STATUS			SetPagePriority(qint32 Value);
-	virtual QString			GetIOPriorityString() const;
 	virtual STATUS			SetIOPriority(qint32 Value);
 	virtual STATUS			SetAffinityMask(quint64 Value);
 
@@ -124,8 +120,29 @@ public:
 	virtual QStringList		GetServiceList() const	{ QReadLocker Locker(&m_Mutex); return m_ServiceName.isEmpty() ? QStringList() : QStringList(m_ServiceName); }
 
 	// The unified cgroup path, which is also the key to this process's
-	// resource accounting - see ProcFs::ReadCGroupStats.
+	// resource accounting.
 	virtual QString			GetCGroupPath() const	{ QReadLocker Locker(&m_Mutex); return m_CGroupPath; }
+
+	//
+	// Which display this process draws on - "wayland-0", ":0", or nothing.
+	//
+	// The nearest thing Linux has to the window station and desktop the Windows
+	// column shows. It is not the same object - there is no securable desktop
+	// here - but it answers the same question: which screen is this process
+	// attached to, and is it the one in front of me.
+	//
+	// Empty is a real answer and the common one: a daemon has no display, and
+	// two thirds of the processes on an ordinary machine are daemons.
+	//
+	virtual QString			GetUsedDesktop() const	{ QReadLocker Locker(&m_Mutex); return m_UsedDesktop; }
+
+	//
+	// Read on demand rather than on every refresh: these are a dozen extra file
+	// reads per process and only one process's worth is ever on screen. The
+	// caller is the cgroup view, which asks for the selected process only.
+	//
+	virtual SCGroupStats	GetCGroupStats() const;
+	virtual SResourcePressure GetCGroupPressure(const QString& Resource) const;
 
 	//
 	// Out of memory killer badness. The score is what the kernel currently
@@ -138,11 +155,75 @@ public:
 	// Container or sandbox this process runs in; empty when it is on the host.
 	virtual QString			GetContainer() const	{ QReadLocker Locker(&m_Mutex); return m_Container; }
 
+	virtual SWineInfo		GetWineInfo() const		{ QReadLocker Locker(&m_Mutex); return m_Wine; }
+
+	//
+	// What the process calls itself, where that is not simply its image name.
+	//
+	// The name column carries the image, as on Windows; this is the other name
+	// a Linux process has - comm, set with prctl(PR_SET_NAME) - and it is the
+	// only thing that tells one firefox child from another. Where a program has
+	// not renamed itself, comm is the image name again and says nothing, so the
+	// image's own description is answered instead and the column reads as it
+	// does on Windows.
+	//
+	// A comm that is a prefix of the image name is the kernel's 15-character
+	// truncation of it rather than a name of its own, and is not repeated here.
+	//
+	virtual QString			GetDescription() const;
+
+	//
+	// A window of this process by its handle, which for a Wine window is not
+	// what it is filed under - see c_WineWindowKey.
+	//
+	virtual CWndPtr			GetWindow(quint64 hWnd) const;
+
+	//
+	// A Linux process has a run state rather than a set of flags, so this is
+	// empty for almost all of them - but Wine is a genuine flag and the status
+	// column reads it from here, which is what puts it on every row rather than
+	// only on the selected one.
+	//
+	//
+	// What is notable about this process, as the same flags Windows uses.
+	//
+	// A Linux process has a run state where a Windows one has a set of flags,
+	// and the status column used to show only that - one word, where the same
+	// column on Windows says "Elevated, Service, Packaged". Everything here is
+	// already a member read during the refresh, so this costs no extra file
+	// reads; what it does is stop the column being nearly empty on one platform.
+	//
+	// Deliberately not everything that could be said. Being in a cgroup or
+	// having a parent is true of every process and says nothing.
+	//
+	virtual quint32			GetStatusFlags() const;
+
+	//
+	// What Windows calls this process, once the bridge has paired the two
+	// halves. Set from CLinuxAPI::UpdateWineIds and nowhere else.
+	//
+	//
+	// The Windows token, for a process under Wine. Null everywhere else, which
+	// is what the base class returns and what every view already handles.
+	//
+	virtual CTokenInfoPtr	GetToken() const	{ QReadLocker Locker(&m_Mutex); return m_pWineToken; }
+	void					SetWineToken(const CTokenInfoPtr& pToken)
+							{ QWriteLocker Locker(&m_Mutex); m_pWineToken = pToken; }
+
+	void					SetWineIds(quint32 WinPid, quint32 WinParentPid)
+							{ QWriteLocker Locker(&m_Mutex); m_Wine.WinPid = WinPid; m_Wine.WinParentPid = WinParentPid; }
+
 	// LSM profile, e.g. "snap.firefox.firefox (enforce)"; "unconfined" when an
 	// LSM is active but does not confine this process.
 	virtual QString			GetConfinement() const	{ QReadLocker Locker(&m_Mutex); return m_Confinement; }
 
-	virtual ProcFs::SNamespaces	GetNamespaces() const { QReadLocker Locker(&m_Mutex); return m_Namespaces; }
+	virtual SProcessNamespaces	GetNamespaces() const { QReadLocker Locker(&m_Mutex); return m_Namespaces; }
+
+	//
+	// Read on demand: /proc/<pid>/status and attr/current, for the one process
+	// the security view has selected.
+	//
+	virtual SProcessSecurity	GetProcessSecurity() const;
 
 	//
 	// inotify watches held by this process.
@@ -188,8 +269,12 @@ protected:
 
 	// Static for the life of the process; read once in InitStaticData.
 	QString					m_CGroupPath;
+	QString					m_UsedDesktop;
 	QString					m_Confinement;
 	QString					m_Container;
+	SWineInfo				m_Wine;
+	QString					m_Comm;
+	CTokenInfoPtr			m_pWineToken;
 	ProcFs::SNamespaces		m_Namespaces;
 
 	int						m_OomScore;

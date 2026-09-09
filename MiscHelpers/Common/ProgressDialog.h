@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../mischelpers_global.h"
+#include "../guihelpers_global.h"
 #include "Common.h"
 
-class MISCHELPERS_EXPORT CProgressDialog : public QDialog
+class GUIHELPERS_EXPORT CProgressDialog : public QDialog
 {
 	Q_OBJECT
 
@@ -164,7 +164,7 @@ protected:
 
 typedef QSharedPointer<CProgressDialog> CProgressDialogPtr;
 
-class MISCHELPERS_EXPORT CProgressDialogHelper
+class GUIHELPERS_EXPORT CProgressDialogHelper
 {
 public:
 	CProgressDialogHelper(const QString& Prompt, int TotalCount, QWidget* parent = nullptr)

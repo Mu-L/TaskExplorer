@@ -1,9 +1,9 @@
 #pragma once
 #include "TreeViewEx.h"
 
-#include "../mischelpers_global.h"
+#include "../guihelpers_global.h"
 
-class MISCHELPERS_EXPORT CListItemModel : public QAbstractItemModelEx
+class GUIHELPERS_EXPORT CListItemModel : public QAbstractItemModelEx
 {
     Q_OBJECT
 
@@ -15,6 +15,7 @@ public:
 	static void		SetDarkMode(bool bDark)			{ m_DarkMode = bDark;}
 
 	QModelIndex		FindIndex(const QVariant& ID);
+	QVariant		GetItemID(const QModelIndex& index) const;
 
 	QVariant		Data(const QModelIndex &index, int role, int section) const;
 
@@ -75,7 +76,7 @@ protected:
 	static bool					m_DarkMode;
 };
 
-class MISCHELPERS_EXPORT CSimpleListModel : public CListItemModel
+class GUIHELPERS_EXPORT CSimpleListModel : public CListItemModel
 {
 	Q_OBJECT
 

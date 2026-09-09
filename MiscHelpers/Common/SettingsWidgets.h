@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../mischelpers_global.h"
+#include "../guihelpers_global.h"
 
-class MISCHELPERS_EXPORT CMultiLineEdit: public QPlainTextEdit
+class GUIHELPERS_EXPORT CMultiLineEdit: public QPlainTextEdit
 {
 	Q_OBJECT
 public:
@@ -20,7 +20,7 @@ public:
 ///////////////////////////////////////////////////
 //
 
-class MISCHELPERS_EXPORT QNumEdit: public QLineEdit
+class GUIHELPERS_EXPORT QNumEdit: public QLineEdit
 {
 	Q_OBJECT
 
@@ -36,7 +36,7 @@ public:
 	///////////////////////////////////////////////////
 //
 
-class MISCHELPERS_EXPORT CKbpsEdit: public QNumEdit
+class GUIHELPERS_EXPORT CKbpsEdit: public QNumEdit
 {
 	Q_OBJECT
 
@@ -65,7 +65,7 @@ protected:
 ///////////////////////////////////////////////////
 //
 
-class MISCHELPERS_EXPORT CFactorEdit: public QNumEdit
+class GUIHELPERS_EXPORT CFactorEdit: public QNumEdit
 {
 	Q_OBJECT
 
@@ -92,7 +92,7 @@ protected:
 ///////////////////////////////////////////////////
 //
 
-class MISCHELPERS_EXPORT CSpinBoxEx: public QSpinBox
+class GUIHELPERS_EXPORT CSpinBoxEx: public QSpinBox
 {
 	Q_OBJECT
 public:
@@ -117,7 +117,7 @@ protected:
 ///////////////////////////////////////////////////
 //
 
-class MISCHELPERS_EXPORT CTxtEdit: public QWidget
+class GUIHELPERS_EXPORT CTxtEdit: public QWidget
 {
 	Q_OBJECT
 
@@ -133,7 +133,7 @@ public:
 ///////////////////////////////////////////////////
 // CPathEdit
 
-class MISCHELPERS_EXPORT CPathEdit: public CTxtEdit
+class GUIHELPERS_EXPORT CPathEdit: public CTxtEdit
 {
     Q_OBJECT
 public:
@@ -160,7 +160,7 @@ protected:
 ///////////////////////////////////////////////////
 // CProxyEdit
 
-class MISCHELPERS_EXPORT CProxyEdit: public CTxtEdit
+class GUIHELPERS_EXPORT CProxyEdit: public CTxtEdit
 {
 	Q_OBJECT
 
@@ -184,7 +184,7 @@ protected:
 ///////////////////////////////////////////////////
 //
 
-class MISCHELPERS_EXPORT QComboBoxEx: public QComboBox 
+class GUIHELPERS_EXPORT QComboBoxEx: public QComboBox 
 {
 	Q_OBJECT
 
@@ -199,7 +199,7 @@ public:
 ///////////////////////////////////////////////////
 //
 
-class MISCHELPERS_EXPORT QCheckBoxEx: public QCheckBox
+class GUIHELPERS_EXPORT QCheckBoxEx: public QCheckBox
 {
 	Q_OBJECT
 public:
@@ -245,7 +245,7 @@ protected:
 ///////////////////////////////////////////////////
 //
 
-class MISCHELPERS_EXPORT QSecretCheckBox: public QCheckBoxEx
+class GUIHELPERS_EXPORT QSecretCheckBox: public QCheckBoxEx
 {
 	Q_OBJECT
 public:
@@ -265,7 +265,7 @@ protected:
 ///////////////////////////////////////////////////
 // QSpinBoxEx
 
-class MISCHELPERS_EXPORT QSpinBoxEx: public QSpinBox
+class GUIHELPERS_EXPORT QSpinBoxEx: public QSpinBox
 {
 public:
 	QSpinBoxEx(QWidget* parent, const QString& Default, const QString& Suffix = "", bool exponential = false) : QSpinBox(parent)
@@ -312,10 +312,10 @@ protected:
 ///////////////////////////////////////////////////
 // CMenuAction & CActionWidget
 
-class MISCHELPERS_EXPORT QMenu_: public QMenu { public: void initStyleOption_(QStyleOptionMenuItem *option, const QAction *action) const {QMenu::initStyleOption(option, action);} };
+class GUIHELPERS_EXPORT QMenu_: public QMenu { public: void initStyleOption_(QStyleOptionMenuItem *option, const QAction *action) const {QMenu::initStyleOption(option, action);} };
 
 
-class MISCHELPERS_EXPORT CActionWidget: public QWidget
+class GUIHELPERS_EXPORT CActionWidget: public QWidget
 {
 public:
 	CActionWidget(QWidget* parent = 0) : QWidget(parent) {}
@@ -334,7 +334,7 @@ public:
 	}
 };
 
-class MISCHELPERS_EXPORT CMenuAction: public QWidgetAction 
+class GUIHELPERS_EXPORT CMenuAction: public QWidgetAction 
 {
 public:
 	CMenuAction (QWidget* pControll, const QString& Title, QString IconFile = "") : QWidgetAction (pControll->parent())
@@ -371,7 +371,7 @@ public:
 ///////////////////////////////////////////////////
 // QCheckComboBox
 
-class MISCHELPERS_EXPORT QCheckComboBox : public QComboBox
+class GUIHELPERS_EXPORT QCheckComboBox : public QComboBox
 {
 	Q_OBJECT
 public:

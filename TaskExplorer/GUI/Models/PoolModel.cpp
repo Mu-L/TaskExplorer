@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "../TaskExplorer.h"
+#include "../TaskStrings.h"
 #include "PoolModel.h"
 #include "../../../MiscHelpers/Common/Common.h"
 
@@ -55,7 +56,7 @@ void CPoolModel::Sync(QMap<quint64, CPoolEntryPtr> PoolEntryList)
 			QVariant Value;
 			switch(section)
 			{
-    			case eTagName:			Value = pPoolEntry->GetTagString(); break;
+    			case eTagName:			Value = ::GetPoolTagString(pPoolEntry->GetTag()); break;
     			case eDriver:			Value = pPoolEntry->GetDriver(); break;
     			case eDescription:		Value = pPoolEntry->GetDescription(); break;
     			case ePagedAllocs:		Value = EntryStats.PagedAllocsDelta.Value; break;

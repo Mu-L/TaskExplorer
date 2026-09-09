@@ -2,10 +2,6 @@
 #include "../TaskExplorer.h"
 #include "DriverModel.h"
 #include "../../../MiscHelpers/Common/Common.h"
-#ifdef WIN32
-#include "../../API/Windows/WinDriver.h"
-#endif
-
 CDriverModel::CDriverModel(QObject *parent)
 :CListItemModel(parent)
 {
@@ -45,10 +41,6 @@ void CDriverModel::Sync(QMap<QString, CDriverPtr> DriverList)
 		bool Changed = false;
 
 		CModulePtr pModule = pDriver->GetModuleInfo();
-#ifdef WIN32
-		CWinDriver* pWinDriver = qobject_cast<CWinDriver*>(pDriver.data());
-#endif
-
 		for(int section = 0; section < columnCount(); section++)
 		{
 			if (m_ColumnsOff.contains(section))
@@ -58,14 +50,15 @@ void CDriverModel::Sync(QMap<QString, CDriverPtr> DriverList)
 			switch(section)
 			{
 				case eDriver:				Value = pDriver->GetFileName(); break;
-#ifdef WIN32
-				case eImageBase:			Value = pWinDriver->GetImageBase(); break;
-				case eImageSize:			Value = pWinDriver->GetImageSize(); break;
+				case eImageBase:			Value = pDriver->GetImageBase(); break;
+				case eImageSize:			Value = pDriver->GetImageSize(); break;
 				case eDescription:			Value = pModule ? pModule->GetFileInfo("Description") : ""; break;
 				case eCompanyName:			Value = pModule ? pModule->GetFileInfo("CompanyName") : ""; break;
 				case eVersion:				Value = pModule ? pModule->GetFileInfo("FileVersion") : ""; break;
-#endif
 				case eBinaryPath:			Value = pDriver->GetBinaryPath(); break;
+				case eRefCount:				Value = pDriver->GetRefCount(); break;
+				case eUsedBy:				Value = pDriver->GetUsedBy(); break;
+				case eState:				Value = pDriver->GetState(); break;
 			}
 
 			SDriverNode::SValue& ColValue = pNode->Values[section];
@@ -78,10 +71,8 @@ void CDriverModel::Sync(QMap<QString, CDriverPtr> DriverList)
 				switch (section)
 				{
                     case eDriver: break;
-#ifdef WIN32
 					case eImageBase:	ColValue.Formatted = FormatAddress(Value.toULongLong()); break;
 					case eImageSize:	ColValue.Formatted = FormatSize(Value.toULongLong()); break;			
-#endif
 				}
 			}
 
@@ -122,15 +113,21 @@ QVariant CDriverModel::headerData(int section, Qt::Orientation orientation, int 
 	{
 		switch(section)
 		{
-			case eDriver:				return tr("Driver");
-#ifdef WIN32
+			//
+			// "Name", not "Driver": one tab serves both kinds of machine now,
+			// and what it lists is a driver on Windows and a kernel module on
+			// Linux. The neutral word is true of both.
+			//
+			case eDriver:				return tr("Name");
 			case eImageBase:			return tr("Image base");
 			case eImageSize:			return tr("Image size");
 			case eDescription:			return tr("Description");
 			case eCompanyName:			return tr("Company name");
 			case eVersion:				return tr("Version");
-#endif
 			case eBinaryPath:			return tr("Binary path");
+			case eRefCount:				return tr("Ref count");
+			case eUsedBy:				return tr("Used by");
+			case eState:				return tr("State");
 		}
 	}
     return QVariant();

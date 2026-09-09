@@ -33,11 +33,11 @@ void CWinStringFinder::run()
 	{
 		STATUS status = FindStrings(m_pProcess);
 		if (status.IsError())
-			emit Error(status.GetText(), status.GetStatus());
+			emit Error(status);
 	}
 	else
 	{
-		QMap<quint64, CProcessPtr> Processes = theAPI->GetProcessList();
+		QMap<quint64, CProcessPtr> Processes = m_pSystem->GetProcessList();
 		int Modulo = Processes.count() / 100;
 		int i = 0;
 		for (QMap<quint64, CProcessPtr>::iterator I = Processes.begin(); I != Processes.end() && !m_bCancel; ++I)
@@ -48,7 +48,7 @@ void CWinStringFinder::run()
 			STATUS status = FindStrings(I.value());
 			if (status.IsError() && status.GetStatus() > 0)
 			{
-				emit Error(status.GetText(), status.GetStatus());
+				emit Error(status);
 				break;
 			}
 		}
@@ -95,10 +95,10 @@ STATUS CWinStringFinder::FindStrings(const CProcessPtr& pProcess)
 	{
 		hex = QByteArray::fromHex(m_RegExp.pattern().toLatin1());
 		if (hex.length() < 2)
-			return ERR(tr("Match String to short, min length 2"), ERROR_PARAMS);
+			return ERR(TE_MatchStringMin2, ERROR_PARAMS);
 	}
 	else if (minimumLength < 4)
-        return ERR(tr("Match String to short, min length 4"), ERROR_PARAMS);
+        return ERR(TE_MatchStringMin4, ERROR_PARAMS);
 
     baseAddress = (PVOID)0;
 
@@ -106,7 +106,7 @@ STATUS CWinStringFinder::FindStrings(const CProcessPtr& pProcess)
     buffer = (PUCHAR)PhAllocatePage(bufferSize, NULL);
 
     if (!buffer)
-        return ERR(tr("Allocation error"), ERROR_INTERNAL);
+        return ERR(TE_AllocationError, ERROR_INTERNAL);
 
     displayBufferCount = PH_DISPLAY_BUFFER_COUNT;
     displayBuffer = (PWSTR)PhAllocatePage((displayBufferCount + 1) * sizeof(WCHAR), NULL);
@@ -114,14 +114,14 @@ STATUS CWinStringFinder::FindStrings(const CProcessPtr& pProcess)
     if (!displayBuffer)
     {
         PhFreePage(buffer);
-        return ERR(tr("Allocation error"), ERROR_INTERNAL);
+        return ERR(TE_AllocationError, ERROR_INTERNAL);
     }
 
     if (!NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, (HANDLE)pProcess->GetProcessId())))
     {
 		PhFreePage(buffer);
 		PhFreePage(displayBuffer);
-        return ERR(tr("Unable to open the process"), status);
+        return ERR(TE_OpenProc2, status);
     }
 
     while (NT_SUCCESS(NtQueryVirtualMemory(processHandle, baseAddress, MemoryBasicInformation, &basicInfo, sizeof(MEMORY_BASIC_INFORMATION), NULL)))
@@ -396,7 +396,7 @@ ContinueLoop:
 	emit Results(List);
 
 	if(!buffer)
-		return ERR(tr("Allocation error"), ERROR_INTERNAL);
+		return ERR(TE_AllocationError, ERROR_INTERNAL);
 
 	return OK;
 }

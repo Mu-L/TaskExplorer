@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "../TaskStrings.h"
 #include "../TaskExplorer.h"
 #include "JobView.h"
 #include "../ProcessPicker.h"
@@ -119,6 +120,7 @@ CJobView::CJobView(QWidget *parent)
 	m_pAdvancedTabs->addTab(m_pJobStats, tr("Statistics"));
 
 	m_pPermissions = new QPushButton(tr("Permissions"));
+	m_pPermissions->setEnabled(theSystem->HasCapability(CSystemAPI::eCapSecurityEditor));
 	connect(m_pPermissions, SIGNAL(pressed()), this, SLOT(OnPermissions()));
 	m_pMainLayout->addWidget(m_pPermissions, row++, 4);
 
@@ -130,9 +132,7 @@ CJobView::CJobView(QWidget *parent)
 	{
 		if ((i >= CProcessModel::eCPU_History && i <= CProcessModel::eVMEM_History)
 		 || (i >= CProcessModel::eFileName && i <= CProcessModel::eFileSize)
-#ifdef WIN32
 		 || (i >= CProcessModel::eIntegrity && i <= CProcessModel::eCritical)
-#endif
 		 || (i >= CProcessModel::eCPU && i <= CProcessModel::eCyclesDelta)
 		 || (i >= CProcessModel::ePrivateBytes && i <= CProcessModel::ePrivateBytesDelta)
 		 || (i >= CProcessModel::eGPU_Usage && i <= CProcessModel::eGPU_Adapter)
@@ -204,13 +204,13 @@ void CJobView::ShowProcesses(const QList<CProcessPtr>& Processes)
 		return;
 	}
 	
-	m_pCurProcess = pProcess.staticCast<CWinProcess>();
+	m_pCurProcess = pProcess;
 		
 	if(m_pCurProcess)
 		ShowJob(m_pCurProcess->GetJob());	
 }
 
-void CJobView::ShowJob(const CWinJobPtr& pJob)
+void CJobView::ShowJob(const CJobInfoPtr& pJob)
 {
 	setEnabled(!pJob.isNull());
 
@@ -236,38 +236,43 @@ void CJobView::Refresh()
 
 	m_pCurJob->UpdateDynamicData();
 
-	QList<CWinJob::SJobLimit> Limits = m_pCurJob->GetLimits();
+	QList<CJobInfo::SJobLimit> Limits = m_pCurJob->GetLimits();
 
 
-	QMap<QString, QTreeWidgetItem*> OldLimits;
+	//
+	// Keyed by which limit it is, not by what the row is called - the name is a
+	// translation now and would orphan every row if the language changed.
+	//
+	QMap<int, QTreeWidgetItem*> OldLimits;
 	for(int i = 0; i < m_pLimits->GetTree()->topLevelItemCount(); ++i) 
 	{
 		QTreeWidgetItem* pItem = m_pLimits->GetTree()->topLevelItem(i);
-		QString Name = pItem->data(0, Qt::UserRole).toString();
-		Q_ASSERT(!OldLimits.contains(Name));
-		OldLimits.insert(Name,pItem);
+		int Which = pItem->data(0, Qt::UserRole).toInt();
+		Q_ASSERT(!OldLimits.contains(Which));
+		OldLimits.insert(Which,pItem);
 	}
 
-	for(QList<CWinJob::SJobLimit>::iterator I = Limits.begin(); I != Limits.end(); ++I)
+	for(QList<CJobInfo::SJobLimit>::iterator I = Limits.begin(); I != Limits.end(); ++I)
 	{
-		QTreeWidgetItem* pItem = OldLimits.take(I->Name);
+		QTreeWidgetItem* pItem = OldLimits.take(I->Which);
 		if(!pItem)
 		{
 			pItem = new QTreeWidgetItem();
-			pItem->setData(0, Qt::UserRole, I->Name);
-			pItem->setText(0, I->Name);
+			pItem->setData(0, Qt::UserRole, (int)I->Which);
+			pItem->setText(0, ::GetJobLimitName(I->Which));
 			m_pLimits->GetTree()->addTopLevelItem(pItem);
 		}
 
 		switch (I->Type)
 		{
-		case CWinJob::SJobLimit::eString:	pItem->setText(1, I->Value.toString()); break;
-		case CWinJob::SJobLimit::eSize:		pItem->setText(1, FormatSize(I->Value.toULongLong())); break;
-		case CWinJob::SJobLimit::eTimeMs:	pItem->setText(1, FormatTime(I->Value.toULongLong(), true)); break;
-		case CWinJob::SJobLimit::eAddress:	pItem->setText(1, FormatAddress(I->Value.toULongLong())); break;
-		case CWinJob::SJobLimit::eNumber:	pItem->setText(1, QString::number(I->Value.toUInt())); break;
-		case CWinJob::SJobLimit::eEnabled:	pItem->setText(1, I->Value.toBool() ? tr("Enabled") : tr("Disabled")); break;
-		case CWinJob::SJobLimit::eLimited:	pItem->setText(1, I->Value.toBool() ? tr("Limited") : tr("Unlimited")); break;
+		case CJobInfo::SJobLimit::eString:	pItem->setText(1, I->Value.toString()); break;
+		case CJobInfo::SJobLimit::eSize:		pItem->setText(1, FormatSize(I->Value.toULongLong())); break;
+		case CJobInfo::SJobLimit::eTimeMs:	pItem->setText(1, FormatTime(I->Value.toULongLong(), true)); break;
+		case CJobInfo::SJobLimit::eAddress:	pItem->setText(1, FormatAddress(I->Value.toULongLong())); break;
+		case CJobInfo::SJobLimit::eNumber:	pItem->setText(1, QString::number(I->Value.toUInt())); break;
+		case CJobInfo::SJobLimit::ePriorityClass: pItem->setText(1, GetPriorityClassString(I->Value.toInt())); break;
+		case CJobInfo::SJobLimit::eEnabled:	pItem->setText(1, I->Value.toBool() ? tr("Enabled") : tr("Disabled")); break;
+		case CJobInfo::SJobLimit::eLimited:	pItem->setText(1, I->Value.toBool() ? tr("Limited") : tr("Unlimited")); break;
 		}
 	}
 
@@ -292,7 +297,7 @@ void CJobView::OnMenu(const QPoint &point)
 void CJobView::OnPermissions()
 {
 	if (m_pCurJob)
-		m_pCurJob->OpenPermissions();
+		CTaskExplorer::ShowSecurity(m_pCurJob->GetSecurityObject(), this);
 }
 
 void CJobView::OnTerminate()

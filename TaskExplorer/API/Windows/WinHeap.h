@@ -12,11 +12,10 @@ public:
 	virtual ~CWinHeap();
 
 	virtual quint32 GetFlags() const;
-	virtual QString GetFlagsString() const;
 	virtual quint32 GetClass() const;
-	virtual QString GetClassString() const;
+	virtual int GetHeapKind() const;
+	virtual int GetFrontEndType() const;
 	virtual quint32 GetType() const;
-	virtual QString GetTypeString() const;
 	
 protected:
 	friend class CWinProcess;

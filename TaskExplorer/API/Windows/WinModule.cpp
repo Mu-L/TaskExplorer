@@ -8,6 +8,36 @@
 #include <QtWin>
 #endif
 
+//
+// QImage, for the encoder below. The only QtGui in the collector, and the
+// reason TaskCore links Qt6::Gui on Windows and not on Linux.
+//
+#include <QImage>
+#include <QBuffer>
+
+//
+// An icon handle turned into the bytes of a PNG.
+//
+// This runs on a worker thread, and what it produces is stored and later sent
+// to whoever is looking - so it has to be data, not a QPixmap. A QPixmap needs
+// a QGuiApplication, belongs to the thread that made it, and cannot be
+// serialised; QImage has none of those problems and knows how to encode itself.
+//
+static QByteArray CWinModule__EncodeIcon(HICON Icon)
+{
+	const QImage Image = QImage::fromHICON(Icon);
+	if (Image.isNull())
+		return QByteArray();
+
+	QByteArray Bytes;
+	QBuffer Buffer(&Bytes);
+	Buffer.open(QIODevice::WriteOnly);
+	if (!Image.save(&Buffer, "PNG"))
+		return QByteArray();
+
+	return Bytes;
+}
+
 CWinModule::CWinModule(quint64 ProcessId, bool IsSubsystemProcess, QObject *parent) 
 	: CModuleInfo(parent) 
 {
@@ -502,21 +532,13 @@ QVariantMap CWinModule::InitAsyncData(QVariantMap Params)
 
 		if (SmallIcon)
 		{
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)		
-			Result["SmallIcon"] = QtWin::fromHICON(SmallIcon);
-#else
-			Result["SmallIcon"] = QImage::fromHICON(SmallIcon);
-#endif
+			Result["SmallIcon"] = CWinModule__EncodeIcon(SmallIcon);
 			DestroyIcon(SmallIcon);
 		}
 
 		if (LargeIcon)
 		{
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-			Result["LargeIcon"] = QtWin::fromHICON(LargeIcon);
-#else
-			Result["LargeIcon"] = QImage::fromHICON(LargeIcon);
-#endif
+			Result["LargeIcon"] = CWinModule__EncodeIcon(LargeIcon);
 			DestroyIcon(LargeIcon);
 		}
 
@@ -581,13 +603,15 @@ QVariantMap CWinModule::InitAsyncData(QVariantMap Params)
 void CWinModule::OnInitAsyncData(int Index)
 {
 	QFutureWatcher<QVariantMap>* pWatcher = (QFutureWatcher<QVariantMap>*)sender();
+	if (!pWatcher)
+		return;
 
 	QVariantMap Result = pWatcher->resultAt(Index);
 
 	QWriteLocker Locker(&m_Mutex);
 
-	m_SmallIcon = Result["SmallIcon"].value<QPixmap>();
-	m_LargeIcon = Result["LargeIcon"].value<QPixmap>();
+	m_SmallIcon = Result["SmallIcon"].toByteArray();
+	m_LargeIcon = Result["LargeIcon"].toByteArray();
 
 	m_FileDetails.clear();
 	QVariantMap Infos = Result["Infos"].toMap();
@@ -604,129 +628,18 @@ void CWinModule::OnInitAsyncData(int Index)
 	emit AsyncDataDone(Result["IsPacked"].toBool(), Result["ImportFunctions"].toUInt(), Result["ImportModules"].toUInt());
 }
 
-QString CWinModule::GetTypeString() const
+quint32 CWinModule::GetMitigationFlags() const
 {
 	QReadLocker Locker(&m_Mutex);
 
-    switch (m_Type)
-    {
-    case PH_MODULE_TYPE_MODULE:
-        return tr("DLL");
-    case PH_MODULE_TYPE_MAPPED_FILE:
-        return tr("Mapped file");
-	case -1:
-    case PH_MODULE_TYPE_MAPPED_IMAGE:
-        return tr("Mapped image");
-    case PH_MODULE_TYPE_WOW64_MODULE:
-        return tr("WOW64 DLL");
-    case PH_MODULE_TYPE_KERNEL_MODULE:
-        return tr("Kernel module");
-	case PH_MODULE_TYPE_ENCLAVE_MODULE:
-		return tr("Enclave module");
-    default:	
-		return tr("Unknown %1").arg(m_Type);
-    }
-}
-
-QString CWinModule::GetEnclaveTypeString() const
-{
-	QReadLocker Locker(&m_Mutex);
-
-	switch (m_EnclaveType)
-	{
-	case ENCLAVE_TYPE_SGX: return tr("SGX");
-	case ENCLAVE_TYPE_SGX2: return tr("SGX2");
-	case ENCLAVE_TYPE_VBS: return tr("VBS");
-	default: return tr("Unknown");
-	}
-}
-
-QString CWinModule::GetImageMachineString() const
-{
-	// We read the remote process memory for ImageMachine when possible. For
-	// ARM64X/CHPE the OS will fix up the image haeder in the process, this
-	// should generally reflect the module machine correctly (unless we can't
-	// read the remote process address space).
-	switch (m_ImageMachine)
-	{
-	case IMAGE_FILE_MACHINE_I386:
-		return m_ImageCHPEVersion ? tr("x86 (CHPE)") : tr("x86");
-	case IMAGE_FILE_MACHINE_AMD64:
-		return m_ImageCHPEVersion ? tr("x64 (ARM64X)") : tr("x64");
-	case IMAGE_FILE_MACHINE_ARMNT:
-		return tr("ARM");
-	case IMAGE_FILE_MACHINE_ARM64:
-		return m_ImageCHPEVersion ? tr("ARM64 (ARM64X)") : tr("ARM64");
-	default:
-		return "";
-	}
-}
-
-QString CWinModule::GetVerifyResultString() const
-{
-	QReadLocker Locker(&m_Mutex);
-	
-	switch (m_VerifyResult)
-	{
-	case VrTrusted:			return tr("Trusted");
-	case VrNoSignature:		return tr("Un signed");
-	case VrExpired:
-	case VrRevoked:
-	case VrDistrust:
-	case VrBadSignature:	return tr("Not trusted");
-	default:				return tr("Unknown");
-	}
-}
-
-QString CWinModule::GetMitigationsString() const
-{
-	QStringList Strs; // todo: cache this
-	QReadLocker Locker(&m_Mutex); 
+	quint32 Flags = 0;
 	if (m_ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE)
-		Strs.append(tr("ASLR"));
+		Flags |= eImageAslr;
 	if (m_ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF)
-		Strs.append(tr("CFG"));
+		Flags |= eImageCfg;
 	if (m_ImageDllCharacteristicsEx & IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT)
-		Strs.append(tr("CET"));
-	return Strs.join(", ");
-}
-
-QString CWinModule::GetLoadReasonString() const
-{
-	QReadLocker Locker(&m_Mutex);
-
-	if (m_Type == PH_MODULE_TYPE_KERNEL_MODULE)
-    {
-        return tr("Dynamic");
-    }
-    else if (m_Type == PH_MODULE_TYPE_MODULE || m_Type == PH_MODULE_TYPE_WOW64_MODULE)
-    {
-        switch ((_LDR_DLL_LOAD_REASON)m_LoadReason)
-        {
-        case LoadReasonStaticDependency:			return tr("Static dependency");
-        case LoadReasonStaticForwarderDependency:	return tr("Static forwarder dependency");
-        case LoadReasonDynamicForwarderDependency:	return tr("Dynamic forwarder dependency");
-        case LoadReasonDelayloadDependency:			return tr("Delay load dependency");
-        case LoadReasonDynamicLoad:					return tr("Dynamic");
-        case LoadReasonAsImageLoad:					return tr("As image");
-        case LoadReasonAsDataLoad:					return tr("As data");
-        case LoadReasonEnclavePrimary:				return tr("Enclave");
-        case LoadReasonEnclaveDependency:			return tr("Enclave dependency");
-        default:
-			if (WindowsVersion >= WINDOWS_8)
-				return tr("Unknown %1").arg(m_LoadReason);
-			else
-				return tr("N/A");
-        }
-    }
-	return QString();
-}
-
-QString CWinModule::GetImageCoherencyString() const
-{
-	QReadLocker Locker(&m_Mutex);
-
-	return m_ImageCoherency != -1 ? QString::number(m_ImageCoherency * 100.0F, 'f', 2) : ""; 
+		Flags |= eImageCet;
+	return Flags;
 }
 
 STATUS CWinModule::Unload(bool bForce)
@@ -741,7 +654,7 @@ STATUS CWinModule::Unload(bool bForce)
     case PH_MODULE_TYPE_MODULE:
     case PH_MODULE_TYPE_WOW64_MODULE:
 		//if(!bForce)
-		//	return ERR(tr("Unloading a module may cause the process to crash."), ERROR_CONFIRM);
+		//	return ERR(TE_ConfirmUnloadModule, ERROR_CONFIRM);
 
         if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE, ProcessId)))
         {
@@ -752,19 +665,19 @@ STATUS CWinModule::Unload(bool bForce)
 
         if (status == STATUS_DLL_NOT_FOUND)
         {
-            return ERR(tr("Unable to find the module to unload."));
+            return ERR(TE_FindModuleUnload);
         }
 
         if (!NT_SUCCESS(status))
         {
-            return ERR(tr("Unable to unload the module."));
+            return ERR(TE_UnloadModule);
         }
 
         break;
 
     case PH_MODULE_TYPE_KERNEL_MODULE:
 		if(!bForce)
-			return ERR(tr("Unloading a driver may cause system instability."), ERROR_CONFIRM);
+			return ERR(TE_ConfirmUnloadDriver, ERROR_CONFIRM);
 
 		{
 			std::wstring Name = m_ModuleName.toStdWString();
@@ -776,7 +689,7 @@ STATUS CWinModule::Unload(bool bForce)
 
         if (!NT_SUCCESS(status))
         {
-			return ERR(tr("Unable to unload driver."), status);
+			return ERR(TE_UnloadDriver, status);
         }
 
         break;
@@ -784,7 +697,7 @@ STATUS CWinModule::Unload(bool bForce)
     case PH_MODULE_TYPE_MAPPED_FILE:
     case PH_MODULE_TYPE_MAPPED_IMAGE:
 		//if(!bForce)
-		//	return ERR(tr("Unmapping a section view may cause the process to crash."), ERROR_CONFIRM);
+		//	return ERR(TE_ConfirmUnmapSection, ERROR_CONFIRM);
 
         if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_VM_OPERATION, ProcessId)))
         {
@@ -794,13 +707,13 @@ STATUS CWinModule::Unload(bool bForce)
 
         if (!NT_SUCCESS(status))
         {
-			return ERR(tr("Unable to unmap the section view at 0x%1").arg(QString::number(m_BaseAddress, 16)));
+			return ERR(TE_UnmapSectionView, QVariantList() << m_BaseAddress);
         }
 
         break;
 
     default:
-        return ERR(tr("Unknown module type!"));
+        return ERR(TE_UnknownModuleType);
     }
 
     return OK;
@@ -812,7 +725,7 @@ void CWinModule::SetModifiedPage(quint64 VirtualAddress)
 	SModPage& Page = m_ModifiedPages[VirtualAddress];
 	if (!Page.VirtualAddress) {
 		Page.VirtualAddress = VirtualAddress;
-		qobject_cast<CWindowsAPI*>(theAPI)->GetSymbolProvider()->GetSymbolFromAddress(m_ProcessId, VirtualAddress, this, SLOT(OnSymbolFromAddress(quint64, quint64, int, const QString&, const QString&, const QString&)));
+		qobject_cast<CWindowsAPI*>(m_pSystem)->GetSymbolProvider()->GetSymbolFromAddress(m_ProcessId, VirtualAddress, this, SLOT(OnSymbolFromAddress(quint64, quint64, int, const QString&, const QString&, const QString&)));
 	}
 }
 
@@ -939,3 +852,49 @@ quint64 CWinMainModule::GetPebBaseAddress(bool bWow64) const
 	QReadLocker Locker(&m_Mutex); 
 	return bWow64 ? m_PebBaseAddress32 : m_PebBaseAddress;
 }
+
+//
+// The load reason is only meaningful from Windows 8 onwards; before that the
+// field is not filled in, so the target says so rather than letting a viewer
+// read a stale zero as "static dependency".
+//
+qint32 CWinModule::GetLoadReason() const
+{
+	QReadLocker Locker(&m_Mutex);
+
+	if (m_Type == PH_MODULE_TYPE_KERNEL_MODULE)
+		return eLoadDynamic;
+
+	if (m_Type != PH_MODULE_TYPE_MODULE && m_Type != PH_MODULE_TYPE_WOW64_MODULE)
+		return eLoadReasonNotAvailable;
+
+	if (WindowsVersion < WINDOWS_8)
+		return eLoadReasonNotAvailable;
+
+	return (qint32)m_LoadReason;
+}
+
+//
+// The wire carries the platform's own numbering for all of this, so a drift
+// has to break the build rather than a word on someone's screen.
+//
+static_assert(CModuleInfo::eModuleDll         == PH_MODULE_TYPE_MODULE,         "module type drifted");
+static_assert(CModuleInfo::eModuleMappedFile  == PH_MODULE_TYPE_MAPPED_FILE,    "module type drifted");
+static_assert(CModuleInfo::eModuleWow64Dll    == PH_MODULE_TYPE_WOW64_MODULE,   "module type drifted");
+static_assert(CModuleInfo::eModuleKernel      == PH_MODULE_TYPE_KERNEL_MODULE,  "module type drifted");
+static_assert(CModuleInfo::eModuleMappedImage == PH_MODULE_TYPE_MAPPED_IMAGE,   "module type drifted");
+static_assert(CModuleInfo::eModuleEnclave     == PH_MODULE_TYPE_ENCLAVE_MODULE, "module type drifted");
+
+static_assert(CModuleInfo::eLoadStaticDependency        == LoadReasonStaticDependency,        "load reason drifted");
+static_assert(CModuleInfo::eLoadDelayloadDependency     == LoadReasonDelayloadDependency,     "load reason drifted");
+static_assert(CModuleInfo::eLoadDynamic                 == LoadReasonDynamicLoad,             "load reason drifted");
+static_assert(CModuleInfo::eLoadEnclaveDependency       == LoadReasonEnclaveDependency,       "load reason drifted");
+
+static_assert(CModuleInfo::eMachineI386  == IMAGE_FILE_MACHINE_I386,  "image machine drifted");
+static_assert(CModuleInfo::eMachineArmNt == IMAGE_FILE_MACHINE_ARMNT, "image machine drifted");
+static_assert(CModuleInfo::eMachineAmd64 == IMAGE_FILE_MACHINE_AMD64, "image machine drifted");
+static_assert(CModuleInfo::eMachineArm64 == IMAGE_FILE_MACHINE_ARM64, "image machine drifted");
+
+static_assert(CModuleInfo::eEnclaveSgx  == ENCLAVE_TYPE_SGX,  "enclave type drifted");
+static_assert(CModuleInfo::eEnclaveSgx2 == ENCLAVE_TYPE_SGX2, "enclave type drifted");
+static_assert(CModuleInfo::eEnclaveVbs  == ENCLAVE_TYPE_VBS,  "enclave type drifted");

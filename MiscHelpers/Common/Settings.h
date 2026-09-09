@@ -5,9 +5,9 @@
 #include <QMutex>
 #include <QStringList>
 
-#include "../mischelpers_global.h"
+#include "../corehelpers_global.h"
 
-class MISCHELPERS_EXPORT CSettings: public QObject
+class COREHELPERS_EXPORT CSettings: public QObject
 {
 	Q_OBJECT
 
@@ -102,6 +102,17 @@ public:
 	};
 
 	CSettings(const QString& AppDir, const QString& AppName, const QString& GroupName = QString(), QMap<QString, SSetting> DefaultValues = QMap<QString, SSetting>(), QObject* qObject = NULL);
+
+	//
+	// Settings in a directory named outright, with no searching.
+	//
+	// For a program that has nowhere else to keep them: a system service has no
+	// home directory - systemd sets no HOME at all - and the usual search then
+	// lands on "/.local/share", a directory at the root of the filesystem that
+	// nothing else will ever look in. A daemon knows where its own state
+	// belongs; this lets it say so.
+	//
+	CSettings(const QString& ConfigDir, const QString& AppName, bool bExplicit, QObject* qObject = NULL);
 	virtual ~CSettings();
 
 	void				DelValue(const QString& key);

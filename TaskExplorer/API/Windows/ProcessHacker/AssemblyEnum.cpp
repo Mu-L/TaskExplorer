@@ -20,7 +20,7 @@
 
 #include "clretw.h"
 
-CAssemblyEnum::CAssemblyEnum(quint64 ProcessId, QObject* parent) : QThread(parent) 
+CAssemblyEnum::CAssemblyEnum(quint64 ProcessId, QObject* parent) : CAssemblyEnumerator(parent) 
 {
 	//m_bCancel = false;
 

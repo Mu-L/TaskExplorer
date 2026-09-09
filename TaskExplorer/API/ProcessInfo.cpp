@@ -91,20 +91,6 @@ CProcessInfo::CProcessInfo(QObject *parent) : CAbstractTask(parent)
 CProcessInfo::~CProcessInfo()
 {
 }
-
-QString CProcessInfo::GetNetworkUsageString() const
-{
-	QReadLocker Locker(&m_StatsMutex);
-	QStringList NetworkUsage;
-	if (m_NetworkUsageFlags & NET_TYPE_PROTOCOL_TCP_SRV)
-		NetworkUsage.append(tr("TCP/Server"));
-	else if (m_NetworkUsageFlags & NET_TYPE_PROTOCOL_TCP)
-		NetworkUsage.append(tr("TCP"));
-	if (m_NetworkUsageFlags & NET_TYPE_PROTOCOL_UDP)
-		NetworkUsage.append(tr("UDP"));
-	return NetworkUsage.join(", ");
-}
-
 void CProcessInfo::UpdateDns(const QString& HostName, const QList<QHostAddress>& Addresses)
 {
 	QWriteLocker Locker(&m_DnsMutex);
@@ -114,6 +100,7 @@ void CProcessInfo::UpdateDns(const QString& HostName, const QList<QHostAddress>&
 	if (DnsEntry.isNull())
 	{
 		DnsEntry = CDnsLogEntryPtr(new CDnsLogEntry(HostName, Addresses));
+		DnsEntry->SetSystem(GetSystem());
 		NewAddresses = Addresses;
 	}
 	else
@@ -149,7 +136,7 @@ void CProcessInfo::UpdatePresets()
 
 void CProcessInfo::InitPresets()
 {
-	m_PersistentPreset = theAPI->FindPersistentPreset(m_FileName, m_CommandLine);
+	m_PersistentPreset = GetSystem()->FindPersistentPreset(m_FileName, m_CommandLine);
 	if (!m_PersistentPreset.isNull())
 		QTimer::singleShot(0, this, SLOT(ApplyPresets()));
 }

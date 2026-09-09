@@ -153,10 +153,10 @@ CLinuxDumper::~CLinuxDumper()
 STATUS CLinuxDumper::PrepareDump(const CProcessPtr& pProcess, quint32 DumpType, const QString& DumpPath)
 {
 	if (pProcess.isNull())
-		return ERR(tr("No process selected."));
+		return ERR(TE_NoProcSelected);
 
 	if (TE_CORE_MACHINE == 0)
-		return ERR(tr("Creating a core dump is not supported on this architecture."));
+		return ERR(TE_CreatingCoreDump);
 
 	m_ProcessId = pProcess->GetProcessId();
 	m_ProcessName = pProcess->GetName();
@@ -169,14 +169,14 @@ STATUS CLinuxDumper::PrepareDump(const CProcessPtr& pProcess, quint32 DumpType, 
 	// running on, which deadlocks.
 	//
 	if (m_ProcessId == (quint64)getpid())
-		return ERR(tr("TaskExplorer cannot dump its own process."));
+		return ERR(TE_CannotDumpSelf);
 
 	if (!ProcFs::FileExists(ProcFs::ProcPath(m_ProcessId)))
-		return ERR(tr("The process has exited."));
+		return ERR(TE_ProcExited);
 
 	const ProcFs::SStat Stat = ProcFs::ReadStat(m_ProcessId);
 	if (Stat.Valid && Stat.IsKernelThread)
-		return ERR(tr("Kernel threads have no user address space to dump."));
+		return ERR(TE_KernelThreadNoAddrSpace);
 
 	//
 	// A 32-bit target needs an ELF32 core with 32-bit register structures.
@@ -190,14 +190,14 @@ STATUS CLinuxDumper::PrepareDump(const CProcessPtr& pProcess, quint32 DumpType, 
 		Exe.close();
 		if (Ident.size() >= EI_NIDENT && memcmp(Ident.constData(), ELFMAG, SELFMAG) == 0
 			&& (unsigned char)Ident[EI_CLASS] == ELFCLASS32 && sizeof(void*) == 8)
-			return ERR(tr("This is a 32-bit process; only 64-bit core dumps are supported."));
+			return ERR(TE_Only64BitCoreDump);
 	}
 
 	// Fail here, where the GUI shows a message box, rather than inside the
 	// progress dialog after the process has already been stopped.
 	QFile Test(m_DumpPath);
 	if (!Test.open(QIODevice::WriteOnly | QIODevice::Truncate))
-		return ERR(tr("Cannot write to %1: %2").arg(m_DumpPath).arg(Test.errorString()));
+		return ERR(TE_CannotWrite, QVariantList() << m_DumpPath << Test.errorString());
 	Test.close();
 
 	return OK;
@@ -222,7 +222,7 @@ void CLinuxDumper::run()
 	// no atomic "stop this thread group" operation. Its memory is still in the
 	// dump, only its registers are absent.
 	//
-	emit ProgressMessage(tr("Suspending threads..."), 0);
+	emit ProgressMessage(ERR(TE_DumpSuspendingThreads), 0);
 
 	QList<SThreadState> Threads;
 	const QList<quint64> Tids = ProcFs::EnumThreads(Pid);
@@ -303,7 +303,7 @@ void CLinuxDumper::run()
 
 	if (!bAnyRegs && LinuxHelperNeeded() && theConf->GetBool("Options/UseTaskHelper", false))
 	{
-		emit ProgressMessage(tr("Asking the privileged helper to suspend threads..."), 0);
+		emit ProgressMessage(ERR(TE_DumpHelperSuspending), 0);
 
 		SHelperDumpInfo Info;
 		if (LinuxHelperDumpAttach(Pid, &Info) && Info.Valid)
@@ -367,11 +367,7 @@ void CLinuxDumper::run()
 
 	if (AttachFailures > 0 && !bAnyRegs)
 	{
-		emit StatusMessage(tr("Could not stop the process (%1). The dump will contain memory but no "
-		                      "register state, so gdb will not be able to produce a backtrace. "
-		                      "Enable the privileged helper or restart TaskExplorer elevated, or "
-		                      "lower kernel.yama.ptrace_scope.")
-			.arg(QString::fromLocal8Bit(strerror(AttachErrno))));
+		emit StatusMessage(ERR(TE_DumpNoRegisterState, QVariantList() << QString::fromLocal8Bit(strerror(AttachErrno))));
 	}
 
 	//
@@ -610,7 +606,7 @@ void CLinuxDumper::run()
 	{
 		ReleaseThreads();
 
-		emit StatusMessage(tr("Failed to create %1: %2").arg(m_DumpPath).arg(Core.errorString()), -1);
+		emit StatusMessage(ERR(TE_CannotWrite, QVariantList() << m_DumpPath << Core.errorString()));
 		return;
 	}
 
@@ -775,7 +771,7 @@ void CLinuxDumper::run()
 
 			if (Core.write(Buffer.constData(), Read) != Read)
 			{
-				emit StatusMessage(tr("Failed to write the dump: %1").arg(Core.errorString()), -1);
+				emit StatusMessage(ERR(TE_DumpWriteFailed, QVariantList() << Core.errorString()));
 				bCanceled = true;
 				break;
 			}
@@ -786,8 +782,7 @@ void CLinuxDumper::run()
 
 		if (TotalBytes)
 		{
-			emit ProgressMessage(tr("Writing memory (%1 of %2)...")
-				.arg(FormatSize(WrittenBytes)).arg(FormatSize(TotalBytes)),
+			emit ProgressMessage(ERR(TE_DumpWritingMemory, QVariantList() << WrittenBytes << TotalBytes),
 				(int)(WrittenBytes * 100 / TotalBytes));
 		}
 	}
@@ -806,15 +801,16 @@ void CLinuxDumper::run()
 	if (bCanceled)
 	{
 		QFile::remove(m_DumpPath);
-		emit StatusMessage(tr("The dump was canceled."), 0);
+		emit StatusMessage(ERR(TE_DumpCanceled));
 		return;
 	}
 
-	QString Message = tr("Core dump completed: %1").arg(FormatSize(QFileInfo(m_DumpPath).size()));
-	if (!bAnyRegs)
-		Message += tr(" - without register state, as the threads could not be stopped.");
-	else if (UnreadableBytes)
-		Message += tr(" - %1 could not be read and was written as zeros.").arg(FormatSize(UnreadableBytes));
-
-	emit StatusMessage(Message, 0);
+	//
+	// The size, and what the dump is missing if anything: no register state, or
+	// how much memory could not be read. Zero for both means it is complete.
+	//
+	emit StatusMessage(ERR(TE_CoreDumpCompleted, QVariantList()
+		<< (quint64)QFileInfo(m_DumpPath).size()
+		<< bAnyRegs
+		<< (quint64)UnreadableBytes));
 }

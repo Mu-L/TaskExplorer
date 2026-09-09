@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "../TaskExplorer.h"
+#include "../TaskStrings.h"
 #include "EnvironmentView.h"
 #include "../../../MiscHelpers/Common/KeyValueInputDialog.h"
 #include "../../../MiscHelpers/Common/Finder.h"
@@ -101,7 +102,7 @@ void CEnvironmentView::Refresh()
 		
 		QVariantMap Values;
 		Values.insert(QString::number(eName), EnvVar.Name);
-		Values.insert(QString::number(eType), EnvVar.GetType());
+		Values.insert(QString::number(eType), ::GetEnvVarTypeString(EnvVar.Type));
 		Values.insert(QString::number(eValue), EnvVar.Value);
 
 		Item["Values"] = Values;

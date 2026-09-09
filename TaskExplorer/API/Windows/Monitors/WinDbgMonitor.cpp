@@ -141,10 +141,10 @@ struct SWinDbgMonitor
         viewSize = sizeof(DBWIN_PAGE_BUFFER);
 
         if (!(BufferReadyEvent = CreateEvent(&SecurityAttributes, FALSE, FALSE, (std::wstring(bGlobal ? L"Global\\" : L"Local\\") + DBWIN_BUFFER_READY).c_str())))
-			return ERR("DBWIN_BUFFER_READY", GetLastError());
+			return ERR(TE_DebugMonitorFailed, QVariantList() << "DBWIN_BUFFER_READY", GetLastError());
 
         if (!(DataReadyEvent = CreateEvent(&SecurityAttributes, FALSE, FALSE, (std::wstring(bGlobal ? L"Global\\" : L"Local\\") + DBWIN_DATA_READY).c_str())))
-			return ERR("DBWIN_DATA_READY", GetLastError());
+			return ERR(TE_DebugMonitorFailed, QVariantList() << "DBWIN_DATA_READY", GetLastError());
 
         DbgFormatObjectName(bGlobal ? FALSE : TRUE, (PWSTR)DBWIN_BUFFER_SECTION_NAME, &objectName);
         InitializeObjectAttributes(
@@ -165,7 +165,7 @@ struct SWinDbgMonitor
             NULL
             )))
         {
-			return ERR("NtCreateSection", GetLastError());
+			return ERR(TE_DebugMonitorFailed, QVariantList() << "NtCreateSection", GetLastError());
         }
 
         if (!NT_SUCCESS(NtMapViewOfSection(
@@ -181,7 +181,7 @@ struct SWinDbgMonitor
             PAGE_READONLY
             )))
         {
-			return ERR("NtMapViewOfSection", GetLastError());
+			return ERR(TE_DebugMonitorFailed, QVariantList() << "NtMapViewOfSection", GetLastError());
         }
 
         CaptureEnabled = TRUE;
@@ -311,8 +311,8 @@ extern void (*g_KernelDebugLogger)(const QString& Output);
 
 void KernelDebugLogger(const QString& Output)
 {
-	if (theAPI && ((CWindowsAPI*)theAPI)->m_pDebugMonitor)
-		((CWindowsAPI*)theAPI)->m_pDebugMonitor->DebugMessage((quint64)SYSTEM_PROCESS_ID, Output);
+	if (theSystem && ((CWindowsAPI*)theSystem.data())->m_pDebugMonitor)
+		((CWindowsAPI*)theSystem.data())->m_pDebugMonitor->DebugMessage((quint64)SYSTEM_PROCESS_ID, Output);
 }
 
 STATUS CWinDbgMonitor::SetMonitor(EModes Mode)
@@ -354,7 +354,7 @@ STATUS CWinDbgMonitor::SetMonitor(EModes Mode)
 
 			NTSTATUS status = KphSetDebugLog(TRUE);
 			if (!NT_SUCCESS(status))
-				return ERR("KphSetDebugLog", status);
+				return ERR(TE_DebugMonitorFailed, QVariantList() << "KphSetDebugLog", status);
 			m->KernelCaptureEnabled = TRUE;
 			//if (HANDLE threadHandle = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)DbgEventsKernelThread, this))
 			//	NtClose(threadHandle);

@@ -1,9 +1,11 @@
 #pragma once
 
+#include "../../taskcore_global.h"
+
 #include "../../../MiscHelpers/Common/Common.h"
 #include "../MiscStats.h"
 
-class CNetMonitor : public QObject
+class TASKCORE_EXPORT CNetMonitor : public QObject
 {
 	Q_OBJECT
 

@@ -1,7 +1,37 @@
 #include "stdafx.h"
 #include "AbstractInfo.h"
 #include "../../MiscHelpers/Common/Settings.h"
+#include "SystemAPI.h"
 
+//
+// A strong reference for as long as the caller holds it, or null when the
+// machine this object came from has gone. See the note in the header.
+//
+CSystemPtr CAbstractInfo::GetSystem() const
+{
+	return m_pSystem.toStrongRef();
+}
+
+//
+// The weak half of the pair; see the header for why it is weak and why what
+// comes back out is not.
+//
+void CAbstractInfo::SetSystem(const CSystemPtr& pSystem)
+{
+	m_pSystem = pSystem;
+}
+
+
+
+//
+// Starts at one, so that a zero uid is always a bug and never an object.
+//
+QAtomicInteger<quint64> CAbstractInfo::m_NextObjectUid(1);
+
+CAbstractInfo::CAbstractInfo(QObject *parent)
+	: QObject(parent), m_pSystem(nullptr), m_ObjectUid(m_NextObjectUid.fetchAndAddOrdered(1))
+{
+}
 
 volatile quint64 CAbstractInfoEx::m_PersistenceTime = 5000;
 volatile quint64 CAbstractInfoEx::m_HighlightTime = 2500;

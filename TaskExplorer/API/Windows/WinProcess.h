@@ -1,11 +1,12 @@
 #pragma once
+#include "../../taskcore_global.h"
 #include "../ProcessInfo.h"
 #include "WinJob.h"
 #include "WinToken.h"
 #include "WinGDI.h"
 
 
-class CWinProcess : public CProcessInfo
+class TASKCORE_EXPORT CWinProcess : public CProcessInfo
 {
 	Q_OBJECT
 
@@ -30,11 +31,12 @@ public:
 	// Basic
 	virtual void* GetQueryHandle() const;
 	virtual bool IsWoW64() const;
-	virtual QString GetArchString() const;
+	virtual quint16 GetArchitecture() const;
+	virtual bool    IsArm64X() const;
 	virtual quint64 GetSessionID() const;
-	virtual CWinTokenPtr GetToken() const				{ QReadLocker Locker(&m_Mutex); return m_pToken; }
+	virtual CTokenInfoPtr GetToken() const				{ QReadLocker Locker(&m_Mutex); return m_pToken; }
+	virtual CTokenInfoPtr GetOriginalToken() const;
 	virtual quint16 GetSubsystem() const;
-	virtual QString GetSubsystemString() const;
 	virtual void SetRawCreateTime(quint64 TimeStamp);
 	virtual quint64 GetRawCreateTime() const;
 	virtual QString GetWorkingDirectory() const;
@@ -61,16 +63,12 @@ public:
 	virtual int		GetHangCount() const;
 	virtual int		GetGhostCount() const;
 
-	virtual QString GetPriorityString() const		{ return GetPriorityString(GetPriority()); }
-	virtual QString GetBasePriorityString() const	{ return GetBasePriorityString(GetBasePriority()); }
-	virtual QString GetPagePriorityString() const	{ return GetPagePriorityString(GetPagePriority()); }
-	virtual QString GetIOPriorityString() const		{ return GetIOPriorityString(GetIOPriority()); }
-	static QString GetPriorityString(quint32 value);
-	static QString GetBasePriorityString(quint32 value);
-	static QString GetPagePriorityString(quint32 value);
-	static QString GetIOPriorityString(quint32 value);
+
+
+
+
 	virtual STATUS SetPriority(qint32 Value);
-	virtual STATUS SetBasePriority(qint32 Value)		{ return ERR(); }
+	virtual STATUS SetBasePriority(qint32 Value)		{ return ERR(TE_NotSupported); }
 	virtual STATUS SetPagePriority(qint32 Value);
 	virtual STATUS SetIOPriority(qint32 Value);
 
@@ -81,13 +79,10 @@ public:
 
 	virtual quint16 GetCodePage() const;
 	virtual quint16 GetTlsBitmapCount() const; 
-	virtual QString GetTlsBitmapCountString() const; 
 	virtual quint32 GetErrorMode() const; 
-	virtual QString GetErrorModeString() const; 
 
 	virtual quint32 GetReferenceCount();
 	virtual quint32 GetAccessMask();
-	virtual QString GetAccessMaskString();
 
 	virtual STATUS SetAffinityMask(quint64 Value);
 
@@ -114,23 +109,22 @@ public:
 	virtual quint32 GetWndHandles() const			{ QReadLocker Locker(&m_Mutex); return m_WndHandles; }
 
 	virtual QString GetWindowTitle() const;
-	virtual QString GetWindowStatusString() const;
 
 	// OS context
 	virtual quint32 GetOsContextVersion() const;
-	virtual QString GetOsContextString() const;
 
-	virtual QString GetMitigationsString() const;
+	virtual quint32 GetMitigationFlags() const;
 
 	// Other Fields
 	virtual QString GetUserName() const;
+	virtual QString GetUserKey() const;
 	virtual quint64 GetProcessSequenceNumber() const;
 
 	virtual QMap<QString, SEnvVar>	GetEnvVariables() const;
 	virtual STATUS					DeleteEnvVariable(const QString& Name) { return EditEnvVariable(Name, QString()); }
 	virtual STATUS					EditEnvVariable(const QString& Name, const QString& Value);
 
-	virtual QString GetStatusString() const;
+	virtual quint32 GetStatusFlags() const;
 
 	virtual bool HasDebugger() const;
 	virtual STATUS AttachDebugger();
@@ -149,41 +143,62 @@ public:
 	virtual bool IsInJob() const;
 	virtual bool IsImmersiveProcess() const;
 	virtual bool IsNetProcess() const;
+	virtual SDotNetCounters GetDotNetPerfCounters() const;
 	virtual bool IsPackagedProcess() const;
 	virtual quint64 GetConsoleHostId() const;
 
 	virtual QString GetPackageName() const; 
 	virtual QString GetAppID() const; 
 	virtual quint32 GetDPIAwareness() const;
-	virtual QString GetDPIAwarenessString() const;
 
 
 	virtual quint64 GetJobObjectID() const;
 
 	virtual quint8 GetProtection() const;
-	virtual QString GetPPLProtectionString() const;
-	virtual QString GetKPHProtectionString() const;
-	virtual QString GetProtectionString() const;
-	virtual STATUS SetProtectionFlag(quint8 Flag, bool bForce = false);
-	virtual QList<QPair<QString, QString>> GetMitigationDetails() const;
+	virtual quint8  GetProtectionType() const;
+	virtual quint8  GetProtectionSigner() const;
+	virtual qint8   GetKphLevel() const;
+	virtual quint32 GetKphState() const;
+	//virtual STATUS SetProtectionFlag(quint8 Flag, bool bForce = false);
+	virtual QList<SMitigationDetail> GetMitigationDetails() const;
 
 	virtual QString GetUsedDesktop() const {QReadLocker Locker(&m_Mutex); return m_UsedDesktop;}
 
 	virtual bool IsCriticalProcess() const;
 	virtual STATUS SetCriticalProcess(bool bSet, bool bForce = false);
 	virtual STATUS ReduceWS();
+	virtual bool IsExecutionRequired() const;
+	virtual STATUS SetExecutionRequired(bool bSet);
+
+	virtual STATUS EnableWsWatch();
+	virtual STATUS GetWsWatchFaults(QList<quint64>& Faults, bool& bEnabled);
+	virtual QList<SToolTipSection> GetToolTipSections() const;
+	virtual quint64 GetPebBaseAddress(bool bWow64 = false) const;
+	virtual quint32 GetMandatoryPolicy() const;
+	virtual STATUS  SetMandatoryPolicy(quint32 Policy);
 
 	virtual bool IsSandBoxed() const;
 	virtual QString GetSandBoxName() const;
 
 	virtual STATUS LoadModule(const QString& Path);
 
-	virtual void OpenPermissions();
+	virtual CSecurityEditablePtr GetSecurityObject() const;
+	virtual CAssemblyEnumerator* GetAssemblyEnumerator(QObject* parent = nullptr) const;
 
-	virtual CWinJobPtr		GetJob() const;
+	virtual CJobInfoPtr		GetJob() const;
 
 	virtual QMap<quint64, CMemoryPtr> GetMemoryMap() const;
 	virtual QMap<quint64, CHeapPtr> GetHeapList() const;
+
+	//
+	// GDI handles owned by this process.
+	//
+	// The table is a shared section mapped into every GUI process, so it has to
+	// be read on the machine that owns it - the view used to walk it directly
+	// through the local PEB and filter by process id, which produced this
+	// machine's handles labelled with another machine's process.
+	//
+	virtual QMap<quint64, CGdiPtr> GetGdiList() const;
 	virtual STATUS FlushHeaps();
 
 	virtual QList<CWndPtr> GetWindows() const;
@@ -193,27 +208,10 @@ public:
 
 	virtual void CloseHandle();
 
-	struct STask
-	{
-		QString Name;
-		QString Path;
-	};
 	virtual QList<STask>	GetTasks() const;
 
-	struct SDriver
-	{
-		QString Name;
-		QString Path;
-	};
 	virtual QList<SDriver>	GetUmdfDrivers() const;
 
-	struct SWmiProvider
-	{
-		QString ProviderName;
-		QString NamespacePath;
-		QString FileName;
-		QString UserName;
-	};
 	virtual QList<SWmiProvider>	QueryWmiProviders() const;
 
 	virtual quint64 GetLXSSProcessId() const;
@@ -299,4 +297,11 @@ private:
 };
 
 QVariantList GetProcessUnloadedDlls(quint64 ProcessId);
-QVariantList GetProcessHeaps(quint64 ProcessId);
+//
+// pStatus, if given, receives why the list is empty - an NTSTATUS, as qint32
+// because this header is read where phnt is not.
+//
+// Distinguishing "no heaps" from "could not ask" matters: the query injects a
+// thread into the target and there are several ordinary reasons it fails.
+//
+QVariantList GetProcessHeaps(quint64 ProcessId, qint32* pStatus = NULL);

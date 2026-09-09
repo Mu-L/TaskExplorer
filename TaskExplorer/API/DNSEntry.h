@@ -82,9 +82,22 @@ public:
 	virtual QString GetHostName() const				{ QReadLocker Locker(&m_Mutex); return m_HostName; }
 	virtual QString GetResolvedString() const		{ QReadLocker Locker(&m_Mutex); return m_ResolvedString; }
 	virtual QHostAddress GetAddress() const			{ QReadLocker Locker(&m_Mutex); return m_Address; }
+	//
+	// DNS record types, as IANA assigns them. The same numbers everywhere, so
+	// unlike most of this API they need no per-target reading.
+	//
+	enum EDnsType
+	{
+		eDnsA		= 1,
+		eDnsNs		= 2,
+		eDnsCname	= 5,
+		eDnsPtr		= 12,
+		eDnsMx		= 15,
+		eDnsText	= 16,
+		eDnsAaaa	= 28,
+		eDnsSrv		= 33,
+	};
 	virtual quint16 GetType() const					{ QReadLocker Locker(&m_Mutex); return m_Type; }
-	virtual QString GetTypeString() const;
-	static QString GetTypeString(quint16 Type);
 
 	virtual quint64 GetTTL() const					{ QReadLocker Locker(&m_Mutex); return m_TTL > 0 ? m_TTL : 0; }
 	virtual quint64 GetDeadTime() const				{ QReadLocker Locker(&m_Mutex); return m_TTL < 0 ? -m_TTL : 0; }

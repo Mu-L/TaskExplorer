@@ -57,9 +57,3 @@ CAbstractTask::CAbstractTask(QObject *parent)
 CAbstractTask::~CAbstractTask()
 {
 }
-
-QString CAbstractTask::GetAffinityMaskString() const
-{
-	QReadLocker Locker(&m_Mutex);
-	return tr("0x%1").arg(QString::number(m_AffinityMask, 16).toUpper());
-}

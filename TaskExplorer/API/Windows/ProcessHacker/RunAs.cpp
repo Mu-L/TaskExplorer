@@ -58,7 +58,7 @@ extern "C" {
 }
 #include <lm.h>
 
-BOOLEAN PhShellProcessHackerEx(
+NTSTATUS PhShellProcessHackerEx(
     _In_opt_ HWND hWnd,
     _In_opt_ PWSTR FileName,
     _In_opt_ PWSTR Parameters,
@@ -70,10 +70,23 @@ BOOLEAN PhShellProcessHackerEx(
     )
 {
     NTSTATUS status;
-    PPH_STRING applicationFileName;
+    PPH_STRING applicationFileName = NULL;
 
-    if (!(applicationFileName = PhGetApplicationFileNameWin32()))
-        return FALSE;
+    //
+    // The process image, not this module's.
+    //
+    // This asked PhGetApplicationFileNameWin32, which resolves
+    // NtCurrentImageBase() - the linker's __ImageBase, the base of the module
+    // the code was *linked into*. While all of this was in TaskExplorer.exe the
+    // two were the same file. Since phlib moved into TaskCore.dll they are not:
+    // it returns TaskCore.dll, and asking the shell to "runas" a DLL does
+    // nothing at all, which is what took the Restart Elevated button out.
+    //
+    // The two callers that pass a FileName were unaffected; this one relaunches
+    // the application, and the application is the process image.
+    //
+    if (!NT_SUCCESS(status = PhGetProcessImageFileNameWin32(NtCurrentProcess(), &applicationFileName)))
+        return status;
 
     status = PhShellExecuteEx(
         hWnd,
@@ -89,7 +102,7 @@ BOOLEAN PhShellProcessHackerEx(
 
     PhDereferenceObject(applicationFileName);
 
-    return NT_SUCCESS(status);
+    return status;
 }
 
 NTSTATUS PhExecuteRunAsCommand3(
@@ -1257,7 +1270,8 @@ BOOLEAN PhMwpOnNotify(
 		{
 #ifdef USE_TASK_HELPER
 			// Use TaskHelper worker for RunAsTrustedInstaller
-			QString WorkerPipeName = CTaskService::RunWorker(true, false);
+			STATUS RunStatus;
+			QString WorkerPipeName = CTaskService::RunWorker(true, false, &RunStatus);
 			NTSTATUS status = STATUS_UNSUCCESSFUL;
 
 			if (!WorkerPipeName.isEmpty())
@@ -1280,6 +1294,14 @@ BOOLEAN PhMwpOnNotify(
             if (NT_SUCCESS(status))
             {
                 *Result = RF_CANCEL;
+            }
+            else if (RunStatus.GetMsgCode() == TE_UserCanceled)
+            {
+                //
+                // The elevation prompt was refused. Say nothing and leave the
+                // dialog up, so the choice can be made again without retyping.
+                //
+                *Result = RF_RETRY;
             }
             else
             {
@@ -1548,8 +1570,10 @@ BOOLEAN IsCurrentUserAccount(
     return FALSE;
 }
 
-void AddAccountsToComboBox(QComboBox* pComboBox)
+QStringList GetLogonAccounts()
 {
+    QStringList List;
+
 	NET_API_STATUS status;
     LPUSER_INFO_0 userinfoArray = NULL;
     ULONG userinfoMaxLength = MAX_PREFERRED_LENGTH;
@@ -1557,17 +1581,15 @@ void AddAccountsToComboBox(QComboBox* pComboBox)
     ULONG userinfoTotalEntries = 0;
     ULONG userinfoResumeHandle = 0;
 
-	pComboBox->clear();
-
 	if (!InitNtAuthority())
-		return;
+		return List;
 
-	pComboBox->addItem(CastPhString(ntAuthoritySystem, false));
-    pComboBox->addItem(CastPhString(ntAuthorityLocal, false));
-    pComboBox->addItem(CastPhString(ntAuthorityNetwork, false));
+	List.append(CastPhString(ntAuthoritySystem, false));
+    List.append(CastPhString(ntAuthorityLocal, false));
+    List.append(CastPhString(ntAuthorityNetwork, false));
 
     if (!PhpInitializeNetApi())
-        return;
+        return List;
 
     NetUserEnum_I(
         NULL,
@@ -1625,12 +1647,12 @@ void AddAccountsToComboBox(QComboBox* pComboBox)
                         entry->usri0_name
                         );
 
-					pComboBox->addItem(QString::fromWCharArray(usernameString->Buffer));
+					List.append(QString::fromWCharArray(usernameString->Buffer));
                     PhDereferenceObject(usernameString);
                 }
                 else
                 {
-                    pComboBox->addItem(QString::fromWCharArray(entry->usri0_name));
+                    List.append(QString::fromWCharArray(entry->usri0_name));
                 }
             }
         }
@@ -1674,15 +1696,17 @@ void AddAccountsToComboBox(QComboBox* pComboBox)
     //
     //    LsaClose(policyHandle);
     //}
+
+    return List;
 }
 
-void AddSessionsToComboBox(QComboBox* pComboBox)
+QList<QPair<QString, quint32> > GetLogonSessions()
 {
+    QList<QPair<QString, quint32> > List;
+
 	PSESSIONIDW sessions;
     ULONG numberOfSessions;
     ULONG i;
-
-	pComboBox->clear();
 
     if (WinStationEnumerateW(NULL, &sessions, &numberOfSessions))
     {
@@ -1737,11 +1761,13 @@ void AddSessionsToComboBox(QComboBox* pComboBox)
                 menuString = PhFormatString(L"%lu", sessions[i].SessionId);
             }
 
-			pComboBox->addItem(CastPhString(menuString), (quint64)sessions[i].SessionId);
+			List.append(qMakePair(CastPhString(menuString), (quint32)sessions[i].SessionId));
         }
 
         WinStationFreeMemory(sessions);
     }
+
+    return List;
 }
 
 typedef struct _RUNAS_DIALOG_DESKTOP_CALLBACK
@@ -1767,12 +1793,12 @@ static BOOL CALLBACK EnumDesktopsCallback(
     return TRUE;
 }
 
-void AddDesktopsToComboBox(QComboBox* pComboBox)
+QStringList GetDesktops()
 {
+    QStringList List;
+
 	ULONG i;
     RUNAS_DIALOG_DESKTOP_CALLBACK callback;
-
-	pComboBox->clear();
 
     callback.DesktopList = PhCreateList(10);
     callback.WinStaName = GetCurrentWinStaName();
@@ -1781,49 +1807,32 @@ void AddDesktopsToComboBox(QComboBox* pComboBox)
 
     for (i = 0; i < callback.DesktopList->Count; i++)
     {
-		pComboBox->addItem(CastPhString((PPH_STRING)callback.DesktopList->Items[i]));
+		List.append(CastPhString((PPH_STRING)callback.DesktopList->Items[i]));
     }
 
     PhDereferenceObject(callback.DesktopList);
     PhDereferenceObject(callback.WinStaName);
+
+    return List;
 }
 
-VOID SetDefaultSessionEntry(QComboBox* pComboBox)
+quint32 GetCurrentSessionId()
 {
-    INT sessionCount = pComboBox->count();
     ULONG currentSessionId = 0;
-
     if (!NT_SUCCESS(PhGetProcessSessionId(NtCurrentProcess(), &currentSessionId)))
-        return;
-
-    for (INT i = 0; i < sessionCount; i++)
-    {
-        if (pComboBox->itemData(i).toUInt() == currentSessionId)
-        {
-			pComboBox->setCurrentIndex(i);
-            break;
-        }
-    }
+        return 0;
+    return currentSessionId;
 }
 
-VOID SetDefaultDesktopEntry(QComboBox* pComboBox)
+QString GetCurrentDesktop()
 {
-    INT sessionCount = pComboBox->count();
-    PPH_STRING desktopName;
+    PPH_STRING desktopName = PhpGetCurrentDesktopInfo();
+    if (!desktopName)
+        return QString();
 
-    if (!(desktopName = PhpGetCurrentDesktopInfo()))
-        return;
-
-    for (INT i = 0; i < sessionCount; i++)
-    {
-        if (pComboBox->itemText(i) == CastPhString(desktopName, false))
-        {
-            pComboBox->setCurrentIndex(i);
-            break;
-        }
-    }
-
+    QString Name = CastPhString(desktopName, false);
     PhDereferenceObject(desktopName);
+    return Name;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1936,16 +1945,17 @@ VOID PhpAddRunMRUListEntry(
     FreeMRUList_I(listHandle);
 }
 
-void AddProgramsToComboBox(QComboBox* pComboBox)
+QStringList GetRunMruList()
 {
+    QStringList List;
     static PH_STRINGREF prefixSr = PH_STRINGREF_INIT(L"\\1");
     HANDLE listHandle;
     INT listCount;
 
     if (!PhpInitializeMRUList())
-        return;
+        return List;
     if (!(listHandle = PhpCreateRunMRUList()))
-        return;
+        return List;
 
     listCount = EnumMRUList_I(
         listHandle,
@@ -1976,15 +1986,17 @@ void AddProgramsToComboBox(QComboBox* pComboBox)
 
         if (!PhSplitStringRefAtString(&nameSr, &prefixSr, TRUE, &firstPart, &remainingPart))
         {
-			pComboBox->addItem(QString::fromWCharArray(entry));
+			List.append(QString::fromWCharArray(entry));
             continue;
         }
 
         programName = PhCreateString2(&firstPart);
-		pComboBox->addItem(CastPhString(programName));
+		List.append(CastPhString(programName));
     }
 
     FreeMRUList_I(listHandle);
+
+    return List;
 }
 
 // fromguisup.c

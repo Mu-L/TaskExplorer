@@ -1,4 +1,4 @@
-set version=1.8.0
+set version=2.0.0
 
 set inno_path=%~dp0.\InnoSetup
 mkdir %~dp0.\Output

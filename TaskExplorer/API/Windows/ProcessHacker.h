@@ -1,4 +1,5 @@
 #pragma once
+#include "../taskcore_global.h"
 
 #define _PHLIB_
 #define _PHAPP_
@@ -60,7 +61,7 @@ extern "C" {
 #include <ntgdi.h>
 
 #ifdef __cplusplus
-#include "../../../MiscHelpers/Common/FlexError.h"
+#include "../../../MiscHelpers/Common/Status.h"
 #endif
 
 // begin_phapppub
@@ -83,8 +84,8 @@ extern "C" {
 
 #ifdef __cplusplus
 
-QString CastPhString(PPH_STRING phString, bool bDeRef = true);
-PPH_STRING CastQString(const QString& qString);
+TASKCORE_EXPORT QString CastPhString(PPH_STRING phString, bool bDeRef = true);
+TASKCORE_EXPORT PPH_STRING CastQString(const QString& qString);
 
 // Missing phlib definitions
 extern "C" {
@@ -93,25 +94,30 @@ extern "C" {
 	VERIFY_RESULT NTAPI PhVerifyFileWithAdditionalCatalog(_In_ PPH_VERIFY_FILE_INFO Information, _In_opt_ PPH_STRING PackageFullName, _Out_opt_ PPH_STRING *SignerName);
 }
 
-extern BOOLEAN g_KphStartupMax;
-extern BOOLEAN g_KphStartupHigh;
+// phlib hands this to the native dialogs as their owner window; the GUI sets
+// it through CSystemAPI::SetMainWindow so it never has to name it.
+extern PHAPPAPI HWND PhMainWndHandle;
 
-extern bool g_KsiDynDataLoaded;
+extern TASKCORE_EXPORT BOOLEAN g_KphStartupMax;
+extern TASKCORE_EXPORT BOOLEAN g_KphStartupHigh;
+
+extern TASKCORE_EXPORT bool g_KsiDynDataLoaded;
 
 // initialization call
-int InitPH();
+TASKCORE_EXPORT int InitPH();
 
-STATUS InitKSI(const QString& AppDir);
-STATUS CleanupKSI();
+TASKCORE_EXPORT STATUS InitKSI(const QString& AppDir);
+TASKCORE_EXPORT STATUS CleanupKSI();
 
-STATUS TryUpdateDynData(const QString& AppDir);
+bool IsOnARM64();
+QString KsiGetDriverPath(const QString& AppDir);
+STATUS KsiActivateDynData(const QString& FileName, _In_ KPH_LEVEL Level);
 
 bool KphSetDebugLog(bool Enable);
 bool KphSetSystemMon(bool Enable);
 bool KphGetSystemMon();
 
-PPH_STRING KsiGetKernelVersionString(VOID);
+TASKCORE_EXPORT PPH_STRING KsiGetKernelVersionString(VOID);
 
-void PhShowAbout(QWidget* parent);
 
 #endif

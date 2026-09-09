@@ -74,7 +74,7 @@ bool CLinuxWnd::UpdateDynamicData()
 STATUS CLinuxWnd::SetVisible(bool bSet)
 {
 	if (!X11Helper::SetVisible(GetHWnd(), bSet))
-		return ERR(tr("Failed to change the window visibility."));
+		return ERR(TE_ChangeWindowVisibility);
 	return OK;
 }
 
@@ -82,20 +82,20 @@ STATUS CLinuxWnd::SetEnabled(bool bSet)
 {
 	// X11 has no notion of a disabled top-level window; input is either grabbed
 	// by the client or not.
-	return ERR(tr("Enabling or disabling a window is not supported on X11."));
+	return ERR(TE_EnablingDisablingWindow);
 }
 
 STATUS CLinuxWnd::SetAlwaysOnTop(bool bSet)
 {
 	if (!X11Helper::SetAlwaysOnTop(GetHWnd(), bSet))
-		return ERR(tr("Failed to change the always-on-top state."));
+		return ERR(TE_ChangeAlwaysTop);
 	return OK;
 }
 
 STATUS CLinuxWnd::SetWindowAlpha(int iAlpha)
 {
 	if (!X11Helper::SetOpacity(GetHWnd(), iAlpha))
-		return ERR(tr("Failed to set the window opacity."));
+		return ERR(TE_SetWindowOpacity);
 	// Without a compositing manager the property is set but has no visible
 	// effect, which is not an error worth reporting.
 	return OK;
@@ -104,14 +104,14 @@ STATUS CLinuxWnd::SetWindowAlpha(int iAlpha)
 STATUS CLinuxWnd::BringToFront()
 {
 	if (!X11Helper::Activate(GetHWnd()))
-		return ERR(tr("Failed to activate the window."));
+		return ERR(TE_ActivateWindow);
 	return OK;
 }
 
 STATUS CLinuxWnd::Highlight()
 {
 	if (!X11Helper::Highlight(GetHWnd()))
-		return ERR(tr("Failed to highlight the window."));
+		return ERR(TE_HighlightWindow);
 	return OK;
 }
 
@@ -127,12 +127,12 @@ STATUS CLinuxWnd::Restore()
 	if (IsMinimized())
 	{
 		if (!X11Helper::SetMinimized(GetHWnd(), false))
-			return ERR(tr("Failed to restore the window."));
+			return ERR(TE_RestoreWindow);
 		return OK;
 	}
 
 	if (!X11Helper::SetMaximized(GetHWnd(), false))
-		return ERR(tr("Failed to restore the window."));
+		return ERR(TE_RestoreWindow);
 	return OK;
 }
 
@@ -145,7 +145,7 @@ bool CLinuxWnd::IsMinimized() const
 STATUS CLinuxWnd::Minimize()
 {
 	if (!X11Helper::SetMinimized(GetHWnd(), true))
-		return ERR(tr("Failed to minimize the window."));
+		return ERR(TE_MinimizeWindow);
 	return OK;
 }
 
@@ -158,13 +158,13 @@ bool CLinuxWnd::IsMaximized() const
 STATUS CLinuxWnd::Maximize()
 {
 	if (!X11Helper::SetMaximized(GetHWnd(), true))
-		return ERR(tr("Failed to maximize the window."));
+		return ERR(TE_MaximizeWindow);
 	return OK;
 }
 
 STATUS CLinuxWnd::Close()
 {
 	if (!X11Helper::Close(GetHWnd()))
-		return ERR(tr("Failed to close the window."));
+		return ERR(TE_CloseWindow);
 	return OK;
 }

@@ -106,9 +106,9 @@ bool CWinSocket::InitStaticData(quint64 ProcessId, quint32 ProtocolType,
 	m_ProcessId = ProcessId;
 
 	if(m_ProcessId == 0)
-		m_ProcessName = tr("Waiting connections");
+		m_ProcessName = MakePlaceholder(TE_NAME_WAITING_CONNECTIONS);
 	else
-		m_ProcessName = tr("Unknown process PID: %1").arg(m_ProcessId);
+		m_ProcessName = MakePlaceholder(TE_NAME_UNKNOWN_PROCESS, m_ProcessId);
 
 	// generate a somewhat unique id to optimize std::map search
 	m_HashID = CSocketInfo::MkHash(ProcessId, ProtocolType, LocalAddress, LocalPort, RemoteAddress, RemotePort);
@@ -143,7 +143,7 @@ bool CWinSocket::InitStaticDataEx(SSocket* connection, bool IsNew)
 	}
 
 	// DNS host name handling
-	m_RemoteHostName = ((CWindowsAPI*)theAPI)->GetDnsResolver()->GetHostName(m_RemoteAddress, this, SLOT(OnHostResolved(const QHostAddress&, const QString&)));
+	m_RemoteHostName = ((CWindowsAPI*)GetSystem().data())->GetDnsResolver()->GetHostName(m_RemoteAddress, this, SLOT(OnHostResolved(const QHostAddress&, const QString&)));
 
 	CProcessPtr pProcess = m_pProcess.toStrongRef().staticCast<CProcessInfo>();
 	if (!pProcess.isNull())
@@ -196,7 +196,7 @@ bool CWinSocket::UpdateDynamicData(SSocket* connection)
 
 	/*if (m_pProcess.isNull())
 	{
-		CProcessPtr pProcess = theAPI->GetProcessByID(m_ProcessId);
+		CProcessPtr pProcess = GetSystem()->GetProcessByID(m_ProcessId);
 		if (!pProcess.isNull())
 		{
 			m_pProcess = pProcess; // relember m_pProcess is a week pointer
@@ -266,21 +266,6 @@ int CWinSocket::GetFirewallStatus()
 	}
 	return m->FwStatus;
 }
-
-QString CWinSocket::GetFirewallStatusString()
-{ 
-	switch (GetFirewallStatus())
-	{
-		case FirewallAllowedNotRestricted:		return tr("Allowed, not restricted");
-		case FirewallAllowedRestricted:			return tr("Allowed, restricted");
-		case FirewallNotAllowedNotRestricted:	return tr("Not allowed, not restricted");
-		case FirewallNotAllowedRestricted:		return tr("Not allowed, restricted");
-		case FirewallUnknownStatus:				
-		default:								return tr("");
-	}
-}
-
-
 //treeext.c
 #include <netfw.h>
 static GUID IID_INetFwMgr_I = { 0xf7898af5, 0xcac4, 0x4632, { 0xa2, 0xec, 0xda, 0x06, 0xe5, 0x11, 0x1a, 0xf2 } };
@@ -442,7 +427,7 @@ QVariant SvcApiCloseSocket(const QVariantMap& Parameters)
 STATUS CWinSocket::Close()
 {
 	if (m_ProtocolType != NET_TYPE_IPV4_TCP || m_State != MIB_TCP_STATE_ESTAB)
-		return ERR(tr("Not supported type or state"));
+		return ERR(TE_UnsupportedTypeState);
 
 	long result = CloseSocket(m_LocalAddress, m_LocalPort, m_RemoteAddress, m_RemotePort);
 	
@@ -452,7 +437,7 @@ STATUS CWinSocket::Close()
 			return OK;
 	}
 
-	return ERR(result);
+	return CStatus::Native(result);
 }
 
 QVector<CWinSocket::SSocket> CWinSocket::GetNetworkConnections()

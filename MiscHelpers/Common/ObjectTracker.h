@@ -6,9 +6,9 @@
 #include <atomic>
 #include <mutex>
 
-#include "../mischelpers_global.h"
+#include "../corehelpers_global.h"
 
-class MISCHELPERS_EXPORT ObjectTrackerBase {
+class COREHELPERS_EXPORT ObjectTrackerBase {
 public:
     ObjectTrackerBase(const std::string& className);
     virtual ~ObjectTrackerBase();

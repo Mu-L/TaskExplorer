@@ -1,11 +1,7 @@
 #include "stdafx.h"
+#include "../../API/Cluster.h"
 #include "ServiceListWidget.h"
 #include "../TaskExplorer.h"
-#ifdef WIN32
-#include "../../API/Windows/WinService.h"	
-#endif
-
-
 CServiceListWidget::CServiceListWidget(bool bEditable, QWidget *parent)
 	:QWidget(parent)
 {
@@ -103,15 +99,15 @@ void CServiceListWidget::UpdateServices()
 
 void CServiceListWidget::SetServicesList(const QStringList& ServiceNames)
 {
-	QMap<QString, CServicePtr> AllServices = theAPI->GetServiceList();
+	QMap<QString, CServicePtr> AllServices = CCluster::GetViewSystem()->GetServiceList();
 	QMap<QString, CServicePtr> Services;
 	foreach(const QString& ServiceName, ServiceNames)
 	{
 		CServicePtr pService = AllServices.value(ServiceName.toLower());
-#ifdef WIN32
 		if (!pService)
-			pService = CServicePtr(new CWinService(ServiceName));
-#endif
+			pService = CCluster::GetViewSystem()->GetService(ServiceName);
+		if (!pService)
+			continue;
 		Services.insert(ServiceName.toLower(), pService);
 	}
 	SetServices(Services);
@@ -156,9 +152,7 @@ void CServiceListWidget::OnItemSelected(QTreeWidgetItem* item)
 		m_pStartBtn->setText(tr("Pause"));
 	}
 
-#ifdef WIN32
-	m_pDescription->setText(pService.staticCast<CWinService>()->GetDescription());
-#endif
+	m_pDescription->setText(pService->GetDescription());
 }
 
 void CServiceListWidget::OnStart()
@@ -205,7 +199,7 @@ void CServiceListWidget::OnAdd()
 		return;
 	}
 
-	QMap<QString, CServicePtr> AllServices = theAPI->GetServiceList();
+	QMap<QString, CServicePtr> AllServices = CCluster::GetViewSystem()->GetServiceList();
 
 	CServicePtr pService = AllServices.value(Value.toLower());
 	if (!pService)

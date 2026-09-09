@@ -62,6 +62,9 @@ private:
 
 	QSplitter*				m_pSplitter;
 
+	void					CreatePerfTree();
+	void					UpdatePerfTree();
+
 	CPanelWidgetEx* m_pPerfStats;
 	QMap<int, QTreeWidgetItem*> m_PerfCounters;
 

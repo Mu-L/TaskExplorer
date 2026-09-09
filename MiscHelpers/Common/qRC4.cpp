@@ -50,12 +50,12 @@ rc4_transform(rc4_sbox_t *rc4_sbox, unsigned char *buffer_ptr, unsigned int buff
 	}
 }
 
-void MISCHELPERS_EXPORT rc4_init(rc4_sbox_t *rc4_sbox, const QByteArray& Key)
+void COREHELPERS_EXPORT rc4_init(rc4_sbox_t *rc4_sbox, const QByteArray& Key)
 {
 	rc4_init(rc4_sbox, (unsigned char*)Key.data(), Key.size());
 }
 
-QByteArray MISCHELPERS_EXPORT rc4_transform(rc4_sbox_t *rc4_sbox, const QByteArray& Data)
+QByteArray COREHELPERS_EXPORT rc4_transform(rc4_sbox_t *rc4_sbox, const QByteArray& Data)
 {
 	QByteArray Temp = Data;
 	rc4_transform(rc4_sbox, (unsigned char*)Temp.data(), Temp.size());

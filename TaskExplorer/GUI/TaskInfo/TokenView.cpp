@@ -1,8 +1,8 @@
 #include "stdafx.h"
 #include "../TaskExplorer.h"
+#include "../TaskStrings.h"
 #include "TokenView.h"
 #include "TaskInfoWindow.h"
-#include "../../API/Windows/ProcessHacker.h"
 #undef GetUserName
 
 CTokenView::CTokenView(QWidget *parent)
@@ -270,22 +270,24 @@ CTokenView::CTokenView(QWidget *parent)
 
     m_pDefaultToken = new QPushButton();
 	m_pDefaultToken->setText(tr("Default token"));
+	m_pDefaultToken->setEnabled(theSystem->HasCapability(CSystemAPI::eCapSecurityEditor));
     horizontalLayout->addWidget(m_pDefaultToken);
 	connect(m_pDefaultToken, SIGNAL(pressed()), this, SLOT(OnDefaultToken()));
 
     m_pPermissions = new QPushButton();
 	m_pPermissions->setText(tr("Permissions"));
+	m_pPermissions->setEnabled(theSystem->HasCapability(CSystemAPI::eCapSecurityEditor));
     horizontalLayout->addWidget(m_pPermissions);
 	connect(m_pPermissions, SIGNAL(pressed()), this, SLOT(OnPermissions()));
 
 	m_pIntegrity = new QComboBox();
-	m_pIntegrity->addItem(tr("Protected"), MandatorySecureProcessRID);
-	m_pIntegrity->addItem(tr("System"), MandatorySystemRID);
-	m_pIntegrity->addItem(tr("High"), MandatoryHighRID);
-	m_pIntegrity->addItem(tr("Medium +"), MandatoryMediumPlusRID);
-	m_pIntegrity->addItem(tr("Medium"), MandatoryMediumRID);
-	m_pIntegrity->addItem(tr("Low"), MandatoryLowRID);
-	m_pIntegrity->addItem(tr("Untrusted"), MandatoryUntrustedRID);
+	m_pIntegrity->addItem(tr("Protected"), CTokenInfo::eIntegrityProtected);
+	m_pIntegrity->addItem(tr("System"), CTokenInfo::eIntegritySystem);
+	m_pIntegrity->addItem(tr("High"), CTokenInfo::eIntegrityHigh);
+	m_pIntegrity->addItem(tr("Medium +"), CTokenInfo::eIntegrityMediumPlus);
+	m_pIntegrity->addItem(tr("Medium"), CTokenInfo::eIntegrityMedium);
+	m_pIntegrity->addItem(tr("Low"), CTokenInfo::eIntegrityLow);
+	m_pIntegrity->addItem(tr("Untrusted"), CTokenInfo::eIntegrityUntrusted);
 	horizontalLayout->addWidget(m_pIntegrity);
 	connect(m_pIntegrity, SIGNAL(currentIndexChanged(int)), this, SLOT(OnChangeIntegrity()));
 
@@ -330,7 +332,7 @@ void CTokenView::ShowProcesses(const QList<CProcessPtr>& Processes)
 		pProcess = Processes.first();
 	}
 
-	m_pCurProcess = pProcess.staticCast<CWinProcess>();
+	m_pCurProcess = pProcess;
 
 	if(m_pCurProcess)
 		ShowToken(m_pCurProcess->GetToken());
@@ -357,7 +359,7 @@ void CTokenView__SetRowColor(QTreeWidgetItem* pItem, bool bEnabled, bool bModifi
 	}
 }
 
-void CTokenView::ShowToken(const CWinTokenPtr& pToken)
+void CTokenView::ShowToken(const CTokenInfoPtr& pToken)
 {
 	if (m_pCurToken == pToken)
 		return;
@@ -403,17 +405,17 @@ void CTokenView::UpdateGeneral()
 {
 	m_LockValues = true;
 
-	CTokenView__SetTextIfChanged(m_pUser, m_pCurToken->GetUserName()); // note: this is being resolved asynchroniusly
+	CTokenView__SetTextIfChanged(m_pUser, ::LocalizeName(m_pCurToken->GetUserName())); // note: this is being resolved asynchroniusly
 	CTokenView__SetTextIfChanged(m_pUserSID, m_pCurToken->GetSidString());
 
 	CTokenView__SetTextIfChanged(m_pSession, QString::number(m_pCurToken->GetSessionId()));
-	CTokenView__SetTextIfChanged(m_pElevated, m_pCurToken->GetElevationString());
-	CTokenView__SetTextIfChanged(m_pVirtualized, m_pCurToken->GetVirtualizationString());
+	CTokenView__SetTextIfChanged(m_pElevated, ::GetElevationString(m_pCurToken));
+	CTokenView__SetTextIfChanged(m_pVirtualized, ::GetVirtualizationString(m_pCurToken));
 	m_pVirtualized->setEnabled(m_pCurToken->IsVirtualizationAllowed());
 	m_pVirtualized->setChecked(m_pCurToken->IsVirtualizationEnabled());
 
-	CTokenView__SetTextIfChanged(m_pOwner, m_pCurToken->GetOwnerName()); // note: this is being resolved asynchroniusly
-	CTokenView__SetTextIfChanged(m_pGroup, m_pCurToken->GetGroupName()); // note: this is being resolved asynchroniusly
+	CTokenView__SetTextIfChanged(m_pOwner, ::LocalizeName(m_pCurToken->GetOwnerName())); // note: this is being resolved asynchroniusly
+	CTokenView__SetTextIfChanged(m_pGroup, ::LocalizeName(m_pCurToken->GetGroupName())); // note: this is being resolved asynchroniusly
 
 	m_pOriginalToken->setVisible(m_pCurProcess && m_pCurProcess->IsSandBoxed());
 
@@ -436,7 +438,7 @@ void CTokenView::UpdateGeneral()
 	m_LockValues = false;
 
 	//
-	QSet<CWinToken::EDangerousFlags> DangerousFlags = m_pCurToken->GetDangerousFlags();
+	QSet<CTokenInfo::EDangerousFlags> DangerousFlags = m_pCurToken->GetDangerousFlags();
 
 	QMap<int, QTreeWidgetItem*> OldDangerousFlags;
 	for(int i = 0; i < m_pDangerousFlags->childCount(); ++i)
@@ -447,7 +449,7 @@ void CTokenView::UpdateGeneral()
 		OldDangerousFlags.insert(Flag,pItem);
 	}
 
-	foreach (CWinToken::EDangerousFlags Flag, DangerousFlags)
+	foreach (CTokenInfo::EDangerousFlags Flag, DangerousFlags)
 	{
 		QTreeWidgetItem* pItem = OldDangerousFlags.take(Flag);
 		if(!pItem)
@@ -457,15 +459,15 @@ void CTokenView::UpdateGeneral()
 
 			switch (Flag)
 			{
-			case CWinToken::eNoWriteUpDisabled:
+			case CTokenInfo::eNoWriteUpDisabled:
 				Name = tr("No-Write-Up Policy Disabled");
 				Description = tr("Prevents the process from modifying objects with a higher integrity");
 				break;
-			case CWinToken::eSandboxInertEnabled:
+			case CTokenInfo::eSandboxInertEnabled:
 				Name = tr("Sandbox Inert Enabled");
 				Description = tr("Ignore AppLocker rules and Software Restriction Policies");
 				break;
-			case CWinToken::eUIAccessEnabled:
+			case CTokenInfo::eUIAccessEnabled:
 				Name = tr("UIAccess Enabled");
 				Description = tr("Ignore User Interface Privilege Isolation");
 				break;
@@ -489,7 +491,7 @@ void CTokenView::UpdateGeneral()
 	//
 
 	//
-	QMap<QString, CWinToken::SPrivilege> Privileges = m_pCurToken->GetPrivileges();
+	QMap<QString, CTokenInfo::SPrivilege> Privileges = m_pCurToken->GetPrivileges();
 
 	QMap<QString, QTreeWidgetItem*> OldPrivileges;
 	for(int i = 0; i < m_pPrivileges->childCount(); ++i)
@@ -500,7 +502,7 @@ void CTokenView::UpdateGeneral()
 		OldPrivileges.insert(Name,pItem);
 	}
 
-	foreach (const CWinToken::SPrivilege& Privilege, Privileges)
+	foreach (const CTokenInfo::SPrivilege& Privilege, Privileges)
 	{
 		QTreeWidgetItem* pItem = OldPrivileges.take(Privilege.Name);
 		if(!pItem)
@@ -512,8 +514,8 @@ void CTokenView::UpdateGeneral()
 			m_pPrivileges->addChild(pItem);
 		}
 
-		CTokenView__SetRowColor(pItem, CWinToken::IsPrivilegeEnabled(Privilege.Attributes), CWinToken::IsPrivilegeModified(Privilege.Attributes));
-		pItem->setText(eStatus, CWinToken::GetPrivilegeAttributesString(Privilege.Attributes));
+		CTokenView__SetRowColor(pItem, CTokenInfo::IsPrivilegeEnabled(Privilege.Attributes), CTokenInfo::IsPrivilegeModified(Privilege.Attributes));
+		pItem->setText(eStatus, ::GetPrivilegeAttributesString(Privilege.Attributes));
 	}
 
 	foreach(QTreeWidgetItem* pCurItem, OldPrivileges)
@@ -522,7 +524,7 @@ void CTokenView::UpdateGeneral()
 
 
 	//
-	QMap<QByteArray, CWinToken::SGroup> Groups = m_pCurToken->GetGroups();
+	QMap<QByteArray, CTokenInfo::SGroup> Groups = m_pCurToken->GetGroups();
 
 	QMap<QByteArray, QTreeWidgetItem*> OldGroups;
 	for(int i = 0; i < m_pGroups->childCount(); ++i)
@@ -541,7 +543,7 @@ void CTokenView::UpdateGeneral()
 		OldGroups.insert(Sid,pItem);
 	}
 
-	foreach (const CWinToken::SGroup& Group, Groups)
+	foreach (const CTokenInfo::SGroup& Group, Groups)
 	{
 		QTreeWidgetItem* pItem = OldGroups.take(Group.Sid);
 		if(!pItem)
@@ -549,37 +551,10 @@ void CTokenView::UpdateGeneral()
 			pItem = new QTreeWidgetItem();
 			pItem->setData(eName, Qt::UserRole, Group.Sid);
 
-			QString sSID;
-			PPH_STRING stringUserSid;
-			if (stringUserSid = PhSidToStringSid((PSID)Group.Sid.data()))
-				sSID = CastPhString(stringUserSid);
-
-			pItem->setText(eSID, sSID);
-
-			pItem->setText(eDescription, CWinToken::GetGroupDescription(Group.Attributes));
-
-			pItem->setText(eType, QString::fromWCharArray(PhGetSidAccountTypeString((PSID)Group.Sid.data())));
-
-			SID_NAME_USE sidUse;
-			if (NT_SUCCESS(PhLookupSid((PSID)Group.Sid.data(), NULL, NULL, &sidUse)))
-			{
-				QString Use;
-				switch (sidUse)
-				{
-				case SidTypeUser:				Use = tr("User"); break;
-				case SidTypeGroup:				Use = tr("Group"); break;
-				case SidTypeDomain:				Use = tr("Domain"); break;
-				case SidTypeAlias:				Use = tr("Alias"); break;
-				case SidTypeWellKnownGroup:		Use = tr("Well Known Group"); break;
-				case SidTypeDeletedAccount:		Use = tr("Deleted Account"); break;
-				case SidTypeInvalid:			Use = tr("Yes (Limited)"); break;
-				case SidTypeUnknown:			Use = tr("Unknown"); break;
-				case SidTypeComputer:			Use = tr("Computer"); break;
-				case SidTypeLabel:				Use = tr("Label"); break;
-				case SidTypeLogonSession:		Use = tr("Logon Session"); break;
-				}
-				pItem->setText(eUse, Use);
-			}
+			pItem->setText(eSID, Group.SidString);
+			pItem->setText(eDescription, ::GetGroupDescription(Group.Attributes));
+			pItem->setText(eType, Group.AccountType);
+			pItem->setText(eUse, ::GetSidTypeString(Group.Use));
 
 			if(Group.Restricted)
 				m_pRestrictingSIDs->addChild(pItem);
@@ -587,10 +562,10 @@ void CTokenView::UpdateGeneral()
 				m_pGroups->addChild(pItem);
 		}
 
-		pItem->setText(eName, Group.Name); // note: this is being resolved asynchroniusly
+		pItem->setText(eName, ::LocalizeName(Group.Name)); // note: this is being resolved asynchroniusly
 		
-		CTokenView__SetRowColor(pItem, CWinToken::IsGroupEnabled(Group.Attributes), CWinToken::IsGroupModified(Group.Attributes));
-		pItem->setText(eStatus, CWinToken::GetGroupStatusString(Group.Attributes, Group.Restricted));
+		CTokenView__SetRowColor(pItem, CTokenInfo::IsGroupEnabled(Group.Attributes), CTokenInfo::IsGroupModified(Group.Attributes));
+		pItem->setText(eStatus, ::GetGroupStatusString(Group.Attributes, Group.Restricted));
 	}
 
 	foreach(QTreeWidgetItem* pCurItem, OldGroups)
@@ -613,10 +588,10 @@ void CTokenView::SetFilter(const QRegularExpression& Exp, int iOptions, int Col)
 
 void CTokenView::UpdateAdvanced()
 {
-	CWinToken::SAdvancedInfo AdvancedInfo = m_pCurToken->GetAdvancedInfo();
+	CTokenInfo::SAdvancedInfo AdvancedInfo = m_pCurToken->GetAdvancedInfo();
 
-	m_pAdvType->setText(1, AdvancedInfo.tokenType);
-	m_pAdvImpersonation->setText(1, AdvancedInfo.tokenImpersonationLevel);
+	m_pAdvType->setText(1, ::GetTokenTypeString(AdvancedInfo.tokenType));
+	m_pAdvImpersonation->setText(1, ::GetImpersonationLevelString(AdvancedInfo.tokenImpersonationLevel));
 
 	m_pAdvName->setText(1, AdvancedInfo.sourceName);
 	m_pAdvLUID->setText(1, AdvancedInfo.sourceLuid);
@@ -644,11 +619,11 @@ void CTokenView::UpdateAdvanced()
 
 void CTokenView::UpdateContainer()
 {
-	CWinToken::SContainerInfo ContainerInfo = m_pCurToken->GetContainerInfo();
+	CTokenInfo::SContainerInfo ContainerInfo = m_pCurToken->GetContainerInfo();
 
 	m_pContName->setText(1, ContainerInfo.appContainerName);
 	m_pContType->setText(1, ContainerInfo.appContainerSid);
-	m_pContSID->setText(1, ContainerInfo.appContainerSidType);
+	m_pContSID->setText(1, ::GetAppContainerSidTypeString(ContainerInfo.appContainerSidType));
 
 	m_pContNumber->setText(1, QString::number(ContainerInfo.appContainerNumber));
 	m_pContLPAC->setText(1, ContainerInfo.isLessPrivilegedAppContainer ? tr("True") : tr("False"));
@@ -676,7 +651,7 @@ void CTokenView__UpdateCapabilityValue(QTreeWidgetItem* pItem, const QString& Na
 
 void CTokenView::UpdateCapabilities()
 {
-	QMap<QByteArray, CWinToken::SCapability> Capabilities = m_pCurToken->GetCapabilities();
+	QMap<QByteArray, CTokenInfo::SCapability> Capabilities = m_pCurToken->GetCapabilities();
 
 	QMap<QByteArray, QTreeWidgetItem*> OldCapabilities;
 	for(int i = 0; i < m_pCapabilities->GetTree()->topLevelItemCount(); ++i) 
@@ -687,7 +662,7 @@ void CTokenView::UpdateCapabilities()
 		OldCapabilities.insert(sid,pItem);
 	}
 
-	for(QMap<QByteArray, CWinToken::SCapability>::iterator I = Capabilities.begin(); I != Capabilities.end(); ++I)
+	for(QMap<QByteArray, CTokenInfo::SCapability>::iterator I = Capabilities.begin(); I != Capabilities.end(); ++I)
 	{
 		QTreeWidgetItem* pItem = OldCapabilities.take(I.key());
 		if(!pItem)
@@ -716,14 +691,14 @@ void CTokenView::UpdateCapabilities()
 
 void CTokenView::UpdateClaims()
 {
-	QMap<QString, CWinToken::SAttribute> UserClaims = m_pCurToken->GetClaims(false);
+	QMap<QString, CTokenInfo::SAttribute> UserClaims = m_pCurToken->GetClaims(false);
 	UpdateAttributes(UserClaims, m_pUserClaims);
 
-	QMap<QString, CWinToken::SAttribute> DeviceClaims = m_pCurToken->GetClaims(true);
+	QMap<QString, CTokenInfo::SAttribute> DeviceClaims = m_pCurToken->GetClaims(true);
 	UpdateAttributes(DeviceClaims, m_pDeviceClaims);
 }
 
-void CTokenView::UpdateAttributes(QMap<QString, CWinToken::SAttribute> Attributes, QTreeWidgetItem* pRoot)
+void CTokenView::UpdateAttributes(QMap<QString, CTokenInfo::SAttribute> Attributes, QTreeWidgetItem* pRoot)
 {
 	QMap<QString, QTreeWidgetItem*> OldAttributes;
 	for(int i = 0; i < (pRoot ? pRoot->childCount() : m_pAttributes->GetTree()->topLevelItemCount()); ++i) 
@@ -734,7 +709,7 @@ void CTokenView::UpdateAttributes(QMap<QString, CWinToken::SAttribute> Attribute
 		OldAttributes.insert(Name,pItem);
 	}
 
-	for(QMap<QString, CWinToken::SAttribute>::iterator I = Attributes.begin(); I != Attributes.end(); ++I)
+	for(QMap<QString, CTokenInfo::SAttribute>::iterator I = Attributes.begin(); I != Attributes.end(); ++I)
 	{
 		QTreeWidgetItem* pItem = OldAttributes.take(I.key());
 		if(!pItem)
@@ -751,8 +726,8 @@ void CTokenView::UpdateAttributes(QMap<QString, CWinToken::SAttribute> Attribute
 			pItem->addChild(new QTreeWidgetItem());
 		}
 
-		pItem->child(0)->setText(0, tr("Type: %1").arg(CWinToken::GetSecurityAttributeTypeString(I.value().Type)));
-		pItem->child(1)->setText(0, tr("Flags: %1 (0x%2)").arg(CWinToken::GetSecurityAttributeFlagsString(I.value().Flags)).arg(I.value().Flags, 0, 16));
+		pItem->child(0)->setText(0, tr("Type: %1").arg(::GetSecurityAttributeTypeString(I.value().Type)));
+		pItem->child(1)->setText(0, tr("Flags: %1 (0x%2)").arg(::GetSecurityAttributeFlagsString(I.value().Flags)).arg(I.value().Flags, 0, 16));
 
 		QMap<int, QTreeWidgetItem*> OldValues;
 		for(int i = 2; i < pItem->childCount(); ++i)
@@ -773,7 +748,7 @@ void CTokenView::UpdateAttributes(QMap<QString, CWinToken::SAttribute> Attribute
 				pItem->addChild(pSubItem);
 			}
 
-			pSubItem->setText(0, tr("Value %1: %2").arg(i).arg(I.value().Values[i].toString()));
+			pSubItem->setText(0, tr("Value %1: %2").arg(i).arg(::GetSecurityAttributeValue(I.value().Type, I.value().Values[i])));
 		}
 
 		foreach(QTreeWidgetItem* pItem, OldValues)
@@ -786,7 +761,7 @@ void CTokenView::UpdateAttributes(QMap<QString, CWinToken::SAttribute> Attribute
 
 void CTokenView::UpdateAttributes()
 {
-	QMap<QString, CWinToken::SAttribute> Attributes = m_pCurToken->GetAttributes();
+	QMap<QString, CTokenInfo::SAttribute> Attributes = m_pCurToken->GetAttributes();
 	UpdateAttributes(Attributes);
 }
 
@@ -795,8 +770,8 @@ void CTokenView::OnMenu(const QPoint &point)
 	if (!m_pCurToken)
 		return;
 
-	QMap<QString, CWinToken::SPrivilege> Privileges = m_pCurToken->GetPrivileges();
-	QMap<QByteArray, CWinToken::SGroup> Groups = m_pCurToken->GetGroups();
+	QMap<QString, CTokenInfo::SPrivilege> Privileges = m_pCurToken->GetPrivileges();
+	QMap<QByteArray, CTokenInfo::SGroup> Groups = m_pCurToken->GetGroups();
 
 	int SelectedPrivileges = 0;
 	int SelectedGroups = 0;
@@ -812,9 +787,9 @@ void CTokenView::OnMenu(const QPoint &point)
 		{
 			QString Name = pItem->data(0, Qt::UserRole).toString();
 			quint32 Attributes = Privileges[Name].Attributes;
-			if (CWinToken::IsPrivilegeModified(Attributes))
+			if (CTokenInfo::IsPrivilegeModified(Attributes))
 				ItemsModified++;
-			if (CWinToken::IsPrivilegeEnabled(Attributes))
+			if (CTokenInfo::IsPrivilegeEnabled(Attributes))
 				ItemsEnabled++;
 			else
 				ItemsDisabled++;
@@ -824,9 +799,9 @@ void CTokenView::OnMenu(const QPoint &point)
 		{
 			QByteArray Sid = pItem->data(0, Qt::UserRole).toByteArray();
 			quint32 Attributes = Groups[Sid].Attributes;
-			if (CWinToken::IsGroupModified(Attributes))
+			if (CTokenInfo::IsGroupModified(Attributes))
 				ItemsModified++;
-			if (CWinToken::IsGroupEnabled(Attributes))
+			if (CTokenInfo::IsGroupEnabled(Attributes))
 				ItemsEnabled++;
 			else
 				ItemsDisabled++;
@@ -849,8 +824,8 @@ void CTokenView::OnMenu(const QPoint &point)
 
 void CTokenView::OnTokenAction()
 {
-	QMap<QString, CWinToken::SPrivilege> Privileges = m_pCurToken->GetPrivileges();
-	QMap<QByteArray, CWinToken::SGroup> Groups = m_pCurToken->GetGroups();
+	QMap<QString, CTokenInfo::SPrivilege> Privileges = m_pCurToken->GetPrivileges();
+	QMap<QByteArray, CTokenInfo::SGroup> Groups = m_pCurToken->GetGroups();
 
 	QList<STATUS> Errors;
 	int Force = -1;
@@ -861,28 +836,28 @@ retry:
 		if (pItem->parent() == m_pPrivileges)
 		{
 			QString Name = pItem->data(0, Qt::UserRole).toString();
-			CWinToken::SPrivilege& Privilege = Privileges[Name];
+			CTokenInfo::SPrivilege& Privilege = Privileges[Name];
 			
 			if (sender() == m_pEnable)
-				Status = m_pCurToken->PrivilegeAction(Privilege, CWinToken::eEnable);
+				Status = m_pCurToken->PrivilegeAction(Privilege, CTokenInfo::eEnable);
 			else if (sender() == m_pDisable)
-				Status = m_pCurToken->PrivilegeAction(Privilege, CWinToken::eDisable);
+				Status = m_pCurToken->PrivilegeAction(Privilege, CTokenInfo::eDisable);
 			else if (sender() == m_pReset)
-				Status = m_pCurToken->PrivilegeAction(Privilege, CWinToken::eReset);
+				Status = m_pCurToken->PrivilegeAction(Privilege, CTokenInfo::eReset);
 			else if (sender() == m_pRemove)
-				Status = m_pCurToken->PrivilegeAction(Privilege, CWinToken::eRemove, Force == 1);
+				Status = m_pCurToken->PrivilegeAction(Privilege, CTokenInfo::eRemove, Force == 1);
 		}
 		else if (pItem->parent() == m_pGroups)
 		{
 			QByteArray Sid = pItem->data(0, Qt::UserRole).toByteArray();
-			CWinToken::SGroup& Group = Groups[Sid];
+			CTokenInfo::SGroup& Group = Groups[Sid];
 
 			if (sender() == m_pEnable)
-				Status = m_pCurToken->GroupAction(Group, CWinToken::eEnable);
+				Status = m_pCurToken->GroupAction(Group, CTokenInfo::eEnable);
 			else if (sender() == m_pDisable)
-				Status = m_pCurToken->GroupAction(Group, CWinToken::eDisable);
+				Status = m_pCurToken->GroupAction(Group, CTokenInfo::eDisable);
 			else if (sender() == m_pReset)
-				Status = m_pCurToken->GroupAction(Group, CWinToken::eReset);
+				Status = m_pCurToken->GroupAction(Group, CTokenInfo::eReset);
 		}
 
 		if (Status.IsError())
@@ -891,7 +866,7 @@ retry:
 			{
 				if (Force == -1)
 				{
-					switch (QMessageBox("TaskExplorer", Status.GetText(), QMessageBox::Question, QMessageBox::Yes, QMessageBox::No, QMessageBox::Cancel | QMessageBox::Default | QMessageBox::Escape).exec())
+					switch (QMessageBox("TaskExplorer", CTaskExplorer::FormatError(Status), QMessageBox::Question, QMessageBox::Yes, QMessageBox::No, QMessageBox::Cancel | QMessageBox::Default | QMessageBox::Escape).exec())
 					{
 					case QMessageBox::Yes:
 						Force = 1;
@@ -918,12 +893,12 @@ void CTokenView::OnOriginalToken()
 	if (!m_pCurToken)
 		return;
 
-	CWinToken* pToken = CWinToken::OriginalToken(m_pCurProcess->GetProcessId());
+	CTokenInfoPtr pToken = m_pCurProcess->GetOriginalToken();
 	if (pToken)
 	{
 		CTokenView* pTokenView = new CTokenView();
 		CTaskInfoWindow* pTaskInfoWindow = new CTaskInfoWindow(pTokenView, tr("Original Token"));
-		pTokenView->ShowToken(CWinTokenPtr(pToken));
+		pTokenView->ShowToken(pToken);
 		pTaskInfoWindow->show();
 	}
 }
@@ -931,13 +906,13 @@ void CTokenView::OnOriginalToken()
 void CTokenView::OnDefaultToken()
 {
 	if (m_pCurToken)
-		m_pCurToken->OpenPermissions(true);
+		CTaskExplorer::ShowSecurity(m_pCurToken->GetSecurityObject(true), this);
 }
 
 void CTokenView::OnPermissions()
 {
 	if (m_pCurToken)
-		m_pCurToken->OpenPermissions();
+		CTaskExplorer::ShowSecurity(m_pCurToken->GetSecurityObject(), this);
 }
 
 void CTokenView::OnChangeVirtualization()
@@ -948,7 +923,7 @@ void CTokenView::OnChangeVirtualization()
 	STATUS Status = m_pCurToken->SetVirtualizationEnabled(m_pVirtualized->isChecked());
 
 	if(Status.IsError())
-		QMessageBox::warning(this, "TaskExplorer", tr("Unable to set the virtualization, error: %1").arg(Status.GetText()));
+		QMessageBox::warning(this, "TaskExplorer", tr("Unable to set the virtualization, error: %1").arg(CTaskExplorer::FormatError(Status)));
 }
 
 void CTokenView::OnChangeIntegrity()
@@ -966,7 +941,7 @@ void CTokenView::OnChangeIntegrity()
 	STATUS Status = m_pCurToken->SetIntegrityLevel(IntegrityLevel);
 
 	if(Status.IsError())
-		QMessageBox::warning(this, "TaskExplorer", tr("Unable to set the integrity level, error: %1").arg(Status.GetText()));
+		QMessageBox::warning(this, "TaskExplorer", tr("Unable to set the integrity level, error: %1").arg(CTaskExplorer::FormatError(Status)));
 }
 
 void CTokenView::OnLinkedToken()
@@ -974,7 +949,7 @@ void CTokenView::OnLinkedToken()
 	if (!m_pCurToken)
 		return;
 
-	CWinTokenPtr pLinkedToken = m_pCurToken->GetLinkedToken();
+	CTokenInfoPtr pLinkedToken = m_pCurToken->GetLinkedToken();
 	if (pLinkedToken)
 	{
 		CTokenView* pTokenView = new CTokenView();

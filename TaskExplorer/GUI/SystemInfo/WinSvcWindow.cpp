@@ -11,7 +11,12 @@
 
 #include "stdafx.h"
 #include "WinSvcWindow.h"
-#include "../../API/Windows/ProcessHacker/PhSvc.h"	
+//
+// Windows SDK only, for the SERVICE_* and SC_ACTION_* constants the API
+// reports values from; phlib is not involved.
+//
+#include <windows.h>
+#include <winsvc.h>
 #include "../../API/SystemAPI.h"
 #include "../../GUI/TaskExplorer.h"
 #include "WinSvcTrigger.h"
@@ -19,8 +24,9 @@
 #include "ServiceListWidget.h"
 #include "../../MiscHelpers/Common/ComboInputDialog.h"
 #include "../../SVC/TaskService.h"
+#include "../TaskExplorer.h"
 
-CWinSvcWindow::CWinSvcWindow(QSharedPointer<CWinService> pService, QWidget *parent)
+CWinSvcWindow::CWinSvcWindow(const CServicePtr& pService, QWidget *parent)
 	: QMainWindow(parent)
 {
 	m_pService = pService;
@@ -68,6 +74,7 @@ CWinSvcWindow::CWinSvcWindow(QSharedPointer<CWinService> pService, QWidget *pare
 	connect(ui.browseBtn, SIGNAL(pressed()), this, SLOT(OnBrowse()));
 	connect(ui.showPW, SIGNAL(stateChanged(int)), this, SLOT(OnShowPW(int)));
 	connect(ui.permissionsBtn, SIGNAL(pressed()), this, SLOT(OnPermissions()));
+	ui.permissionsBtn->setEnabled(theSystem->HasCapability(CSystemAPI::eCapSecurityEditor));
 
 	connect(ui.firstFailure, SIGNAL(currentTextChanged(const QString &)), this, SLOT(FixReciveryControls()));
 	connect(ui.secondFailure, SIGNAL(currentTextChanged(const QString &)), this, SLOT(FixReciveryControls()));
@@ -117,9 +124,7 @@ CWinSvcWindow::CWinSvcWindow(QSharedPointer<CWinService> pService, QWidget *pare
 
 CWinSvcWindow::~CWinSvcWindow()
 {
-	foreach(void* pTriggerInfo, m_TriggerInfos)
-		EspDestroyTriggerInfo((PES_TRIGGER_INFO)pTriggerInfo);
-
+	// m_Triggers holds values now, so there is nothing to free
 	theConf->SetBlob("ServiceWindow/Window_Geometry",saveGeometry());
 }
 
@@ -259,345 +264,177 @@ quint32 SvcCallChangeServiceConfig2(const QString& ServiceName, quint32 InfoLeve
 
 void CWinSvcWindow::LoadGeneral()
 {
-	for (int i = 0; i < 10; i++)
-		ui.svcType->addItem((char*)PhpServiceTypePairs[i].Key, (quint64)PhpServiceTypePairs[i].Value);
-	for (int i = 0; i < 5; i++)
-		ui.startType->addItem((char*)PhpServiceStartTypePairs[i].Key, (quint64)PhpServiceStartTypePairs[i].Value);
-	for (int i = 0; i < 4; i++)
-		ui.errorControl->addItem((char*)PhpServiceErrorControlPairs[i].Key, (quint64)PhpServiceErrorControlPairs[i].Value);
-
-	SC_HANDLE serviceHandle;
-	ULONG startType;
-	ULONG errorControl;
-	PPH_STRING serviceDll;
-
-	ui.description->setPlainText(m_pService->GetDisplayName()); // temporary value we will try to retrive the proper one firther below
-
-	ui.svcType->setCurrentIndex(ui.svcType->findData((quint64)m_pService->GetType()));
-
-	startType = m_pService->GetStartType();
-	errorControl = m_pService->GetErrorControl();
-	if (NT_SUCCESS(PhOpenService(&serviceHandle, SERVICE_QUERY_CONFIG, (wchar_t*)m_pService->GetName().toStdWString().c_str())))
+	CServiceInfo::SConfig Config;
+	if (!m_pService->GetConfig(Config))
 	{
-		LPQUERY_SERVICE_CONFIG config;
-		PPH_STRING description;
-		BOOLEAN delayedStart;
-
-		if (NT_SUCCESS(PhGetServiceConfig(serviceHandle, &config)))
-		{
-			ui.svcGroup->setText(QString::fromWCharArray(config->lpLoadOrderGroup));
-			ui.binaryPath->setText(QString::fromWCharArray(config->lpBinaryPathName));
-			ui.userName->setText(QString::fromWCharArray(config->lpServiceStartName));
-
-			if (startType != config->dwStartType || errorControl != config->dwErrorControl)
-			{
-				startType = config->dwStartType;
-				errorControl = config->dwErrorControl;
-				//PhMarkNeedsConfigUpdateServiceItem(serviceItem);
-			}
-
-			PWSTR dependency = config->lpDependencies;
-			QStringList serviceList;
-
-			if (dependency)
-			{
-				ULONG dependencyLength;
-
-				while (TRUE)
-				{
-					dependencyLength = (ULONG)PhCountStringZ(dependency);
-
-					if (dependencyLength == 0)
-						break;
-
-					if (dependency[0] == SC_GROUP_IDENTIFIER)
-						goto ContinueLoop;
-
-					serviceList.append(QString::fromWCharArray(dependency));
-
-				ContinueLoop:
-					dependency += dependencyLength + 1;
-				}
-			}
-
-			m_pDependencies->SetServicesList(serviceList);
-			m_OldDependencies = serviceList;
-
-			PhFree(config);
-		}
-
-		if (description = PhGetServiceDescription(serviceHandle))
-			ui.description->setPlainText(CastPhString(description));
-
-		if (PhGetServiceDelayedAutoStart(serviceHandle, &delayedStart))
-		{
-			m_OldDelayedStart = delayedStart;
-
-			ui.delayedStart->setChecked(delayedStart);
-		}
-
-		CloseServiceHandle(serviceHandle);
+		ui.description->setPlainText(m_pService->GetDisplayName());
+		m_GeneralChanged = false;
+		return;
 	}
 
-	ui.startType->setCurrentIndex(ui.startType->findData((quint64)startType));
-	ui.errorControl->setCurrentIndex(ui.errorControl->findData((quint64)errorControl));
+	//
+	// These three were never populated, so they always showed empty whatever the
+	// service was configured as. The labels come from the target like the rest.
+	//
+	if (ui.svcType->count() == 0)
+	{
+		foreach(const CServiceInfo::SLabeledValue& Type, m_pService->GetServiceTypes())
+			ui.svcType->addItem(Type.first, (quint64)Type.second);
+		foreach(const CServiceInfo::SLabeledValue& Type, m_pService->GetStartTypes())
+			ui.startType->addItem(Type.first, (quint64)Type.second);
+		foreach(const CServiceInfo::SLabeledValue& Type, m_pService->GetErrorControlTypes())
+			ui.errorControl->addItem(Type.first, (quint64)Type.second);
+	}
 
+	ui.svcType->setCurrentIndex(ui.svcType->findData((quint64)Config.Type));
+	ui.startType->setCurrentIndex(ui.startType->findData((quint64)Config.StartType));
+	ui.errorControl->setCurrentIndex(ui.errorControl->findData((quint64)Config.ErrorControl));
+
+	ui.svcGroup->setText(Config.LoadOrderGroup);
+	ui.binaryPath->setText(Config.BinaryPath);
+	ui.userName->setText(Config.StartName);
+	ui.description->setPlainText(Config.Description.isEmpty() ? m_pService->GetDisplayName() : Config.Description);
+
+	m_pDependencies->SetServicesList(Config.Dependencies);
+	m_OldDependencies = Config.Dependencies;
+
+	m_OldDelayedStart = Config.DelayedStart;
+	ui.delayedStart->setChecked(Config.DelayedStart);
+
+	//
+	// Nothing is ever read back out of this box; it is a placeholder, and the
+	// password is only written when the user asks for it to be.
+	//
 	ui.userPW->setText(tr("password"));
 	ui.showPW->setChecked(false);
 
-	PH_STRINGREF svcName;
-	svcName.Buffer = (wchar_t*)m_pService->GetName().toStdWString().c_str();
-	svcName.Length = m_pService->GetName().length() * sizeof(wchar_t);
-	if (NT_SUCCESS(PhGetServiceDllParameter(m_pService->GetType(), &svcName, &serviceDll)))
-	{
-		ui.dllPath->setText(QString::fromWCharArray(serviceDll->Buffer));
-		PhDereferenceObject(serviceDll);
-	}
-	else
-	{
-		ui.dllPath->setText(tr("N/A"));
-	}
+	ui.dllPath->setText(Config.ServiceDll.isEmpty() ? tr("N/A") : Config.ServiceDll);
 
 	m_GeneralChanged = false;
 }
 
 void CWinSvcWindow::SaveGeneral()
 {
-	ULONG win32Result = 0;
+	CServiceInfo::SConfig Config;
+	Config.Type = ui.svcType->currentData().toUInt();
+	Config.StartType = ui.startType->currentData().toUInt();
+	Config.ErrorControl = ui.errorControl->currentData().toUInt();
+	Config.LoadOrderGroup = ui.svcGroup->text();
+	Config.BinaryPath = ui.binaryPath->text();
+	Config.StartName = ui.userName->text();
+	Config.DelayedStart = ui.delayedStart->isChecked();
 
-	ULONG newServiceType = ui.svcType->currentData().toULongLong();
-	ULONG newServiceStartType = ui.startType->currentData().toULongLong();
-	ULONG newServiceErrorControl = ui.errorControl->currentData().toULongLong();
-
-	QString newServiceGroup = ui.svcGroup->text();
-	QString newServiceBinaryPath = ui.binaryPath->text();
-	QString newServiceUserAccount = ui.userName->text();
-	QString newServicePassword;
-	if (ui.showPW->isChecked())
-		newServicePassword = ui.userPW->text();
-	bool newDelayedStart = ui.delayedStart->isChecked();
-
+	//
+	// Only send the two fields the platform treats as optional when they have
+	// actually been touched - see the note on SConfig.
+	//
 	QStringList serviceList = m_pDependencies->GetServicesList();
-
-	SC_HANDLE serviceHandle;
-	if (NT_SUCCESS(PhOpenService(&serviceHandle, SERVICE_CHANGE_CONFIG, (wchar_t*)m_pService->GetName().toStdWString().c_str())))
+	if (m_OldDependencies != serviceList)
 	{
-		std::wstring Dependencies;
-		if (m_OldDependencies != serviceList)
-		{
-			foreach(const QString& service, serviceList)
-			{
-				Dependencies.append(service.toStdWString());
-				Dependencies.push_back(L'\0');
-			}
-			Dependencies.push_back(L'\0');
-		}
-
-		if (ChangeServiceConfig(
-			serviceHandle,
-			newServiceType,
-			newServiceStartType,
-			newServiceErrorControl,
-			newServiceBinaryPath.toStdWString().c_str(),
-			newServiceGroup.toStdWString().c_str(),
-			NULL,
-			(m_OldDependencies != serviceList) ? Dependencies.c_str() : NULL,
-			newServiceUserAccount.toStdWString().c_str(),
-			newServicePassword.toStdWString().c_str(),
-			NULL
-		))
-		{
-			if (newDelayedStart != m_OldDelayedStart)
-			{
-				SERVICE_DELAYED_AUTO_START_INFO info;
-                info.fDelayedAutostart = newDelayedStart;
-                ChangeServiceConfig2(serviceHandle, SERVICE_CONFIG_DELAYED_AUTO_START_INFO, &info);
-			}
-
-			m_GeneralChanged = false;
-
-			emit ServicesChanged();
-		}
-		else
-		{
-			win32Result = GetLastError();
-		}
-	}
-	else
-	{
-		win32Result = GetLastError();
-		if (win32Result == ERROR_ACCESS_DENIED && !theAPI->RootAvaiable() && theConf->GetBool("Options/AutoElevate", true))
-		{
-			win32Result = SvcCallChangeServiceConfig(
-				m_pService->GetName(),
-				newServiceType,
-				newServiceStartType,
-				newServiceErrorControl,
-				newServiceBinaryPath,
-				newServiceGroup,
-				NULL,
-				(m_OldDependencies != serviceList) ? &serviceList : NULL,
-				newServiceUserAccount,
-				newServicePassword,
-				QString()
-			);
-			if (win32Result == 0)
-            {
-                if (newDelayedStart != m_OldDelayedStart)
-                {
-                    SERVICE_DELAYED_AUTO_START_INFO info;
-                    info.fDelayedAutostart = newDelayedStart;
-                    SvcCallChangeServiceConfig2(m_pService->GetName(), SERVICE_CONFIG_DELAYED_AUTO_START_INFO, &info, sizeof(info));
-                }
-
-				m_GeneralChanged = false;
-                
-				ServicesChanged();
-            }
-		}
+		Config.Dependencies = serviceList;
+		Config.SetDependencies = true;
 	}
 
-
-	if (win32Result != 0)
+	if (ui.showPW->isChecked())
 	{
-		QMessageBox::warning(NULL, "TaskExplorer", tr("Unable to change service configuration, error: %1").arg(CastPhString(PhGetWin32Message(win32Result))));
-	}
-	else
-	{
-		m_OldDependencies = serviceList;
+		Config.Password = ui.userPW->text();
+		Config.SetPassword = true;
 	}
 
-	if (serviceHandle)
+	STATUS Status = m_pService->SetConfig(Config);
+	if (Status.IsError())
 	{
-		CloseServiceHandle(serviceHandle);
+		QMessageBox::warning(NULL, "TaskExplorer", tr("Unable to change service configuration, error: %1").arg(CTaskExplorer::FormatError(Status)));
+		return;
 	}
+
+	m_OldDependencies = serviceList;
+	m_OldDelayedStart = Config.DelayedStart;
+	m_GeneralChanged = false;
+
+	emit ServicesChanged();
 }
 
 void CWinSvcWindow::LoadRecovery()
 {
-	if ((m_pService->GetFlags() & SERVICE_RUNS_IN_SYSTEM_PROCESS) != 0)
+	if (m_pService->RunsInSystemProcess())
 	{
 		// Services which run in system processes don't support failure actions.
 		ui.recoveryTab->setEnabled(false);
 		return;
 	}
-	
 
-	for (int i = 0; i < 4; i++) {
-		ui.firstFailure->addItem((char*)ServiceActionPairs[i].Key, (quint64)ServiceActionPairs[i].Value);
-		ui.secondFailure->addItem((char*)ServiceActionPairs[i].Key, (quint64)ServiceActionPairs[i].Value);
-		ui.subsequentFailures->addItem((char*)ServiceActionPairs[i].Key, (quint64)ServiceActionPairs[i].Value);
-	}
-
-	NTSTATUS status = STATUS_SUCCESS;
-	SC_HANDLE serviceHandle;
-	LPSERVICE_FAILURE_ACTIONS failureActions;
-	SERVICE_FAILURE_ACTIONS_FLAG failureActionsFlag;
-	SC_ACTION_TYPE lastType;
-	ULONG returnLength;
-	ULONG i;
-
-	if (NT_SUCCESS(PhOpenService(&serviceHandle, SERVICE_QUERY_CONFIG, (wchar_t*)m_pService->GetName().toStdWString().c_str())))
+	foreach(const CServiceInfo::SLabeledValue& Action, m_pService->GetRecoveryActionTypes())
 	{
-		if (NT_SUCCESS(PhQueryServiceVariableSize(serviceHandle, SERVICE_CONFIG_FAILURE_ACTIONS, (PVOID*)&failureActions)))
-		{
-			// Failure action types
-
-			m_NumberOfActions = failureActions->cActions;
-
-			if (failureActions->cActions != 0 && failureActions->cActions != 3)
-				status = STATUS_SOME_NOT_MAPPED;
-
-			// If failure actions are not defined for a particular fail count, the
-			// last failure action is used. Here we duplicate this behaviour when there
-			// are fewer than 3 failure actions.
-			lastType = SC_ACTION_NONE;
-
-			ui.firstFailure->setCurrentIndex(ui.firstFailure->findData(failureActions->cActions >= 1 ? (lastType = failureActions->lpsaActions[0].Type) : lastType));
-			ui.secondFailure->setCurrentIndex(ui.secondFailure->findData(failureActions->cActions >= 2 ? (lastType = failureActions->lpsaActions[1].Type) : lastType));
-			ui.subsequentFailures->setCurrentIndex(ui.subsequentFailures->findData(failureActions->cActions >= 3 ? (lastType = failureActions->lpsaActions[2].Type) : lastType));
-
-			// Reset fail count after
-
-			ui.resetFailCtr->setText(QString::number(failureActions->dwResetPeriod / (60 * 60 * 24))); // s to days
-
-			// Restart service after
-
-			ui.restartService->setText("1");
-
-			for (i = 0; i < failureActions->cActions; i++)
-			{
-				if (failureActions->lpsaActions[i].Type == SC_ACTION_RESTART)
-				{
-					if (failureActions->lpsaActions[i].Delay != 0)
-					{
-						ui.restartService->setText(QString::number(failureActions->lpsaActions[i].Delay / (1000 * 60))); // ms to min
-					}
-
-					break;
-				}
-			}
-
-			// Enable actions for stops with errors
-
-			if (QueryServiceConfig2(
-				serviceHandle,
-				SERVICE_CONFIG_FAILURE_ACTIONS_FLAG,
-				(BYTE *)&failureActionsFlag,
-				sizeof(SERVICE_FAILURE_ACTIONS_FLAG),
-				&returnLength
-			))
-			{
-				ui.actionsForError->setChecked(failureActionsFlag.fFailureActionsOnNonCrashFailures);
-				m_EnableFlagCheckBox = true;
-			}
-			else
-			{
-				m_EnableFlagCheckBox = false;
-			}
-
-			// Restart computer options
-
-			m_RebootAfter = 1 * 1000 * 60;
-
-			for (i = 0; i < failureActions->cActions; i++)
-			{
-				if (failureActions->lpsaActions[i].Type == SC_ACTION_REBOOT)
-				{
-					if (failureActions->lpsaActions[i].Delay != 0)
-						m_RebootAfter = failureActions->lpsaActions[i].Delay;
-
-					break;
-				}
-			}
-
-			if (failureActions->lpRebootMsg && failureActions->lpRebootMsg[0] != 0)
-				m_RebootMessage = QString::fromWCharArray(failureActions->lpRebootMsg);
-			else
-				m_RebootMessage = QString();
-
-			// Run program
-
-			ui.programRun->setText(QString::fromWCharArray(failureActions->lpCommand));
-
-			PhFree(failureActions);
-		}
-
-		CloseServiceHandle(serviceHandle);
+		ui.firstFailure->addItem(Action.first, (quint64)Action.second);
+		ui.secondFailure->addItem(Action.first, (quint64)Action.second);
+		ui.subsequentFailures->addItem(Action.first, (quint64)Action.second);
 	}
 
+	CServiceInfo::SRecovery Recovery;
+	if (!m_pService->GetRecovery(Recovery))
+	{
+		FixReciveryControls();
+		m_RecoveryChanged = false;
+		m_RecoveryValid = true;
+		return;
+	}
 
-	if (status == STATUS_SOME_NOT_MAPPED)
+	m_NumberOfActions = Recovery.ActionCount;
+
+	//
+	// Where fewer than three actions are configured the last one is repeated,
+	// which is what the system does anyway.
+	//
+	quint32 lastType = SC_ACTION_NONE;
+	QComboBox* pBoxes[3] = { ui.firstFailure, ui.secondFailure, ui.subsequentFailures };
+	for (int i = 0; i < 3; i++)
+	{
+		if (i < Recovery.Actions.count())
+			lastType = Recovery.Actions[i].Type;
+		pBoxes[i]->setCurrentIndex(pBoxes[i]->findData(lastType));
+	}
+
+	ui.resetFailCtr->setText(QString::number(Recovery.ResetPeriod / (60 * 60 * 24))); // s to days
+
+	ui.restartService->setText("1");
+	m_RebootAfter = 1 * 1000 * 60;
+	//
+	// There is one delay box for all three slots, so the first action of each
+	// kind is the one it shows - later ones with a different delay are not
+	// representable and are left alone.
+	//
+	bool bGotRestart = false, bGotReboot = false;
+	foreach(const CServiceInfo::SRecoveryAction& Action, Recovery.Actions)
+	{
+		if (Action.Type == SC_ACTION_RESTART && !bGotRestart)
+		{
+			bGotRestart = true;
+			if (Action.Delay != 0)
+				ui.restartService->setText(QString::number(Action.Delay / (1000 * 60))); // ms to min
+		}
+		else if (Action.Type == SC_ACTION_REBOOT && !bGotReboot)
+		{
+			bGotReboot = true;
+			if (Action.Delay != 0)
+				m_RebootAfter = Action.Delay;
+		}
+	}
+
+	m_EnableFlagCheckBox = Recovery.HasNonCrashFlag;
+	if (Recovery.HasNonCrashFlag)
+		ui.actionsForError->setChecked(Recovery.NonCrashFailures);
+
+	m_RebootMessage = Recovery.RebootMessage;
+	ui.programRun->setText(Recovery.CommandLine);
+
+	if (m_NumberOfActions != 0 && m_NumberOfActions != 3)
 	{
 		if (m_NumberOfActions > 3)
 		{
 			QMessageBox::warning(NULL, "TaskExplorer", tr("The service has %1 failure actions configured, but this program only supports editing 3.\r\n"
 				"If you save the recovery information using this program, the additional failure actions will be lost.").arg(m_NumberOfActions));
 		}
-	}
-	else if (!NT_SUCCESS(status))
-	{
-		QMessageBox::warning(NULL, "TaskExplorer", tr("Unable to query service recovery information: %1").arg(CastPhString(PhGetNtMessage(status))));
 	}
 
 	FixReciveryControls();
@@ -608,103 +445,34 @@ void CWinSvcWindow::LoadRecovery()
 
 void CWinSvcWindow::SaveRecovery()
 {
-	ULONG win32Result = 0;
-	SC_HANDLE serviceHandle;
-	ULONG restartServiceAfter;
-	SERVICE_FAILURE_ACTIONS failureActions;
-	SC_ACTION actions[3];
-	ULONG i;
-	BOOLEAN enableRestart = FALSE;
+	CServiceInfo::SRecovery Recovery;
+	Recovery.ResetPeriod = ui.resetFailCtr->text().toULong() * 60 * 60 * 24;   // days to s
+	Recovery.RebootMessage = m_RebootMessage;
+	Recovery.CommandLine = ui.programRun->text();
+	Recovery.HasNonCrashFlag = m_EnableFlagCheckBox;
+	Recovery.NonCrashFailures = ui.actionsForError->isChecked();
 
-        
-	// Build the failure actions structure.
+	const quint32 RestartAfter = ui.restartService->text().toULong() * 1000 * 60; // min to ms
 
-	failureActions.dwResetPeriod = ui.resetFailCtr->text().toULongLong() * 60 * 60 * 24;
-	std::wstring RebootMsg = m_RebootMessage.toStdWString();
-	failureActions.lpRebootMsg = (wchar_t*)RebootMsg.c_str();
-	std::wstring RrogramRun = ui.programRun->text().toStdWString();
-	failureActions.lpCommand = (wchar_t*)RrogramRun.c_str();
-	failureActions.cActions = 3;
-	failureActions.lpsaActions = actions;
-
-	actions[0].Type = (SC_ACTION_TYPE)ui.firstFailure->currentData().toULongLong();
-	actions[1].Type = (SC_ACTION_TYPE)ui.secondFailure->currentData().toULongLong();
-	actions[2].Type = (SC_ACTION_TYPE)ui.subsequentFailures->currentData().toULongLong();
-		
-	restartServiceAfter = ui.restartService->text().toULongLong() * 1000 * 60;
-
-	for (i = 0; i < 3; i++)
+	QComboBox* pBoxes[3] = { ui.firstFailure, ui.secondFailure, ui.subsequentFailures };
+	for (int i = 0; i < 3; i++)
 	{
-		switch (actions[i].Type)
+		CServiceInfo::SRecoveryAction Action;
+		Action.Type = pBoxes[i]->currentData().toUInt();
+
+		switch (Action.Type)
 		{
-		case SC_ACTION_RESTART:
-			actions[i].Delay = restartServiceAfter;
-			enableRestart = TRUE;
-			break;
-		case SC_ACTION_REBOOT:
-			actions[i].Delay = m_RebootAfter;
-			break;
-		case SC_ACTION_RUN_COMMAND:
-			actions[i].Delay = 0;
-			break;
+		case SC_ACTION_RESTART:		Action.Delay = RestartAfter; break;
+		case SC_ACTION_REBOOT:		Action.Delay = m_RebootAfter; break;
+		default:					Action.Delay = 0; break;
 		}
+
+		Recovery.Actions.append(Action);
 	}
 
-	// Try to save the changes.
-
-	if (NT_SUCCESS(PhOpenService(&serviceHandle, SERVICE_CHANGE_CONFIG | (enableRestart ? SERVICE_START : 0), (wchar_t*)m_pService->GetName().toStdWString().c_str()))) // SC_ACTION_RESTART requires SERVICE_START
-	{
-		if (ChangeServiceConfig2(
-			serviceHandle,
-			SERVICE_CONFIG_FAILURE_ACTIONS,
-			&failureActions
-			))
-		{
-			if (m_EnableFlagCheckBox)
-			{
-				SERVICE_FAILURE_ACTIONS_FLAG failureActionsFlag;
-
-				failureActionsFlag.fFailureActionsOnNonCrashFailures = ui.actionsForError->isChecked();
-
-				ChangeServiceConfig2(
-					serviceHandle,
-					SERVICE_CONFIG_FAILURE_ACTIONS_FLAG,
-					&failureActionsFlag
-					);
-			}
-		}
-		else
-		{    
-			win32Result = GetLastError();
-		}
-	}
-	else
-	{
-		win32Result = GetLastError();
-		if (win32Result == ERROR_ACCESS_DENIED && !theAPI->RootAvaiable() && theConf->GetBool("Options/AutoElevate", true))
-		{
-			win32Result = SvcCallChangeServiceConfig2(m_pService->GetName(), SERVICE_CONFIG_FAILURE_ACTIONS, &failureActions, sizeof(failureActions));
-			if (win32Result != 0)
-            {
-                if (m_EnableFlagCheckBox)
-                {
-                    SERVICE_FAILURE_ACTIONS_FLAG failureActionsFlag;
-                    failureActionsFlag.fFailureActionsOnNonCrashFailures = ui.actionsForError->isChecked();
-                    SvcCallChangeServiceConfig2(m_pService->GetName(), SERVICE_CONFIG_FAILURE_ACTIONS_FLAG, &failureActionsFlag, sizeof(failureActionsFlag));
-                }
-            }
-		}
-	}
-
-	if (win32Result != 0)
-	{
-		QMessageBox::warning(NULL, "TaskExplorer", tr("Unable to change service recovery information: %1").arg(CastPhString(PhGetWin32Message(win32Result))));
-	}
-
-	if (serviceHandle)
-	{
-		CloseServiceHandle(serviceHandle);
-	}
+	STATUS Status = m_pService->SetRecovery(Recovery);
+	if (Status.IsError())
+		QMessageBox::warning(NULL, "TaskExplorer", tr("Unable to change service recovery information: %1").arg(CTaskExplorer::FormatError(Status)));
 }
 
 //void CWinSvcWindow::LoadDependencies()
@@ -713,49 +481,7 @@ void CWinSvcWindow::SaveRecovery()
 
 void CWinSvcWindow::LoadDependants()
 {
-	HWND serviceListHandle;
-	PPH_LIST serviceList;
-	SC_HANDLE serviceHandle;
-	ULONG win32Result = 0;
-	BOOLEAN success = FALSE;
-
-	if (NT_SUCCESS(PhOpenService(&serviceHandle, SERVICE_ENUMERATE_DEPENDENTS, (wchar_t*)m_pService->GetName().toStdWString().c_str())))
-	{
-		LPENUM_SERVICE_STATUS dependentServices;
-		ULONG numberOfDependentServices;
-
-		if (dependentServices = (LPENUM_SERVICE_STATUS)EsEnumDependentServices(serviceHandle, 0, &numberOfDependentServices))
-		{
-			ULONG i;
-			QStringList serviceList;
-			success = TRUE;
-
-			for (i = 0; i < numberOfDependentServices; i++)
-			{
-				serviceList.append(QString::fromWCharArray(dependentServices[i].lpServiceName));
-			}
-
-			m_pDependants->SetServicesList(serviceList);
-
-			PhFree(dependentServices);
-		}
-		else
-		{
-			win32Result = GetLastError();
-		}
-
-		CloseServiceHandle(serviceHandle);
-	}
-	else
-	{
-		win32Result = GetLastError();
-	}
-
-	if (!success)
-	{
-		QMessageBox::warning(NULL, "TaskExplorer", tr("Unable to enumerate dependents: %1").arg(CastPhString(PhGetWin32Message(win32Result))));
-	}
-
+	m_pDependants->SetServicesList(m_pService->GetDependents());
 	m_DependantsValid = true;
 }
 
@@ -763,37 +489,10 @@ void CWinSvcWindow::LoadDependants()
 
 void CWinSvcWindow::LoadTriggers()
 {
-	NTSTATUS status = STATUS_SUCCESS;
-	SC_HANDLE serviceHandle;
+	foreach(const CServiceInfo::STrigger& Trigger, m_pService->GetTriggers())
+		AddTrigger(Trigger);
 
-	if (NT_SUCCESS(PhOpenService(&serviceHandle, SERVICE_QUERY_CONFIG, (wchar_t*)m_pService->GetName().toStdWString().c_str())))
-	{
-		PSERVICE_TRIGGER_INFO triggerInfo;
-		ULONG i;
-
-		if (NT_SUCCESS(PhQueryServiceVariableSize(serviceHandle, SERVICE_CONFIG_TRIGGER_INFO, (PVOID*)&triggerInfo)))
-		{
-			for (i = 0; i < triggerInfo->cTriggers; i++)
-			{
-				PSERVICE_TRIGGER trigger = &triggerInfo->pTriggers[i];
-
-				PES_TRIGGER_INFO info = EspCreateTriggerInfo(trigger);
-
-				AddTrigger(info);
-			}
-
-			PhFree(triggerInfo);
-		}
-
-		m_InitialNumberOfTriggers = m_TriggerInfos.size();
-
-		CloseServiceHandle(serviceHandle);
-	}
-	else
-	{
-		ULONG win32Result = NTSTATUS_FROM_WIN32(GetLastError());
-		QMessageBox::warning(NULL, "TaskExplorer", tr("Unable to query service trigger information: %1").arg(CastPhString(PhGetNtMessage(win32Result))));
-	}
+	m_InitialNumberOfTriggers = m_Triggers.size();
 
 	m_TriggersChanged = false;
 	m_TriggerValid = true;
@@ -801,109 +500,19 @@ void CWinSvcWindow::LoadTriggers()
 
 void CWinSvcWindow::SaveTriggers()
 {
-	// Triggers Tab
-	// Do not try to change trigger information if we didn't have any triggers before and we don't
-	// have any now. ChangeServiceConfig2 returns an error in this situation.
-	if (m_InitialNumberOfTriggers == 0 && m_TriggerInfos.size() == 0)
-		return;
-
-	PH_AUTO_POOL autoPool;
-	SC_HANDLE serviceHandle;
-	SERVICE_TRIGGER_INFO triggerInfo;
-	ULONG i;
-	ULONG j;
-
-	PhInitializeAutoPool(&autoPool);
-
-	memset(&triggerInfo, 0, sizeof(SERVICE_TRIGGER_INFO));
-	triggerInfo.cTriggers = m_TriggerInfos.size();
-
-	// pTriggers needs to be NULL when there are no triggers.
-	if (triggerInfo.cTriggers != 0)
-	{
-		triggerInfo.pTriggers = (PSERVICE_TRIGGER)PH_AUTO(PhCreateAlloc(triggerInfo.cTriggers * sizeof(SERVICE_TRIGGER)));
-		memset(triggerInfo.pTriggers, 0, triggerInfo.cTriggers * sizeof(SERVICE_TRIGGER));
-
-		for (i = 0; i < triggerInfo.cTriggers; i++)
-		{
-			PSERVICE_TRIGGER trigger = &triggerInfo.pTriggers[i];
-			PES_TRIGGER_INFO info = (PES_TRIGGER_INFO)m_TriggerInfos[i];
-
-			trigger->dwTriggerType = info->Type;
-			trigger->dwAction = info->Action;
-			trigger->pTriggerSubtype = info->Subtype;
-
-			if (info->DataList && info->DataList->Count != 0)
-			{
-				trigger->cDataItems = info->DataList->Count;
-				trigger->pDataItems = (PSERVICE_TRIGGER_SPECIFIC_DATA_ITEM)PH_AUTO(PhCreateAlloc(info->DataList->Count * sizeof(SERVICE_TRIGGER_SPECIFIC_DATA_ITEM)));
-
-				for (j = 0; j < info->DataList->Count; j++)
-				{
-					PSERVICE_TRIGGER_SPECIFIC_DATA_ITEM dataItem = &trigger->pDataItems[j];
-					PES_TRIGGER_DATA data = (PES_TRIGGER_DATA)info->DataList->Items[j];
-
-					dataItem->dwDataType = data->Type;
-
-					if (data->Type == SERVICE_TRIGGER_DATA_TYPE_STRING)
-					{
-						dataItem->cbData = (ULONG)data->String->Length + 2; // include null terminator
-						dataItem->pData = (PBYTE)data->String->Buffer;
-					}
-					else if (data->Type == SERVICE_TRIGGER_DATA_TYPE_BINARY)
-					{
-						dataItem->cbData = data->BinaryLength;
-						dataItem->pData = (PBYTE)data->Binary;
-					}
-					else if (data->Type == SERVICE_TRIGGER_DATA_TYPE_LEVEL)
-					{
-						dataItem->cbData = sizeof(UCHAR);
-						dataItem->pData = (PBYTE)&data->Byte;
-					}
-					else if (data->Type == SERVICE_TRIGGER_DATA_TYPE_KEYWORD_ANY || data->Type == SERVICE_TRIGGER_DATA_TYPE_KEYWORD_ALL)
-					{
-						dataItem->cbData = sizeof(ULONG64);
-						dataItem->pData = (PBYTE)&data->UInt64;
-					}
-				}
-			}
-		}
-	}
-
-	ULONG win32Result = 0;
-	if (NT_SUCCESS(PhOpenService(&serviceHandle, SERVICE_CHANGE_CONFIG, (wchar_t*)m_pService->GetName().toStdWString().c_str())))
-	{
-		if (!ChangeServiceConfig2(serviceHandle, SERVICE_CONFIG_TRIGGER_INFO, &triggerInfo))
-		{
-			win32Result = GetLastError();
-		}
-
-		CloseServiceHandle(serviceHandle);
-	}
-	else
-	{
-		win32Result = GetLastError();
-		if (win32Result == ERROR_ACCESS_DENIED && !theAPI->RootAvaiable() && theConf->GetBool("Options/AutoElevate", true))
-		{
-			win32Result = SvcCallChangeServiceConfig2(m_pService->GetName(), SERVICE_CONFIG_TRIGGER_INFO, &triggerInfo, sizeof(triggerInfo));
-		}
-	}
-
-	PhDeleteAutoPool(&autoPool);
-
-	if (win32Result != 0)
-		QMessageBox::warning(NULL, "TaskExplorer", tr("Unable to change service trigger information: %1").arg(CastPhString(PhGetWin32Message(win32Result))));
+	STATUS Status = m_pService->SetTriggers(m_Triggers, m_InitialNumberOfTriggers != 0);
+	if (Status.IsError())
+		QMessageBox::warning(NULL, "TaskExplorer", tr("Unable to change service trigger information: %1").arg(CTaskExplorer::FormatError(Status)));
 }
 
 void CWinSvcWindow::LoadOther()
 {
-	for (int i = 0; i < 3; i++)
-		ui.sidType->addItem((char*)EspServiceSidTypePairs[i].Key, (quint64)EspServiceSidTypePairs[i].Value);
-	for (int i = 0; i < 4; i++)
-		ui.protectionType->addItem((char*)EspServiceLaunchProtectedPairs[i].Key, (quint64)EspServiceLaunchProtectedPairs[i].Value);
+	foreach(const CServiceInfo::SLabeledValue& Type, m_pService->GetSidTypes())
+		ui.sidType->addItem(Type.first, (quint64)Type.second);
+	foreach(const CServiceInfo::SLabeledValue& Type, m_pService->GetLaunchProtectionTypes())
+		ui.protectionType->addItem(Type.first, (quint64)Type.second);
 
 	ULONG Type = m_pService->GetType();
-
 	if (Type == SERVICE_KERNEL_DRIVER || Type == SERVICE_FILE_SYSTEM_DRIVER)
 	{
 		// Drivers don't support required privileges.
@@ -911,101 +520,39 @@ void CWinSvcWindow::LoadOther()
 		ui.removeBtn->setEnabled(false);
 	}
 
-	if (WindowsVersion < WINDOWS_8_1)
-		ui.protectionType->setEnabled(false);
-
-	std::wstring svcNameStr = m_pService->GetName().toStdWString();
-	PH_STRINGREF svcName;
-	svcName.Buffer = (wchar_t*)svcNameStr.c_str();
-	svcName.Length = svcNameStr.length() * sizeof(wchar_t);
-	PPH_STRING Sid = EspGetServiceSidString(&svcName);
-	ui.serviceSID->setText(Sid ? CastPhString(Sid) : tr("N/A"));
-        
-
-	// EspLoadOtherInfo
-	SC_HANDLE serviceHandle;
-	ULONG returnLength;
-	SERVICE_PRESHUTDOWN_INFO preshutdownInfo;
-	LPSERVICE_REQUIRED_PRIVILEGES_INFO requiredPrivilegesInfo;
-	SERVICE_SID_INFO sidInfo;
-	SERVICE_LAUNCH_PROTECTED_INFO launchProtectedInfo;
-
-	if (NT_SUCCESS(PhOpenService(&serviceHandle, SERVICE_QUERY_CONFIG, (wchar_t*)svcNameStr.c_str())))
+	CServiceInfo::SExtras Extras;
+	if (!m_pService->GetExtras(Extras))
 	{
-		// Preshutdown timeout
-		if (QueryServiceConfig2(serviceHandle,
-			SERVICE_CONFIG_PRESHUTDOWN_INFO,
-			(PBYTE)&preshutdownInfo,
-			sizeof(SERVICE_PRESHUTDOWN_INFO),
-			&returnLength
-			))
-		{
-			ui.preShutdown->setText(QString::number(preshutdownInfo.dwPreshutdownTimeout));
-			m_PreshutdownTimeoutValid = true;
-		}
-
-		// Required privileges
-
-		if (NT_SUCCESS(PhQueryServiceVariableSize(serviceHandle, SERVICE_CONFIG_REQUIRED_PRIVILEGES_INFO, (PVOID*)&requiredPrivilegesInfo)))
-		{
-			PWSTR privilege;
-			ULONG privilegeLength;
-
-			privilege = requiredPrivilegesInfo->pmszRequiredPrivileges;
-
-			if (privilege)
-			{
-				while (TRUE)
-				{
-					privilegeLength = (ULONG)PhCountStringZ(privilege);
-
-					if (privilegeLength == 0)
-						break;
-
-					AddPrivilege(QString::fromWCharArray(privilege, privilegeLength));
-
-					privilege += privilegeLength + 1;
-				}
-			}
-
-			PhFree(requiredPrivilegesInfo);
-			m_RequiredPrivilegesValid = true;
-		}
-
-		// SID type
-
-		if (QueryServiceConfig2(serviceHandle,
-			SERVICE_CONFIG_SERVICE_SID_INFO,
-			(PBYTE)&sidInfo,
-			sizeof(SERVICE_SID_INFO),
-			&returnLength
-			))
-		{
-			ui.sidType->setCurrentIndex(ui.sidType->findData((quint32)sidInfo.dwServiceSidType));
-			m_SidTypeValid = true;
-		}
-
-		// Launch protected
-
-		if (QueryServiceConfig2(serviceHandle,
-			SERVICE_CONFIG_LAUNCH_PROTECTED,
-			(PBYTE)&launchProtectedInfo,
-			sizeof(SERVICE_LAUNCH_PROTECTED_INFO),
-			&returnLength
-			))
-		{
-			ui.protectionType->setCurrentIndex(ui.protectionType->findData((quint32)launchProtectedInfo.dwLaunchProtected));
-
-			m_LaunchProtectedValid = true;
-			m_OriginalLaunchProtected = launchProtectedInfo.dwLaunchProtected;
-		}
-
-		CloseServiceHandle(serviceHandle);
+		QMessageBox::warning(NULL, "TaskExplorer", tr("Unable to query service information."));
+		m_OtherChanged = false;
+		m_OtherValid = true;
+		return;
 	}
-	else
+
+	ui.serviceSID->setText(Extras.SidString.isEmpty() ? tr("N/A") : Extras.SidString);
+
+	//
+	// A setting the target does not report is one we must not write back, so the
+	// control is disabled rather than left showing a made-up value.
+	//
+	m_PreshutdownTimeoutValid = Extras.HasPreShutdownTimeout;
+	if (Extras.HasPreShutdownTimeout)
+		ui.preShutdown->setText(QString::number(Extras.PreShutdownTimeout));
+
+	m_RequiredPrivilegesValid = Extras.HasPrivileges;
+	foreach(const QString& Privilege, Extras.Privileges)
+		AddPrivilege(Privilege);
+
+	m_SidTypeValid = Extras.HasSidType;
+	if (Extras.HasSidType)
+		ui.sidType->setCurrentIndex(ui.sidType->findData((quint64)Extras.SidType));
+
+	m_LaunchProtectedValid = Extras.HasLaunchProtected;
+	ui.protectionType->setEnabled(Extras.HasLaunchProtected);
+	if (Extras.HasLaunchProtected)
 	{
-		ULONG win32Result = NTSTATUS_FROM_WIN32(GetLastError());
-		QMessageBox::warning(NULL, "TaskExplorer", tr("Unable to query service information: %1").arg(CastPhString(PhGetNtMessage(win32Result))));
+		ui.protectionType->setCurrentIndex(ui.protectionType->findData((quint64)Extras.LaunchProtected));
+		m_OriginalLaunchProtected = Extras.LaunchProtected;
 	}
 
 	m_OtherChanged = false;
@@ -1014,103 +561,32 @@ void CWinSvcWindow::LoadOther()
 
 void CWinSvcWindow::SaveOther()
 {
-	SC_HANDLE serviceHandle = NULL;
-    ULONG win32Result = 0;
-    BOOLEAN connectedToPhSvc = FALSE;
-    ULONG launchProtected;
+	const quint32 LaunchProtected = ui.protectionType->currentData().toUInt();
 
-	launchProtected = ui.protectionType->currentData().toUInt();
-
-    if (m_LaunchProtectedValid && launchProtected != 0 && launchProtected != m_OriginalLaunchProtected)
-    {
+	if (m_LaunchProtectedValid && LaunchProtected != 0 && LaunchProtected != m_OriginalLaunchProtected)
+	{
 		if (QMessageBox("TaskExplorer", tr("Setting service protection will prevent the service from being controlled, modified, or deleted. Do you want to continue?"), QMessageBox::Question, QMessageBox::Yes, QMessageBox::No | QMessageBox::Default | QMessageBox::Escape, QMessageBox::NoButton).exec() != QMessageBox::Yes)
 			return;
-    }
+	}
 
+	CServiceInfo::SExtras Extras;
 
-    SERVICE_PRESHUTDOWN_INFO preshutdownInfo;
-    SERVICE_REQUIRED_PRIVILEGES_INFO requiredPrivilegesInfo;
-    SERVICE_SID_INFO sidInfo;
-    SERVICE_LAUNCH_PROTECTED_INFO launchProtectedInfo;
+	Extras.HasPreShutdownTimeout = m_PreshutdownTimeoutValid;
+	Extras.PreShutdownTimeout = ui.preShutdown->text().toULong();
 
-    if (NT_SUCCESS(PhOpenService(&serviceHandle, SERVICE_CHANGE_CONFIG, (wchar_t*)m_pService->GetName().toStdWString().c_str())))
-    {
-        win32Result = GetLastError();
-    }
+	Extras.HasPrivileges = m_RequiredPrivilegesValid;
+	for (int i = 0; i < ui.privilegs->topLevelItemCount(); i++)
+		Extras.Privileges.append(ui.privilegs->topLevelItem(i)->text(0));
 
-    if (m_PreshutdownTimeoutValid)
-    {
-		preshutdownInfo.dwPreshutdownTimeout = ui.preShutdown->text().toULong();
+	Extras.HasSidType = m_SidTypeValid;
+	Extras.SidType = ui.sidType->currentData().toUInt();
 
-		if (serviceHandle)
-		{
-			win32Result = SvcCallChangeServiceConfig2(m_pService->GetName(), SERVICE_CONFIG_PRESHUTDOWN_INFO, &preshutdownInfo, sizeof(preshutdownInfo));
-		}
-        else if (!ChangeServiceConfig2(serviceHandle, SERVICE_CONFIG_PRESHUTDOWN_INFO, &preshutdownInfo))
-        {
-            win32Result = GetLastError();
-        }
-    }
+	Extras.HasLaunchProtected = m_LaunchProtectedValid;
+	Extras.LaunchProtected = LaunchProtected;
 
-    if (m_RequiredPrivilegesValid && win32Result == 0)
-    {
-        std::wstring sb;
-                
-        for (int i = 0; i < ui.privilegs->topLevelItemCount(); i++)
-        {
-			QTreeWidgetItem *item = ui.privilegs->topLevelItem(i);
-
-			sb.append(item->text(0).toStdWString());
-			sb.push_back(L'\0');
-        }
-
-        requiredPrivilegesInfo.pmszRequiredPrivileges = (wchar_t*)sb.c_str();
-
-        if (serviceHandle)
-		{
-			win32Result = SvcCallChangeServiceConfig2(m_pService->GetName(), SERVICE_CONFIG_REQUIRED_PRIVILEGES_INFO, &requiredPrivilegesInfo, sizeof(requiredPrivilegesInfo));
-		}
-        else if (!ChangeServiceConfig2(serviceHandle, SERVICE_CONFIG_REQUIRED_PRIVILEGES_INFO, &requiredPrivilegesInfo))
-        {
-            win32Result = GetLastError();
-        }
-    }
-
-    if (m_SidTypeValid && win32Result == 0)
-    {
-        sidInfo.dwServiceSidType = EspGetServiceSidTypeInteger((wchar_t*)ui.sidType->currentText().toStdWString().c_str());
-
-        if (serviceHandle)
-		{
-			win32Result = SvcCallChangeServiceConfig2(m_pService->GetName(), SERVICE_CONFIG_SERVICE_SID_INFO, &sidInfo, sizeof(sidInfo));
-		}
-        else if (!ChangeServiceConfig2(serviceHandle, SERVICE_CONFIG_SERVICE_SID_INFO, &sidInfo))
-        {
-            win32Result = GetLastError();
-        }
-    }
-
-    if (m_LaunchProtectedValid && win32Result == 0)
-    {
-        launchProtectedInfo.dwLaunchProtected = launchProtected;
-
-        if (serviceHandle)
-		{
-			win32Result = SvcCallChangeServiceConfig2(m_pService->GetName(), SERVICE_CONFIG_LAUNCH_PROTECTED, &launchProtectedInfo, sizeof(launchProtectedInfo));
-		}
-        else if (!ChangeServiceConfig2(serviceHandle, SERVICE_CONFIG_LAUNCH_PROTECTED, &launchProtectedInfo))
-        {
-            // For now, ignore errors here.
-            // win32Result = GetLastError();
-        }
-    }
-
-
-    if (serviceHandle)
-        CloseServiceHandle(serviceHandle);
-
-    if (win32Result != 0)
-		QMessageBox::warning(NULL, "TaskExplorer", tr("Unable to change other service information: %1").arg(CastPhString(PhGetWin32Message(win32Result))));
+	STATUS Status = m_pService->SetExtras(Extras);
+	if (Status.IsError())
+		QMessageBox::warning(NULL, "TaskExplorer", tr("Unable to change other service information: %1").arg(CTaskExplorer::FormatError(Status)));
 }
 
 
@@ -1130,7 +606,7 @@ void CWinSvcWindow::OnShowPW(int state)
 
 void CWinSvcWindow::OnPermissions()
 {
-	m_pService->OpenPermissions();
+	CTaskExplorer::ShowSecurity(m_pService->GetSecurityObject(), this);
 }
 
 void CWinSvcWindow::OnBrowseRun()
@@ -1184,38 +660,27 @@ void CWinSvcWindow::FixReciveryControls()
 
 void CWinSvcWindow::OnTrigger(QTreeWidgetItem *item, int column)
 {
-	quint32 index = item->data(0, Qt::UserRole).toUInt();
-	if (index >= m_TriggerInfos.size())
+	int index = item->data(0, Qt::UserRole).toInt();
+	if (index < 0 || index >= m_Triggers.count())
 		return;
 
-	CWinSvcTrigger WinSvcTrigger(this);
-	WinSvcTrigger.SetInfo(m_TriggerInfos[index]);
+	CWinSvcTrigger WinSvcTrigger(m_pService, this);
+	WinSvcTrigger.SetTrigger(m_Triggers[index]);
 	if (WinSvcTrigger.exec())
 	{
 		m_TriggersChanged = true;
-
-		PES_TRIGGER_INFO info = EspCloneTriggerInfo((PES_TRIGGER_INFO)WinSvcTrigger.GetInfo());
-
-		PES_TRIGGER_INFO old_info = (PES_TRIGGER_INFO)m_TriggerInfos[index];
-		EspDestroyTriggerInfo(old_info);
-
-		m_TriggerInfos[index] = info;
-
-		UpdateTrigger(item, info);
+		m_Triggers[index] = WinSvcTrigger.GetTrigger();
+		UpdateTrigger(item, m_Triggers[index]);
 	}
 }
 
 void CWinSvcWindow::OnNewTrigger()
 {
-	CWinSvcTrigger WinSvcTrigger(this);
-	WinSvcTrigger.InitInfo();
+	CWinSvcTrigger WinSvcTrigger(m_pService, this);
 	if (WinSvcTrigger.exec())
 	{
 		m_TriggersChanged = true;
-
-		PES_TRIGGER_INFO info = EspCloneTriggerInfo((PES_TRIGGER_INFO)WinSvcTrigger.GetInfo());
-		
-		AddTrigger(info);
+		AddTrigger(WinSvcTrigger.GetTrigger());
 	}
 }
 
@@ -1233,48 +698,42 @@ void CWinSvcWindow::OnDeleteTrigger()
 	if (!item)
 		return;
 
-	quint32 index = item->data(0, Qt::UserRole).toUInt();
-	if (index >= m_TriggerInfos.size())
+	int index = item->data(0, Qt::UserRole).toInt();
+	if (index < 0 || index >= m_Triggers.count())
 		return;
 
 	if(QMessageBox("TaskExplorer", tr("Do you want to delete the selected trigger"), QMessageBox::Question, QMessageBox::Yes, QMessageBox::No | QMessageBox::Default | QMessageBox::Escape, QMessageBox::NoButton).exec() != QMessageBox::Yes)
 		return;
 
 	m_TriggersChanged = true;
-
-	PES_TRIGGER_INFO info = (PES_TRIGGER_INFO)m_TriggerInfos[index];
-	EspDestroyTriggerInfo(info);
-
-	m_TriggerInfos.remove(index);
-
+	m_Triggers.removeAt(index);
 	delete item;
+
+	//
+	// The rows carry their index into the list, so everything after the deleted
+	// one has to be renumbered.
+	//
+	for (int i = 0; i < ui.triggers->topLevelItemCount(); i++)
+		ui.triggers->topLevelItem(i)->setData(0, Qt::UserRole, i);
 }
 
-void CWinSvcWindow::AddTrigger(void* pInfo)
+void CWinSvcWindow::AddTrigger(const CServiceInfo::STrigger& Trigger)
 {
 	QTreeWidgetItem* pItem = new QTreeWidgetItem();
-	pItem->setData(0, Qt::UserRole, m_TriggerInfos.size());
-	m_TriggerInfos.append(pInfo);
+	pItem->setData(0, Qt::UserRole, m_Triggers.count());
+	m_Triggers.append(Trigger);
 	ui.triggers->addTopLevelItem(pItem);
 
-	UpdateTrigger(pItem, pInfo);
+	UpdateTrigger(pItem, Trigger);
 }
 
-void CWinSvcWindow::UpdateTrigger(QTreeWidgetItem* pItem, void* pInfo)
+void CWinSvcWindow::UpdateTrigger(QTreeWidgetItem* pItem, const CServiceInfo::STrigger& Trigger)
 {
-	PES_TRIGGER_INFO info = (PES_TRIGGER_INFO)pInfo;
-	PWSTR triggerString;
-	PWSTR actionString;
-	PPH_STRING stringUsed;
-	INT lvItemIndex;
+	QString Description, Action;
+	m_pService->GetTriggerStrings(Trigger, Description, Action);
 
-	EspFormatTriggerInfo(info, &triggerString, &actionString, &stringUsed);
-
-	pItem->setText(0, QString::fromWCharArray(triggerString));
-	pItem->setText(1, QString::fromWCharArray(actionString));
-
-	if (stringUsed)
-		PhDereferenceObject(stringUsed);
+	pItem->setText(0, Description);
+	pItem->setText(1, Action);
 }
 
 void CWinSvcWindow::OnAddPrivilege()
@@ -1282,43 +741,21 @@ void CWinSvcWindow::OnAddPrivilege()
 	CComboInputDialog comboDalog(this);
 	comboDalog.setText(tr("Select privilege to add:"));
 
-	NTSTATUS status;
-	LSA_HANDLE policyHandle;
-
-	if (!NT_SUCCESS(status = PhOpenLsaPolicy(&policyHandle, POLICY_VIEW_LOCAL_INFORMATION, NULL)))
-    {
-		QMessageBox::critical(NULL, "TaskExplorer", tr("Unable to open LSA policy, error: %1").arg(status));
+	//
+	// The list comes from the machine the service lives on, so its privileges
+	// are the ones offered - not this machine's.
+	//
+	QList<CSystemAPI::SPrivilege> Privileges;
+	if (CSystemPtr pSystem = m_pService->GetSystem())
+		Privileges = pSystem->EnumPrivileges();
+	if (Privileges.isEmpty())
+	{
+		QMessageBox::critical(NULL, "TaskExplorer", tr("Unable to enumerate privileges."));
 		return;
-    }
+	}
 
-	LSA_ENUMERATION_HANDLE enumContext = 0;
-	PPOLICY_PRIVILEGE_DEFINITION buffer;
-	ULONG count;
-
-    while (TRUE)
-    {
-        status = LsaEnumeratePrivileges(
-            policyHandle,
-            &enumContext,
-            (PVOID*)&buffer,
-            0x100,
-            &count
-            );
-
-        if (status == STATUS_NO_MORE_ENTRIES)
-            break;
-        if (!NT_SUCCESS(status))
-            break;
-
-        for (int i = 0; i < count; i++)
-        {
-			comboDalog.addItem(QString::fromWCharArray(buffer[i].Name.Buffer, buffer[i].Name.Length/sizeof(wchar_t)));
-        }
-
-        LsaFreeMemory(buffer);
-    }
-
-    LsaClose(policyHandle);
+	foreach(const CSystemAPI::SPrivilege& Privilege, Privileges)
+		comboDalog.addItem(Privilege.Name);
 
 	if (!comboDalog.exec())
 		return;
@@ -1333,7 +770,7 @@ void CWinSvcWindow::OnAddPrivilege()
 
 	AddPrivilege(Privilege);
 
-	m_RequiredPrivilegesValid = true;
+	m_OtherChanged = true;
 }
 
 void CWinSvcWindow::OnRemovePrivilege()
@@ -1350,26 +787,28 @@ void CWinSvcWindow::OnRemovePrivilege()
 
 void CWinSvcWindow::AddPrivilege(const QString& Privilege)
 {
-	std::wstring wPrivilege = Privilege.toStdWString();
-
-	wchar_t* privilege = (wchar_t*)wPrivilege.c_str();
-	size_t privilegeLength = wPrivilege.length();
-
 	QTreeWidgetItem* pItem = new QTreeWidgetItem();
 	pItem->setData(0, Qt::UserRole, Privilege);
-	ui.privilegs->addTopLevelItem(pItem);
-
 	pItem->setText(0, Privilege);
 
-	PH_STRINGREF privilegeSr;
-	privilegeSr.Buffer = privilege;
-	privilegeSr.Length = privilegeLength * sizeof(WCHAR);
+	//
+	// Cached: the dialog adds privileges one at a time, and asking the target
+	// again for each would be a round trip per row.
+	//
+	if (m_Privileges.isEmpty())
+		if (CSystemPtr pSystem = m_pService->GetSystem())
+			m_Privileges = pSystem->EnumPrivileges();
 
-	PPH_STRING displayName;
-	if (PhLookupPrivilegeDisplayName(&privilegeSr, &displayName))
+	foreach(const CSystemAPI::SPrivilege& Known, m_Privileges)
 	{
-		pItem->setText(1, CastPhString(displayName));
+		if (Known.Name.compare(Privilege, Qt::CaseInsensitive) == 0)
+		{
+			pItem->setText(1, Known.DisplayName);
+			break;
+		}
 	}
+
+	ui.privilegs->addTopLevelItem(pItem);
 }
 
 

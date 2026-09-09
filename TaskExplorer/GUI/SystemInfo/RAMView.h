@@ -3,7 +3,7 @@
 #include "../../API/ProcessInfo.h"
 #include "../../../MiscHelpers/Common/PanelView.h"
 #include "../../../MiscHelpers/Common/TreeWidgetEx.h"
-#include "../../Common/IncrementalPlot.h"
+#include "../../../MiscHelpers/Common/IncrementalPlot.h"
 
 class CRAMView : public QWidget //CPanelView
 {
@@ -16,6 +16,13 @@ public slots:
 	void					Refresh();
 	void					UpdateGraphs();
 	void					ReConfigurePlots();
+
+	//
+	// Throw the plotted history away. The points belong to whichever machine
+	// was being shown when they were taken, so they cannot be carried over to
+	// the next one.
+	//
+	void					ResetPlots();
 
 protected:
 	//virtual void				OnMenu(const QPoint& Point);
@@ -80,29 +87,30 @@ private:
 
 	CPanelWidgetEx*			m_pSwapList;
 
-#ifdef WIN32
-	QWidget*				m_pListsWidget;
-	QGridLayout*			m_pListsLayout;
+	//
+	// Only populated where the target reports page lists; see GetMemoryList().
+	//
+	QWidget*				m_pListsWidget = nullptr;
+	QGridLayout*			m_pListsLayout = nullptr;
 
-	QGroupBox*				m_pListBox;
-	QGridLayout*			m_pListLayout;
-	QLabel*					m_pZeroed;
-	QLabel*					m_pFree;
-	QLabel*					m_pModified;
-	QLabel*					m_pModifiedNoWrite;
-	QLabel*					m_pModifiedPaged;
+	QGroupBox*				m_pListBox = nullptr;
+	QGridLayout*			m_pListLayout = nullptr;
+	QLabel*					m_pZeroed = nullptr;
+	QLabel*					m_pFree = nullptr;
+	QLabel*					m_pModified = nullptr;
+	QLabel*					m_pModifiedNoWrite = nullptr;
+	QLabel*					m_pModifiedPaged = nullptr;
 
-	QGroupBox*				m_pStanbyBox;
-	QGridLayout*			m_pStanbyLayout;
-	QLabel*					m_pStandby;
-	QLabel*					m_pPriority0;
-	QLabel*					m_pPriority1;
-	QLabel*					m_pPriority2;
-	QLabel*					m_pPriority3;
-	QLabel*					m_pPriority4;
-	QLabel*					m_pPriority5;
-	QLabel*					m_pPriority6;
-	QLabel*					m_pPriority7;
-#endif
+	QGroupBox*				m_pStanbyBox = nullptr;
+	QGridLayout*			m_pStanbyLayout = nullptr;
+	QLabel*					m_pStandby = nullptr;
+	QLabel*					m_pPriority0 = nullptr;
+	QLabel*					m_pPriority1 = nullptr;
+	QLabel*					m_pPriority2 = nullptr;
+	QLabel*					m_pPriority3 = nullptr;
+	QLabel*					m_pPriority4 = nullptr;
+	QLabel*					m_pPriority5 = nullptr;
+	QLabel*					m_pPriority6 = nullptr;
+	QLabel*					m_pPriority7 = nullptr;
 };
 

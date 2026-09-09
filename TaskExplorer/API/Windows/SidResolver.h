@@ -1,4 +1,5 @@
 #pragma once
+#include "../Placeholders.h"
 
 class CSidResolverJob;
 

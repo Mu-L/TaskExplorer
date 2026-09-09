@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "../TaskExplorer.h"
+#include "../TaskStrings.h"
 #include "DnsModel.h"
 #include "../../../MiscHelpers/Common/Common.h"
 
@@ -93,7 +94,7 @@ void CDnsModel::SyncEntry(QList<SListNode*>& New, QHash<QVariant, SListNode*>& O
 		CModulePtr pModule = pProcess ? pProcess->GetModuleInfo() : CModulePtr();
 		if (pModule)
 		{
-			QPixmap Icon = pModule->GetFileIcon();
+			QPixmap Icon = ::MakeIcon(pModule->GetFileIcon());
 			if (!Icon.isNull()) {
 				Changed = 1; // set change for first column
 				pNode->Icon = Icon;
@@ -150,10 +151,10 @@ void CDnsModel::SyncEntry(QList<SListNode*>& New, QHash<QVariant, SListNode*>& O
 									{
 										quint64 ProcessId = pRecord->GetProcessId();
 										if (ProcessId)	
-											ColValue.Formatted = tr("%1 (%2)").arg(pRecord->GetProcessName()).arg(theGUI->FormatID(ProcessId)); 
+											ColValue.Formatted = tr("%1 (%2)").arg(::LocalizeName(pRecord->GetProcessName())).arg(theGUI->FormatID(ProcessId)); 
 									}
 									break;*/
-				case eType:			ColValue.Formatted = pEntry->GetTypeString(); break;
+				case eType:			ColValue.Formatted = ::GetDnsTypeString(pEntry); break;
                 case eTTL:			ColValue.Formatted = FormatNumber(Value.toULongLong() / 1000); break; // in seconds
 				case eTimeStamp:	if(Value.toULongLong() != 0) ColValue.Formatted = QDateTime::fromSecsSinceEpoch(Value.toULongLong() / 1000).toString("dd.MM.yyyy hh:mm:ss"); break;
 			}

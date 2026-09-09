@@ -4,7 +4,6 @@
 #include "../../../MiscHelpers/Common/KeyValueInputDialog.h"
 #include "../../../MiscHelpers/Common/Finder.h"
 #include "../../API/Windows/WinProcess.h"
-#include "../../API/Windows/ProcessHacker.h"
 
 
 CHeapView::CHeapView(QWidget *parent)

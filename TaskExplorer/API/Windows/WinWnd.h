@@ -24,6 +24,7 @@ public:
 	virtual STATUS SetWindowAlpha(int iAlpha);
 
 	virtual STATUS PostWndMessage(quint32 Msg, quint64 wParam = 0, quint64 lParam = 0);
+	virtual STATUS Quit();
 	virtual STATUS BringToFront();
 	virtual STATUS Highlight();
 	virtual bool IsNormal() const;
@@ -34,39 +35,6 @@ public:
 	virtual STATUS Maximize();
 	virtual STATUS Close();
 
-	struct SWndInfo
-	{
-		QString AppID;
-		QString Text;
-		QString Thread;
-		QRect	Rect;
-		QRect	NormalRect;
-		QRect	ClientRect;
-		quint64 MenuHandle;
-		quint64 InstanceHandle;
-		QString InstanceString;
-		quint64 UserdataHandle;
-		bool	IsUnicode;
-		quint32	WindowId;
-		QString Font;
-		QString Styles;
-		QString StylesEx;
-
-		QString ClassName;
-		quint64 Atom;
-		quint64 hIcon;
-		quint64 hIconSm;
-		quint64 lpszMenuName;
-		quint64 hCursor;
-		quint64 hbrBackground;
-		QString StylesClass;
-		quint64 InstanceHandle2;
-		QString InstanceString2;
-
-		QMap<QString, QString> Properties;
-
-		QMap<QString, QString> PropertyStorage;
-	};
 
 	virtual SWndInfo GetWndInfo() const;
 

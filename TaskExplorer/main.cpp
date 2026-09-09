@@ -1,4 +1,6 @@
+#include "../TaskExplorer/version.h"
 #include "stdafx.h"
+#include <QSslSocket>
 #include "GUI/TaskExplorer.h"
 #include <QtWidgets/QApplication>
 //#include <vld.h>
@@ -9,14 +11,14 @@
 #include "../qtsingleapp/src/qtsingleapplication.h"
 
 #ifdef WIN32
-#include "API/Windows/ProcessHacker.h"
+#include <phnt_windows.h>
 #include "API/Windows/WinAdmin.h"
+#include "API/Windows/WinHelper.h"
 #include <codecvt>
 #include "../MiscHelpers/Common/qRC4.h"
 #include "../MiscHelpers/Common/CheckableMessageBox.h"
-#include "../ProcessHacker/kphlib/include/sistatus.h"
+#include "../MiniDump/MiniDumpFilter.h"
 
-int SkipUacRun(bool test_only = false);
 #else
 #include <unistd.h>
 
@@ -32,7 +34,6 @@ static bool IsElevated()
 }
 #endif
 
-CSettings* theConf = NULL;
 
 
 int main(int argc, char *argv[])
@@ -51,9 +52,6 @@ int main(int argc, char *argv[])
 		GetModuleFileNameW(NULL, szPath, ARRAYSIZE(szPath));
 		*wcsrchr(szPath, L'\\') = L'\0';
 
-#ifndef _DEBUG
-		InitMiniDumpWriter(L"TaskExplorer", szPath);
-#endif
 		AppDir = QString::fromWCharArray(szPath);
 	}
 #else
@@ -87,9 +85,9 @@ int main(int argc, char *argv[])
 		// -kx / -kh control the KSystemInformer driver startup level, which
 		// only exists on Windows.
 		if (strcmp(argv[i], "-kx") == 0)
-			g_KphStartupMax = TRUE;
+			SetKernelDriverStartup(true, false);
 		else if (strcmp(argv[i], "-kh") == 0)
-			g_KphStartupHigh = TRUE;
+			SetKernelDriverStartup(false, true);
 		else
 #endif
 		if (strcmp(argv[i], "-multi") == 0)
@@ -159,24 +157,54 @@ int main(int argc, char *argv[])
 	theConf = new CSettings(AppDir, "TaskExplorer", "Xanasoft");
 
 #ifdef WIN32
-	InitPH();
+	//
+	// Crash handling, as soon as there is somewhere to put a dump.
+	//
+	// Not the in-process writer this used to call. That one ran inside the
+	// process that had just failed - allocating, loading dbghelp, putting up a
+	// message box - which is the least reliable moment to do any of those things.
+	// MiniDumpFilter spawns MiniDump.exe instead and lets *that* read the corpse
+	// from outside, which still works when the heap is what was corrupted.
+	//
+	// Here rather than at the top of main because the dumps go in a MiniDump
+	// folder beside the configuration file, and where that is depends on the
+	// settings themselves: beside the program for a portable copy, in the user's
+	// data directory otherwise. What runs before this is argument scanning and an
+	// elevation check, which is not where crashes happen - and anything there
+	// still meets the operating system's own reporting.
+	//
+	// Not under a debugger: there the exception belongs to whoever attached.
+	//
+	if (!IsDebuggerPresent())
+	{
+		//
+		// MiniDump.exe is looked for beside the program, which is where both the
+		// build and the installer put it.
+		//
+		const std::wstring DumpDir = QDir::toNativeSeparators(
+			theConf->GetConfigDir() + "/MiniDump").toStdWString();
+
+		const std::wstring AppName = QString("TaskExplorer-v%1")
+			.arg(CTaskExplorer::GetVersion()).toStdWString();
+
+		MiniDumpFilter_Init(NULL, AppName.c_str(), MDF_TYPE_TRIAGE, NULL, DumpDir.c_str());
+	}
+#endif
+
+	//
+	// Once the settings exist, because the key store's location is derived from
+	// them - and before anything can ask for a key. See SetupCredentialStore.
+	//
+	SetupCredentialStore();
+
+#ifdef WIN32
+	InitNativeApi();
 #endif
 
 #ifndef USE_TASK_HELPER
 #ifdef WIN32
 	if (bSvc)
-	{
-		HANDLE tokenHandle; // Enable some required privileges.
-		if (NT_SUCCESS(PhOpenProcessToken(NtCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &tokenHandle)))
-		{
-			PhSetTokenPrivilege2(tokenHandle, SE_ASSIGNPRIMARYTOKEN_PRIVILEGE, SE_PRIVILEGE_ENABLED);
-			PhSetTokenPrivilege2(tokenHandle, SE_INCREASE_QUOTA_PRIVILEGE, SE_PRIVILEGE_ENABLED);
-			PhSetTokenPrivilege2(tokenHandle, SE_BACKUP_PRIVILEGE, SE_PRIVILEGE_ENABLED);
-			PhSetTokenPrivilege2(tokenHandle, SE_RESTORE_PRIVILEGE, SE_PRIVILEGE_ENABLED);
-			PhSetTokenPrivilege2(tokenHandle, SE_IMPERSONATE_PRIVILEGE, SE_PRIVILEGE_ENABLED);
-			NtClose(tokenHandle);
-		}
-	}
+		EnableServicePrivileges();
 #endif
 #endif
 
@@ -199,12 +227,7 @@ int main(int argc, char *argv[])
 #ifdef Q_OS_WIN
 #ifndef _DEBUG
 	// Set the default priority.
-	{
-		PhSetProcessPriorityClass(NtCurrentProcess(), PROCESS_PRIORITY_CLASS_ABOVE_NORMAL);
-
-		PhSetProcessPagePriority(NtCurrentProcess(), MEMORY_PRIORITY_NORMAL);
-		PhSetProcessIoPriority(NtCurrentProcess(), IoPriorityNormal);
-	}
+	SetOwnProcessPriority();
 #endif
 #endif // Q_OS_WIN
 
@@ -222,15 +245,7 @@ int main(int argc, char *argv[])
 		int DPI = theConf->GetInt("Options/DPIScaling", 1);
 #ifdef WIN32
 		if (DPI == 1) {
-			//SetProcessDPIAware();
-			//SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_SYSTEM_AWARE);
-			//SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_SYSTEM_AWARE);
-			typedef DPI_AWARENESS_CONTEXT(WINAPI* P_SetThreadDpiAwarenessContext)(DPI_AWARENESS_CONTEXT dpiContext);
-			P_SetThreadDpiAwarenessContext pSetThreadDpiAwarenessContext = (P_SetThreadDpiAwarenessContext)GetProcAddress(GetModuleHandleW(L"user32.dll"), "SetThreadDpiAwarenessContext");
-			if(pSetThreadDpiAwarenessContext) // not present on windows 7
-				pSetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_SYSTEM_AWARE);
-			else
-				SetProcessDPIAware();
+			SetSystemDpiAware();
 		}
 		else
 #endif
@@ -283,12 +298,38 @@ int main(int argc, char *argv[])
 #endif
 
 #ifdef WIN32
-		if (theConf->GetBool("OptionsKSI/KsiEnable", true) && IsElevated() && !PhIsExecutingInWow64())
+		if (theConf->GetBool("OptionsKSI/KsiEnable", true) && IsElevated() && !IsRunningUnderWow64())
 		{
-			DrvStatus = InitKSI(AppDir);
+			DrvStatus = LoadKernelDriver(AppDir);
 		}
 #endif
 	}
+
+	//
+	// OpenSSL, as early as there is somewhere to say it.
+	//
+	// Qt will not change backend once one is in use, so this wants to be the
+	// first thing said about TLS in the process - but it cannot be the first
+	// thing in main(). The backend list is a QFactoryLoader held in an
+	// application static, and reaching it before the application object exists
+	// asserts in a debug build ("The application static was used without a
+	// QCoreApplication instance") and quietly does nothing in a release one.
+	// The release build therefore looked fine while its guard was inert, which
+	// is the worse of the two failures; the debug build is what said so.
+	//
+	// So: immediately after the application is constructed, and still long
+	// before anything opens a socket.
+	//
+	// It matters because Schannel, which Qt falls back to on Windows when the
+	// OpenSSL libraries are not beside the executable, offers no forward-secret
+	// PSK suite at all. A connection would still be made and would still be
+	// encrypted; it would simply have lost the property that makes a captured
+	// session useless to somebody who later learns the key.
+	//
+	// A false return is not fatal: a viewer that never connects to anything
+	// over the network never asks for any of this.
+	//
+	QSslSocket::setActiveBackend("openssl");
 
 	if (pApp)
 	{
@@ -302,11 +343,11 @@ int main(int argc, char *argv[])
 #ifdef WIN32
 	//
 	// KSystemInformer driver diagnostics. DrvStatus is only ever set by
-	// InitKSI(), which does not exist on Linux, so this loop would never be
+	// LoadKernelDriver(), which does not exist on Linux, so this loop would never be
 	// entered there anyway - but it references a pile of Windows-only symbols,
 	// so it is compiled out entirely.
 	//
-	//DrvStatus = ERR(STATUS_UNKNOWN_REVISION);
+	//DrvStatus = ERR(0xC0000058); // STATUS_UNKNOWN_REVISION
 	int DynDataUpdate = 0;
 	while (DrvStatus.IsError() || DynDataUpdate == 2)
 	{
@@ -314,12 +355,12 @@ int main(int argc, char *argv[])
 		QDialogButtonBox::StandardButtons buttons = QDialogButtonBox::Ok;
 		if (DynDataUpdate == -1)
 		{
-			Message = CTaskExplorer::tr("Failed to update DynData, %1, Error: 0x%2 (%3).").arg(DrvStatus.GetText()).arg((quint32)DrvStatus.GetStatus(), 8, 16, QChar('0')).arg(CastPhString(PhGetNtMessage(DrvStatus.GetStatus())));
+			Message = CTaskExplorer::tr("Failed to update DynData, %1, Error: 0x%2 (%3).").arg(CTaskExplorer::FormatError(DrvStatus)).arg((quint32)DrvStatus.GetStatus(), 8, 16, QChar('0')).arg(GetNtStatusMessage(DrvStatus.GetStatus()));
 		}
-		else if (DrvStatus.GetStatus() == STATUS_SI_DYNDATA_UNSUPPORTED_KERNEL || DrvStatus.GetStatus() == STATUS_UNKNOWN_REVISION || DynDataUpdate != 0) 
+		else if (IsUnsupportedKernel(DrvStatus.GetStatus()) || DynDataUpdate != 0) 
 		{
-			QString windowsVersion = QString("%1").arg(WindowsVersion); // todo
-			QString kernelVersion = CastPhString(KsiGetKernelVersionString());
+			QString windowsVersion = QString("%1").arg(GetWindowsVersion()); // todo
+			QString kernelVersion = GetKernelVersionString();
 
 			Message = CTaskExplorer::tr("The current DynData for the KTaskExplorer driver does not yet supported on your windows kernel version.<br />"
 				"You can check for <a href=\"https://github.com/DavidXanatos/TaskExplorer/releases\">TaskExplorer updates on github</a>, "
@@ -341,7 +382,7 @@ int main(int argc, char *argv[])
 			}
 		} 
 		else {
-			Message = CTaskExplorer::tr("Failed to load KTaskExplorer driver, %1, Error: 0x%2 (%3).").arg(DrvStatus.GetText()).arg((quint32)DrvStatus.GetStatus(), 8, 16, QChar('0')).arg(CastPhString(PhGetNtMessage(DrvStatus.GetStatus())));
+			Message = CTaskExplorer::tr("Failed to load KTaskExplorer driver, %1, Error: 0x%2 (%3).").arg(CTaskExplorer::FormatError(DrvStatus)).arg((quint32)DrvStatus.GetStatus(), 8, 16, QChar('0')).arg(GetNtStatusMessage(DrvStatus.GetStatus()));
 		}
 
 		bool State = false;
@@ -351,15 +392,15 @@ int main(int argc, char *argv[])
 
 		if (Ret == QDialogButtonBox::Yes)
 		{
-			DrvStatus = TryUpdateDynData(AppDir);
+			DrvStatus = CTaskExplorer::UpdateDynData(AppDir);
 			if (DrvStatus.IsError()) {
-				QMessageBox::critical(NULL, "TaskExplorer", CTaskExplorer::tr("Failed to update DynData, %1.").arg(DrvStatus.GetText()));
+				QMessageBox::critical(NULL, "TaskExplorer", CTaskExplorer::tr("Failed to update DynData, %1.").arg(CTaskExplorer::FormatError(DrvStatus)));
 				DynDataUpdate = -1;
 			}
 			else {
 				DynDataUpdate = 1;
-				CleanupKSI();
-				DrvStatus = InitKSI(AppDir);
+				UnloadKernelDriver();
+				DrvStatus = LoadKernelDriver(AppDir);
 			}
 			continue;
 		}
@@ -395,7 +436,7 @@ int main(int argc, char *argv[])
 #ifdef WIN32
 #ifndef _WIN64
 #ifndef _DEBUG
-		if (PhIsExecutingInWow64())
+		if (IsRunningUnderWow64())
 		{
 //			QString BinaryPath = "";
 //
@@ -461,7 +502,7 @@ int main(int argc, char *argv[])
 	}
 
 #ifdef WIN32
-	CleanupKSI();
+	UnloadKernelDriver();
 #endif
 
 	// note: if ran as a service teh instance wil have already been delted, but delete NULL is ok

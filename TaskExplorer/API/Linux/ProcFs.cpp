@@ -791,19 +791,81 @@ QList<SNetConnection> ReadNetConnections()
 
 	// NET_TYPE_* values, mirrored from SocketInfo.h to keep ProcFs free of
 	// dependencies on the API layer.
-	const quint32 NET_IPV4 = 0x1, NET_IPV6 = 0x2, NET_TCP = 0x10, NET_UDP = 0x20;
+	const quint32 NET_IPV4 = 0x1, NET_IPV6 = 0x2, NET_UNIX = 0x4;
+	const quint32 NET_TCP = 0x10, NET_UDP = 0x20, NET_OTHER = 0x80;
+
+	// And EUnixSocketState, mirrored for the same reason.
+	const quint32 UNIX_UNCONNECTED = 1, UNIX_CONNECTING = 2, UNIX_CONNECTED = 3;
+	const quint32 UNIX_DISCONNECTING = 4, UNIX_LISTEN = 5;
 
 	ReadNetTable("/proc/net/tcp",  NET_IPV4 | NET_TCP, false, true,  Connections);
 	ReadNetTable("/proc/net/tcp6", NET_IPV6 | NET_TCP, true,  true,  Connections);
 	ReadNetTable("/proc/net/udp",  NET_IPV4 | NET_UDP, false, false, Connections);
 	ReadNetTable("/proc/net/udp6", NET_IPV6 | NET_UDP, true,  false, Connections);
 
+	//
+	// And the unix domain sockets:
+	//
+	//   Num       RefCount Protocol Flags    Type St Inode Path
+	//   ffff...80: 00000002 00000000 00010000 0001 01 12345 /run/systemd/private
+	//
+	// Type is the socket type, St the socket-layer state, and Flags carries
+	// __SO_ACCEPTCON for a listening socket - which is not one of the states,
+	// though it is the one thing worth saying about a server. Path is absent for
+	// an anonymous socket, and this source cannot name such a socket's peer
+	// either; sock_diag can and is preferred.
+	//
+	const QByteArray Unix = ReadFile("/proc/net/unix");
+	const QList<QByteArray> Lines = Unix.split('\n');
+	for (int i = 1; i < Lines.count(); i++)		// the first line is the header
+	{
+		const QList<QByteArray> Fields = Lines[i].simplified().split(' ');
+		if (Fields.count() < 7)
+			continue;
+
+		SNetConnection Conn;
+
+		bool bOk = false;
+		const quint32 Flags = Fields[3].toUInt(&bOk, 16);
+		const quint32 Type = Fields[4].toUInt(&bOk, 16);
+		const quint32 State = Fields[5].toUInt(&bOk, 16);
+		Conn.Inode = Fields[6].toULongLong(&bOk, 10);
+		if (!Conn.Inode)
+			continue;
+
+		switch (Type)
+		{
+		case 2:		Conn.ProtocolType = NET_UNIX | NET_UDP; break;		// SOCK_DGRAM
+		case 5:		Conn.ProtocolType = NET_UNIX | NET_OTHER; break;	// SOCK_SEQPACKET
+		default:	Conn.ProtocolType = NET_UNIX | NET_TCP; break;		// SOCK_STREAM
+		}
+
+		if (Flags & 0x10000)		// __SO_ACCEPTCON
+			Conn.State = UNIX_LISTEN;
+		else switch (State)
+		{
+		case 2:		Conn.State = UNIX_CONNECTING; break;
+		case 3:		Conn.State = UNIX_CONNECTED; break;
+		case 4:		Conn.State = UNIX_DISCONNECTING; break;
+		default:	Conn.State = UNIX_UNCONNECTED; break;
+		}
+
+		//
+		// An abstract name has no filesystem entry and is printed here with a
+		// leading @ already, which is the spelling kept.
+		//
+		if (Fields.count() > 7)
+			Conn.LocalName = QString::fromUtf8(Fields[7]);
+
+		Connections.append(Conn);
+	}
+
 	return Connections;
 }
 
-QMap<quint64, quint64> BuildSocketInodeMap()
+QMultiMap<quint64, quint64> BuildSocketInodeMap()
 {
-	QMap<quint64, quint64> InodeToPid;
+	QMultiMap<quint64, quint64> InodeToPid;
 
 	for (quint64 Pid : EnumProcesses())
 	{
@@ -829,11 +891,17 @@ QMap<quint64, quint64> BuildSocketInodeMap()
 			if (!Inode)
 				continue;
 
-			// First writer wins. A socket shared across a fork appears under
-			// several pids; the lowest enumerated one is as good a choice as
-			// any and matches what ss reports first.
-			if (!InodeToPid.contains(Inode))
-				InodeToPid.insert(Inode, Pid);
+			//
+			// Every holder, not the first one.
+			//
+			// A socket really can belong to several processes at once - passed
+			// over a unix socket, inherited across a fork, or held by both ends
+			// of an emulator. Measured: putty.exe's connection is held by
+			// putty.exe and by wineserver, and keeping only the first meant the
+			// connection appeared under wineserver and putty's Sockets tab was
+			// empty. ss reports every holder for the same reason.
+			//
+			InodeToPid.insert(Inode, Pid);
 		}
 	}
 
@@ -1553,53 +1621,6 @@ SProcSecurity ReadProcSecurity(quint64 Pid)
 	return Security;
 }
 
-QStringList DecodeCapabilities(quint64 Mask)
-{
-	//
-	// Indexed by capability number, as defined in <linux/capability.h>. Listed
-	// literally rather than pulled from the header so that a kernel newer than
-	// the build machine's headers still names everything it reports.
-	//
-	static const char* Names[] = {
-		"CAP_CHOWN", "CAP_DAC_OVERRIDE", "CAP_DAC_READ_SEARCH", "CAP_FOWNER",
-		"CAP_FSETID", "CAP_KILL", "CAP_SETGID", "CAP_SETUID",
-		"CAP_SETPCAP", "CAP_LINUX_IMMUTABLE", "CAP_NET_BIND_SERVICE", "CAP_NET_BROADCAST",
-		"CAP_NET_ADMIN", "CAP_NET_RAW", "CAP_IPC_LOCK", "CAP_IPC_OWNER",
-		"CAP_SYS_MODULE", "CAP_SYS_RAWIO", "CAP_SYS_CHROOT", "CAP_SYS_PTRACE",
-		"CAP_SYS_PACCT", "CAP_SYS_ADMIN", "CAP_SYS_BOOT", "CAP_SYS_NICE",
-		"CAP_SYS_RESOURCE", "CAP_SYS_TIME", "CAP_SYS_TTY_CONFIG", "CAP_MKNOD",
-		"CAP_LEASE", "CAP_AUDIT_WRITE", "CAP_AUDIT_CONTROL", "CAP_SETFCAP",
-		"CAP_MAC_OVERRIDE", "CAP_MAC_ADMIN", "CAP_SYSLOG", "CAP_WAKE_ALARM",
-		"CAP_BLOCK_SUSPEND", "CAP_AUDIT_READ", "CAP_PERFMON", "CAP_BPF",
-		"CAP_CHECKPOINT_RESTORE",
-	};
-	static const int Count = (int)(sizeof(Names) / sizeof(Names[0]));
-
-	QStringList Capabilities;
-	for (int i = 0; i < 64; i++)
-	{
-		if (!(Mask & (1ULL << i)))
-			continue;
-
-		if (i < Count)
-			Capabilities.append(Names[i]);
-		else
-			Capabilities.append(QString("CAP_%1").arg(i));	// added since this table
-	}
-
-	return Capabilities;
-}
-
-QString SeccompModeToString(int Mode)
-{
-	switch (Mode)
-	{
-		case 0:		return QObject::tr("Disabled");
-		case 1:		return QObject::tr("Strict");
-		case 2:		return QObject::tr("Filtered");
-		default:	return QObject::tr("Unknown (%1)").arg(Mode);
-	}
-}
 
 // ---- out of memory killer ----
 

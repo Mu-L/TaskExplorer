@@ -1,14 +1,10 @@
 #include "stdafx.h"
 #include "../TaskExplorer.h"
+#include "../DesktopActions.h"
 #include "../TaskInfo/TaskInfoWindow.h"
 #include "ModulesView.h"
 #include "../../../MiscHelpers/Common/Common.h"
 #include "../../../MiscHelpers/Common/Finder.h"
-#ifdef WIN32
-#include "../../API/Windows/ProcessHacker.h"
-#include "../../API/Windows/ProcessHacker/appsup.h"	
-#endif
-
 CModulesView::CModulesView(bool bGlobal, QWidget *parent)
 	:CPanelView(parent)
 {
@@ -52,10 +48,8 @@ CModulesView::CModulesView(bool bGlobal, QWidget *parent)
 	m_pModuleList->setModel(m_pSortProxy);
 
 	m_pModuleList->setSelectionMode(QAbstractItemView::ExtendedSelection);
-#ifdef WIN32
 	QStyle* pStyle = QStyleFactory::create("windows");
 	m_pModuleList->setStyle(pStyle);
-#endif
 	m_pModuleList->setSortingEnabled(true);
 
 	m_pModuleList->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -136,10 +130,8 @@ void CModulesView::OnResetColumns()
 	m_pModuleList->SetColumnHidden(CModuleModel::eModule, false);
 	m_pModuleList->SetColumnHidden(CModuleModel::eBaseAddress, false);
 	m_pModuleList->SetColumnHidden(CModuleModel::eSize, false);
-#ifdef WIN32
 	if(!m_bGlobal)
 		m_pModuleList->SetColumnHidden(CModuleModel::eDescription, false);
-#endif
 	m_pModuleList->SetColumnHidden(CModuleModel::eFileName, false);
 }
 
@@ -167,7 +159,49 @@ void CModulesView::ShowProcesses(const QList<CProcessPtr>& Processes)
 
 		m_pCurProcess = pProcess;
 
+		//
+		// Emptied the moment the selection moves, before anything is asked for
+		// the new process.
+		//
+		// What is on screen belongs to one process, and an update that fails -
+		// another user's process on a viewer with no privilege, a process that
+		// exited between the click and the read - emits nothing at all. Without
+		// this the previous process's list simply stayed there, under the new
+		// process's name, which is worse than showing nothing: it is wrong and
+		// it looks right. CThreadsView and CWindowsView already did this.
+		//
+		m_Modules.clear();
+		m_pModuleModel->Clear();
+
 		connect(m_pCurProcess.data(), SIGNAL(ModulesUpdated(QSet<quint64>, QSet<quint64>, QSet<quint64>)), this, SLOT(OnModulesUpdated(QSet<quint64>, QSet<quint64>, QSet<quint64>)));
+	}
+
+	//
+	// The two controls above the list are Windows ones, and neither does
+	// anything useful on a process from another kind of machine.
+	//
+	// Injecting a library is not implemented outside Windows - CLinuxProcess
+	// ::LoadModule is a stub that returns an error - so the button offered an
+	// operation that could only fail. Modified pages are worse than useless:
+	// UpdateModulesAndModPages exists only on CWinProcess, so with the box
+	// ticked Refresh below aimed at a slot that is not there and the list
+	// quietly stopped refreshing altogether.
+	//
+	// Greyed with the reason on them rather than hidden, so that somebody
+	// looking for the button finds out why it is not available.
+	//
+	if (m_pLoadModule)
+	{
+		const bool bWindows = !m_pCurProcess.isNull() && m_pCurProcess->GetSystem()
+			&& m_pCurProcess->GetSystem()
+			&& m_pCurProcess->GetSystem()->GetOsType() == CSystemAPI::eOsWindows;
+
+		const QString NotHere = tr("This machine does not run Windows, which is where this comes from.");
+
+		m_pLoadModule->setEnabled(bWindows);
+		m_pLoadModule->setToolTip(bWindows ? QString() : NotHere);
+		m_pShowModPages->setEnabled(bWindows);
+		m_pShowModPages->setToolTip(bWindows ? QString() : NotHere);
 	}
 
 	Refresh();
@@ -178,7 +212,13 @@ void CModulesView::Refresh()
 	if (!m_pCurProcess)
 		return;
 
-	if(m_pShowModPages->isChecked())
+	//
+	// isEnabled as well as isChecked: the box keeps whatever it was ticked to
+	// when the selection moves to a machine that has no such notion, and taking
+	// that path there would aim at a slot the process does not have. See
+	// ShowProcesses.
+	//
+	if (m_pShowModPages && m_pShowModPages->isEnabled() && m_pShowModPages->isChecked())
 		QTimer::singleShot(0, m_pCurProcess.data(), SLOT(UpdateModulesAndModPages()));
 	else
 		QTimer::singleShot(0, m_pCurProcess.data(), SLOT(UpdateModules()));
@@ -186,6 +226,9 @@ void CModulesView::Refresh()
 
 void CModulesView::OnModulesUpdated(QSet<quint64> Added, QSet<quint64> Changed, QSet<quint64> Removed)
 {
+	if (!m_pCurProcess)
+		return;
+
 	m_Modules = m_pCurProcess->GetModuleList();
 
 	Added = m_pModuleModel->Sync(m_Modules);
@@ -248,7 +291,7 @@ void CModulesView::OnUnload()
 				{
 					if (Force == -1)
 					{
-						switch (QMessageBox("TaskExplorer", Status.GetText(), QMessageBox::Question, QMessageBox::Yes, QMessageBox::No, QMessageBox::Cancel | QMessageBox::Default | QMessageBox::Escape).exec())
+						switch (QMessageBox("TaskExplorer", CTaskExplorer::FormatError(Status), QMessageBox::Question, QMessageBox::Yes, QMessageBox::No, QMessageBox::Cancel | QMessageBox::Default | QMessageBox::Escape).exec())
 						{
 						case QMessageBox::Yes:
 							Force = 1;
@@ -317,10 +360,5 @@ void CModulesView::OnOpenModule()
 	CModulePtr pModule = m_pModuleModel->GetModule(ModelIndex);
 	if (!pModule)
 		return;
-
-#ifdef WIN32
-	PPH_STRING phFileName = CastQString(pModule->GetFileName());
-	PhShellExecuteUserString(NULL, (PWSTR)L"FileBrowseExecutable", phFileName->Buffer, FALSE, (PWSTR)L"Make sure the Explorer executable file is present." );
-	PhDereferenceObject(phFileName);
-#endif
+	::ExploreFile(pModule->GetSystem().data(), pModule->GetFileName());
 }

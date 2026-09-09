@@ -67,7 +67,7 @@ STATUS CWinDumper::PrepareDump(const CProcessPtr& pProcess, quint32 DumpType, co
 	NTSTATUS status = PhOpenProcess(&m->ProcessHandle, PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, m->ProcessId);
     if (!NT_SUCCESS(status))
     {
-		return ERR(tr("Unable to open the process"), status);
+		return ERR(TE_OpenProc2, status);
     }
 
 #ifdef _WIN64
@@ -78,7 +78,7 @@ STATUS CWinDumper::PrepareDump(const CProcessPtr& pProcess, quint32 DumpType, co
     if (!NT_SUCCESS(status))
     {
 		NtClose(m->ProcessHandle);
-		return ERR(tr("Unable to access the dump file"), status);
+		return ERR(TE_AccessDumpFile, status);
     }
 
 	return OK;
@@ -162,15 +162,15 @@ static BOOL CALLBACK PhpProcessMiniDumpCallback(
     //    CallbackOutput->Status = S_OK;
     //    break;
     case ModuleCallback:
-		emit This->ProgressMessage(CWinDumper::tr("Processing module %1...").arg(QString::fromWCharArray(CallbackInput->Module.FullPath)));
+		emit This->ProgressMessage(ERR(TE_DumpProcessingModule, QVariantList() << QString::fromWCharArray(CallbackInput->Module.FullPath)));
         break;
     case ThreadCallback:
 	case ThreadExCallback:
-		emit This->ProgressMessage(CWinDumper::tr("Processing thread 0x%1...").arg(CallbackInput->Thread.ThreadId, 0, 16));
+		emit This->ProgressMessage(ERR(TE_DumpProcessingThread, QVariantList() << (quint64)CallbackInput->Thread.ThreadId));
         break;
 	case IncludeVmRegionCallback:
 		// CallbackOutput->VmRegion.BaseAddress
-		emit This->ProgressMessage(CWinDumper::tr("Processing memory regions"));
+		emit This->ProgressMessage(ERR(TE_DumpProcessingMemory));
 		break;
 	case WriteKernelMinidumpCallback:
         {
@@ -198,7 +198,7 @@ static BOOL CALLBACK PhpProcessMiniDumpCallback(
         }
 		break;
 	case KernelMinidumpStatusCallback:
-		emit This->ProgressMessage(CWinDumper::tr("Processing kernel minidump"));
+		emit This->ProgressMessage(ERR(TE_DumpProcessingKernel));
 		break;
     }
     return TRUE;
@@ -222,11 +222,11 @@ void CWinDumper::run()
 		SocketName = CTaskService::RunWorker(false, true);
 		if (SocketName.isEmpty())
 		{
-			emit StatusMessage(tr("Failed to start a 32-bit TaskHelper. A 64-bit dump will be created instead."));
+			emit StatusMessage(ERR(TE_DumpHelper32Failed));
 		}
 		else
 		{
-			emit StatusMessage(tr("Started a 32-bit TaskHelper, to create a 32-bit dump file."));
+			emit StatusMessage(ERR(TE_DumpHelper32Started));
 
 			NTSTATUS status = STATUS_UNSUCCESSFUL;
 
@@ -258,7 +258,7 @@ void CWinDumper::run()
 							QVariant Response = CTaskService::SendCommand(SocketName, Request, -1); // no timeout, this may take a while
 							if (NT_SUCCESS(Response.toUInt()))
 							{
-								emit StatusMessage(tr("32-bit memory dump Completed."), 0);
+								emit StatusMessage(ERR(TE_DumpCompleted32));
 								goto Completed;
 							}
 						}
@@ -266,7 +266,7 @@ void CWinDumper::run()
 				}
 			}
 
-			emit StatusMessage(tr("The 32-bit TaskHelper failed to create the memory dump, Error: %1\r\nA 64-bit dump will be created instead.").arg(status), status);
+			emit StatusMessage(ERR(TE_DumpHelper32Error, QVariantList() << (quint32)status, status));
 		}		
     }
 #endif
@@ -282,7 +282,7 @@ void CWinDumper::run()
     {
         if (!PhGetOwnTokenAttributes().Elevated)
         {
-            emit StatusMessage(tr("Unable to create kernel minidump. Kernel minidump of processes require administrative privileges."), 0);
+            emit StatusMessage(ERR(TE_DumpKernelNeedsAdmin));
         }
     }
     else
@@ -309,11 +309,11 @@ void CWinDumper::run()
 
     if (PhWriteMiniDumpProcess(processHandle, m->ProcessId, m->FileHandle, m->DumpType, NULL, NULL, &callbackInfo))
     {
-        emit StatusMessage(tr("Memory dump Completed."), 0);
+        emit StatusMessage(ERR(TE_DumpCompleted));
     }
     else
     {
-		emit StatusMessage(tr("Failed to create Dump."), GetLastError());
+		emit StatusMessage(ERR(TE_DumpFailed, QVariantList(), GetLastError()));
     }
 
     if (processSnapshotHandle)

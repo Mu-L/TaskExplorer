@@ -1,12 +1,10 @@
 #include "stdafx.h"
 #include "../../TaskExplorer.h"
 #include "PoolView.h"
+#include "../../../API/Cluster.h"
 #include "../../../../MiscHelpers/Common/Common.h"
 #include "../../../../MiscHelpers/Common/SortFilterProxyModel.h"
 #include "../../../../MiscHelpers/Common/Finder.h"
-#ifdef WIN32
-#include "../../../API/Windows/WindowsAPI.h"		
-#endif
 
 
 CPoolView::CPoolView(QWidget *parent)
@@ -56,7 +54,7 @@ CPoolView::CPoolView(QWidget *parent)
 	//m_pMenu = new QMenu();
 	AddPanelItemsToMenu();
 
-	connect(theAPI, SIGNAL(PoolListUpdated(QSet<quint64>, QSet<quint64>, QSet<quint64>)), this, SLOT(OnPoolListUpdated(QSet<quint64>, QSet<quint64>, QSet<quint64>)));
+	connect(theSystem.data(), SIGNAL(PoolListUpdated(QSet<quint64>, QSet<quint64>, QSet<quint64>)), this, SLOT(OnPoolListUpdated(QSet<quint64>, QSet<quint64>, QSet<quint64>)));
 }
 
 CPoolView::~CPoolView()
@@ -71,12 +69,12 @@ void CPoolView::OnColumnsChanged()
 
 void CPoolView::Refresh() 
 {
-	QTimer::singleShot(0, theAPI, SLOT(UpdatePoolTable()));
+	QTimer::singleShot(0, theSystem.data(), SLOT(UpdatePoolTable()));
 }
 
 void CPoolView::OnPoolListUpdated(QSet<quint64> Added, QSet<quint64> Changed, QSet<quint64> Removed)
 {
-	m_PoolList = ((CWindowsAPI*)theAPI)->GetPoolTableList();
+	m_PoolList = CCluster::GetViewSystem()->GetPoolTableList();
 	
 	m_pPoolModel->Sync(m_PoolList);
 }

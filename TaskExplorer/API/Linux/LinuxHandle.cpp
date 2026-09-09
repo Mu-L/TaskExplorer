@@ -7,6 +7,25 @@
 
 #include <fcntl.h>
 
+//
+// The open(2) flags CHandleInfo names are this platform's own.
+//
+static_assert(CHandleInfo::eOpenAccessMask   == O_ACCMODE,   "open access mask");
+static_assert(CHandleInfo::eOpenReadOnly     == O_RDONLY,    "open read only");
+static_assert(CHandleInfo::eOpenWriteOnly    == O_WRONLY,    "open write only");
+static_assert(CHandleInfo::eOpenReadWrite    == O_RDWR,      "open read write");
+static_assert(CHandleInfo::eOpenCloseOnExec  == O_CLOEXEC,   "open close on exec");
+static_assert(CHandleInfo::eOpenAppend       == O_APPEND,    "open append");
+static_assert(CHandleInfo::eOpenNonBlock     == O_NONBLOCK,  "open non-blocking");
+static_assert(CHandleInfo::eOpenDSync        == O_DSYNC,     "open data sync");
+static_assert(CHandleInfo::eOpenAsync        == O_ASYNC,     "open async");
+static_assert(CHandleInfo::eOpenDirect       == O_DIRECT,    "open direct");
+static_assert(CHandleInfo::eOpenDirectory    == O_DIRECTORY, "open directory");
+static_assert(CHandleInfo::eOpenNoAtime      == O_NOATIME,   "open no atime");
+static_assert(CHandleInfo::eOpenPath         == O_PATH,      "open path");
+static_assert(CHandleInfo::eOpenSync         == O_SYNC,      "open sync");
+
+
 CLinuxHandle::CLinuxHandle(QObject *parent)
 	: CHandleInfo(parent)
 {
@@ -169,99 +188,15 @@ QString CLinuxHandle::GetTypeName() const
 	}
 	return "Unknown";
 }
-
-QString CLinuxHandle::GetTypeString() const
-{
-	QReadLocker Locker(&m_Mutex);
-	switch (m_Type)
-	{
-		case eFile:		return tr("File");
-		case eDirectory:	return tr("Directory");
-		case eSocket:		return tr("Socket");
-		case ePipe:		return tr("Pipe");
-		case eAnonInode:	return tr("Anonymous Inode");
-		case eCharDevice:	return tr("Character Device");
-		case eBlockDevice:	return tr("Block Device");
-		default:		break;
-	}
-	return tr("Unknown");
-}
-
 quint32 CLinuxHandle::GetGrantedAccess() const
 {
 	QReadLocker Locker(&m_Mutex);
 	return m_Flags;
 }
-
-QString CLinuxHandle::GetGrantedAccessString() const
-{
-	QReadLocker Locker(&m_Mutex);
-
-	QStringList Parts;
-
-	//
-	// The access mode is a two-bit field rather than a set of flags, so it is
-	// switched on rather than tested.
-	//
-	// O_PATH is checked first because it changes what the others mean: such a
-	// descriptor refers to a location in the filesystem and cannot read or write
-	// at all, yet it has O_RDONLY's value of 0 in the access-mode field.
-	//
-	if (m_Flags & O_PATH)
-	{
-		Parts.append(tr("Path only"));
-	}
-	else
-	{
-		switch (m_Flags & O_ACCMODE)
-		{
-			case O_RDONLY:	Parts.append(tr("Read")); break;
-			case O_WRONLY:	Parts.append(tr("Write")); break;
-			case O_RDWR:	Parts.append(tr("Read/Write")); break;
-		}
-	}
-
-	//
-	// The remaining file status flags, in the order most likely to matter when
-	// looking at what a process has open. Flags that only affected the original
-	// open() call and are not retained by the kernel (O_CREAT, O_EXCL, O_TRUNC,
-	// O_NOCTTY, O_NOFOLLOW) never appear in fdinfo, so they are not listed.
-	//
-	struct { int Flag; const char* Name; } static const Flags[] =
-	{
-		{ O_APPEND,		QT_TR_NOOP("Append")		},
-		{ O_NONBLOCK,	QT_TR_NOOP("Non-blocking")	},
-		{ O_DIRECT,		QT_TR_NOOP("Direct")		},	// bypasses the page cache
-		{ O_SYNC,		QT_TR_NOOP("Sync")			},	// implies O_DSYNC, so test it first
-		{ O_DSYNC,		QT_TR_NOOP("Data sync")		},
-		{ O_ASYNC,		QT_TR_NOOP("Async")			},	// SIGIO on readiness
-		{ O_NOATIME,	QT_TR_NOOP("No atime")		},
-		{ O_DIRECTORY,	QT_TR_NOOP("Directory")		},
-		{ O_CLOEXEC,	QT_TR_NOOP("Close on exec")	},
-	};
-
-	for (size_t i = 0; i < sizeof(Flags) / sizeof(Flags[0]); i++)
-	{
-		//
-		// O_SYNC is O_DSYNC|__O_SYNC on Linux, so a plain bit test would report
-		// "Sync, Data sync" for a single flag. Matching the whole value avoids
-		// that for any such composite.
-		//
-		if ((m_Flags & Flags[i].Flag) == Flags[i].Flag)
-		{
-			if (Flags[i].Flag == O_DSYNC && (m_Flags & O_SYNC) == O_SYNC)
-				continue;
-			Parts.append(tr(Flags[i].Name));
-		}
-	}
-
-	return Parts.join(", ");
-}
-
 STATUS CLinuxHandle::Close(bool bForce)
 {
 	// Linux has no equivalent of DuplicateHandle(DUPLICATE_CLOSE_SOURCE); an fd
 	// belonging to another process can only be closed by ptrace-attaching and
 	// issuing close() in its context.
-	return ERR(tr("Closing a file descriptor of another process is not supported on Linux."));
+	return ERR(TE_ClosingFileDesc);
 }

@@ -2,7 +2,7 @@
 #include <qwidget.h>
 #include "../../../MiscHelpers/Common/PanelView.h"
 #include "../../../MiscHelpers/Common/TreeWidgetEx.h"
-#include "../../API/Windows/WinProcess.h"
+#include "../../API/ProcessInfo.h"
 
 class CTokenView : public CPanelView
 {
@@ -14,7 +14,7 @@ public:
 
 public slots:
 	void					ShowProcesses(const QList<CProcessPtr>& Processes);
-	void					ShowToken(const CWinTokenPtr& pToken);
+	void					ShowToken(const CTokenInfoPtr& pToken);
 	void					Refresh();
 
 private slots:
@@ -36,8 +36,8 @@ protected:
 	virtual QTreeView*			GetView() 				{ return m_pTokenList; }
 	virtual QAbstractItemModel* GetModel()				{ return m_pTokenList->model(); }
 
-	QSharedPointer<CWinProcess>	m_pCurProcess;
-	CWinTokenPtr				m_pCurToken;
+	CProcessPtr				m_pCurProcess;
+	CTokenInfoPtr				m_pCurToken;
 
 private:
 	void	UpdateGeneral();
@@ -45,7 +45,7 @@ private:
 	void	UpdateContainer();
 	void	UpdateCapabilities();
 	void	UpdateClaims();
-	void	UpdateAttributes(QMap<QString, CWinToken::SAttribute> Attributes, QTreeWidgetItem* pRoot = NULL);
+	void	UpdateAttributes(QMap<QString, CTokenInfo::SAttribute> Attributes, QTreeWidgetItem* pRoot = NULL);
 	void	UpdateAttributes();
 
 	bool					m_LockValues;

@@ -14,7 +14,6 @@
 #include "AtomView.h"
 #include "../../../../MiscHelpers/Common/KeyValueInputDialog.h"
 #include "../../../../MiscHelpers/Common/Finder.h"
-#include "../../../API/Windows/ProcessHacker.h"
 
 
 CAtomView::CAtomView(QWidget *parent)
@@ -72,85 +71,33 @@ CAtomView::~CAtomView()
 	theConf->SetBlob(objectName() + "/AtomView_Columns", m_pAtomList->saveState());
 }
 
-NTSTATUS EnumAtomTable(_Out_ PATOM_TABLE_INFORMATION* AtomTable)
-{
-    ULONG bufferSize = 0x1000;
-    PVOID buffer = PhAllocate(bufferSize);
-    memset(buffer, 0, bufferSize);
-
-    NTSTATUS status = NtQueryInformationAtom(RTL_ATOM_INVALID_ATOM, AtomTableInformation, buffer, bufferSize, &bufferSize);
-    if (!NT_SUCCESS(status))
-    {
-        PhFree(buffer);
-        return status;
-    }
-
-    *AtomTable = (PATOM_TABLE_INFORMATION)buffer;
-    return status;
-}
-
-NTSTATUS QueryAtomTableEntry(_In_ RTL_ATOM Atom, _Out_ PATOM_BASIC_INFORMATION* AtomInfo)
-{
-    ULONG bufferSize = 0x1000;
-    PVOID buffer = PhAllocate(bufferSize);
-    memset(buffer, 0, bufferSize);
-
-    NTSTATUS status = NtQueryInformationAtom(Atom, AtomBasicInformation, buffer, bufferSize, &bufferSize);
-    if (!NT_SUCCESS(status))
-    {
-        PhFree(buffer);
-        return status;
-    }
-
-    *AtomInfo = (PATOM_BASIC_INFORMATION)buffer;
-    return status;
-}
-
 void CAtomView::Refresh()
 {
-    PATOM_TABLE_INFORMATION atomTable = NULL;
-
-    if (!NT_SUCCESS(EnumAtomTable(&atomTable)))
-        return;
-
 	m_Atoms.clear();
 
-    for (ULONG i = 0; i < atomTable->NumberOfAtoms; i++)
-    {
+	foreach(const CSystemAPI::SAtom& Atom, theSystem->GetAtomTable())
+	{
+		//
+		// The backend reports flags; the wording is decided here, so it is in the
+		// reader's language and not the collector's.
+		//
 		QString Name;
-		USHORT RefCount = 0;
-
-        PATOM_BASIC_INFORMATION atomInfo = NULL;
-
-        if (!NT_SUCCESS(QueryAtomTableEntry(atomTable->Atoms[i], &atomInfo)))
-        {
-			Name = tr("(Error) #%1").arg(i);
-        }
+		if (Atom.Unreadable)
+			Name = tr("(Error) #%1").arg(Atom.Id);
+		else if (Atom.Pinned)
+			Name = tr("%1 (Pinned)").arg(Atom.Name);
 		else
-		{
-			if ((atomInfo->Flags & RTL_ATOM_PINNED) == RTL_ATOM_PINNED)
-				Name = tr("%1 (Pinned)").arg(QString::fromWCharArray(atomInfo->Name));
-			else
-				Name = QString::fromWCharArray(atomInfo->Name);
+			Name = Atom.Name;
 
-			RefCount = atomInfo->UsageCount;
-
-			PhFree(atomInfo);
-		}
-
-
-		QVariantMap Item;
-		Item["ID"] = Name;
-		
 		QVariantMap Values;
 		Values.insert(QString::number(eName), Name);
-		Values.insert(QString::number(eRefCount), FormatNumber(RefCount));
+		Values.insert(QString::number(eRefCount), FormatNumber(Atom.RefCount));
 
+		QVariantMap Item;
+		Item["ID"] = Atom.Id;
 		Item["Values"] = Values;
 		m_Atoms.append(Item);
-    }
-
-    PhFree(atomTable);
+	}
 
 	m_pAtomModel->Sync(m_Atoms);
 }
@@ -172,46 +119,15 @@ void CAtomView::OnDelete()
 	QModelIndex ModelIndex = m_pSortProxy->mapToSource(Index);
 	if (!ModelIndex.isValid())
 		return;
-	QString Name = m_pAtomModel->Data(ModelIndex, Qt::EditRole, eName).toString();
 
-	if(QMessageBox("TaskExplorer", tr("Do you want to delete the atom: %1").arg(Name), QMessageBox::Question, QMessageBox::Yes, QMessageBox::No | QMessageBox::Default | QMessageBox::Escape, QMessageBox::NoButton).exec() != QMessageBox::Yes)
+	QString Name = m_pAtomModel->Data(ModelIndex, Qt::EditRole, eName).toString();
+	quint32 AtomId = m_pAtomModel->GetItemID(ModelIndex).toUInt();
+
+	if (QMessageBox("TaskExplorer", tr("Do you want to delete the atom: %1").arg(Name), QMessageBox::Question, QMessageBox::Yes, QMessageBox::No | QMessageBox::Default | QMessageBox::Escape, QMessageBox::NoButton).exec() != QMessageBox::Yes)
 		return;
 
-    PATOM_TABLE_INFORMATION atomTable = NULL;
+	STATUS Status = theSystem->DeleteAtom(AtomId);
+	CTaskExplorer::CheckErrors(QList<STATUS>() << Status);
 
-    if (!NT_SUCCESS(EnumAtomTable(&atomTable)))
-        return;
-
-    for (ULONG i = 0; i < atomTable->NumberOfAtoms; i++)
-    {
-        PATOM_BASIC_INFORMATION atomInfo = NULL;
-
-        if (!NT_SUCCESS(QueryAtomTableEntry(atomTable->Atoms[i], &atomInfo)))
-            continue;
-
-        if (QString::fromWCharArray(atomInfo->Name) != Name)
-            continue;
-
-        do
-        {
-            if (!NT_SUCCESS(NtDeleteAtom(atomTable->Atoms[i])))
-            {
-                break;
-            }
-
-            PhFree(atomInfo);
-            atomInfo = NULL;
-
-            if (!NT_SUCCESS(QueryAtomTableEntry(atomTable->Atoms[i], &atomInfo)))
-                break;
-
-        } while (atomInfo->UsageCount >= 1);
-
-        if (atomInfo)
-        {
-            PhFree(atomInfo);
-        }
-    }
-
-    PhFree(atomTable);
+	Refresh();
 }

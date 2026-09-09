@@ -1,9 +1,8 @@
 #include "stdafx.h"
+#include "../../API/Cluster.h"
 #include "DiskView.h"
 #include "../TaskExplorer.h"
-#ifdef WIN32
-#include "../../API/Windows/WindowsAPI.h"
-#endif
+#include "../TaskStrings.h"
 
 CDiskView::CDiskView(QWidget *parent)
 	:QWidget(parent)
@@ -155,6 +154,15 @@ void CDiskView::OnResetColumns()
 	m_pDiskList->GetView()->setColumnHidden(eDevicePath, false);
 }
 
+void CDiskView::ResetPlots()
+{
+	m_pDiskPlot->Reset();
+	m_pReadPlot->Reset();
+	m_pWritePlot->Reset();
+	m_pFileIOPlot->Reset();
+	m_pMMapIOPlot->Reset();
+}
+
 void CDiskView::ReConfigurePlots()
 {
 	m_PlotLimit = theGUI->GetGraphLimit(true);
@@ -176,7 +184,17 @@ void CDiskView::ReConfigurePlots()
 
 void CDiskView::Refresh()
 {
-	CDiskMonitor* pDiskMonitor = theAPI->GetDiskMonitor();
+	CDiskMonitor* pDiskMonitor = CCluster::GetViewSystem()->GetDiskMonitor();
+
+	//
+	// A machine this process does not collect from has no device monitor - the
+	// per-device lists these panels draw are not on the wire. The tab is greyed
+	// for that reason (see CSystemInfoView::UpdateTabAvailability); this is the
+	// second half of it, because UpdateGraphs runs for every panel on every
+	// tick whether its tab is shown or not.
+	//
+	if (!pDiskMonitor)
+		return;
 
 	QMap<QString, CDiskMonitor::SDiskInfo> DiskList = pDiskMonitor->GetDiskList();
 
@@ -198,7 +216,7 @@ void CDiskView::Refresh()
 		{
 			pItem = new QTreeWidgetItem();
 			pItem->setData(0, Qt::UserRole, I.key());
-			pItem->setText(eDiskName, DiskInfo.DeviceMountPoints);
+			pItem->setText(eDiskName, ::GetDiskLabel(DiskInfo));
 			m_pDiskList->GetTree()->addTopLevelItem(pItem);
 		}
 
@@ -234,7 +252,17 @@ void CDiskView::Refresh()
 
 void CDiskView::UpdateGraphs()
 {
-	CDiskMonitor* pDiskMonitor = theAPI->GetDiskMonitor();
+	CDiskMonitor* pDiskMonitor = CCluster::GetViewSystem()->GetDiskMonitor();
+
+	//
+	// A machine this process does not collect from has no device monitor - the
+	// per-device lists these panels draw are not on the wire. The tab is greyed
+	// for that reason (see CSystemInfoView::UpdateTabAvailability); this is the
+	// second half of it, because UpdateGraphs runs for every panel on every
+	// tick whether its tab is shown or not.
+	//
+	if (!pDiskMonitor)
+		return;
 
 	CDiskMonitor::SDataRates DiskRates = pDiskMonitor->GetAllDiskDataRates();
 	QMap<QString, CDiskMonitor::SDiskInfo> DiskList = pDiskMonitor->GetDiskList();
@@ -311,7 +339,7 @@ void CDiskView::UpdateGraphs()
 		SummWriteRate += Disk.WriteRate.Get();
 	}
 
-	SSysStats SysStats = theAPI->GetStats();
+	SSysStats SysStats = CCluster::GetViewSystem()->GetStats();
 
 	m_pFileIOPlot->AddPlotPoint("FileIO_Read", SysStats.Io.ReadRate.Get());
 	m_pFileIOPlot->AddPlotPoint("FileIO_Write", SysStats.Io.WriteRate.Get());

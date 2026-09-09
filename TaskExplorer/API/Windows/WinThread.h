@@ -18,16 +18,10 @@ public:
 	virtual QString GetStartAddressString() const;
 	virtual QString GetStartAddressFileName() const		{ QReadLocker Locker(&m_Mutex); return m_StartAddressFileName; }
 
-	virtual QString GetStateString() const;
 
 	virtual quint64 GetBasePriorityIncrement() const	{ QReadLocker Locker(&m_Mutex); return m_BasePriorityIncrement; }
-	virtual QString GetBasePriorityIncrementString() const;
-	virtual QString GetPriorityString() const;
-	virtual QString GetBasePriorityString() const;
-	virtual QString GetPagePriorityString() const;
-	virtual QString GetIOPriorityString() const;
 	virtual STATUS SetPriority(qint32 Value);
-	virtual STATUS SetBasePriority(qint32 Value) { return ERR(); }
+	virtual STATUS SetBasePriority(qint32 Value) { return ERR(TE_NotSupported); }
 	virtual STATUS SetPagePriority(qint32 Value);
 	virtual STATUS SetIOPriority(qint32 Value);
 
@@ -45,17 +39,9 @@ public:
 	virtual bool IsGuiThread() const					{ QReadLocker Locker(&m_Mutex); return m_IsGuiThread; }
 	virtual bool IsCriticalThread() const				{ QReadLocker Locker(&m_Mutex); return m_IsCritical; }
 
-	enum ETokenState
-	{
-		PH_THREAD_TOKEN_STATE_UNKNOWN,
-		PH_THREAD_TOKEN_STATE_NOT_PRESENT,
-		PH_THREAD_TOKEN_STATE_ANONYMOUS,
-		PH_THREAD_TOKEN_STATE_PRESENT
-	};
-
 	virtual ETokenState GetTokenState() const			{ QReadLocker Locker(&m_Mutex); return m_TokenState; }
-	virtual QString GetTokenStateString() const;
 	virtual bool HasToken2() const						{ QReadLocker Locker(&m_Mutex); return m_HasToken2; }
+	virtual bool HasSandboxToken() const				{ QReadLocker Locker(&m_Mutex); return m_HasToken2; }
 	virtual void SetSandboxed()							{ QWriteLocker Locker(&m_Mutex); m_IsSandboxed = true; }
 	virtual bool IsSandboxed() const					{ QReadLocker Locker(&m_Mutex); return m_IsSandboxed; }
 
@@ -63,13 +49,15 @@ public:
 	virtual STATUS CancelIO();
 	virtual QString GetAppDomain() const;
 
-	virtual QString GetIdealProcessor() const;
+	virtual int     GetIdealProcessorGroup() const;
+	virtual int     GetIdealProcessorNumber() const;
 
-	virtual QString GetTypeString() const;
 
 	virtual quint64 TraceStack();
 
-	virtual void OpenPermissions();
+	virtual CSecurityEditablePtr GetSecurityObject() const;
+	virtual CTokenInfoPtr GetToken() const;
+	virtual CTokenInfoPtr GetOriginalToken() const;
 
 	virtual bool HasPendingIrp() const		{ QReadLocker Locker(&m_Mutex); return m_PendingIrp; }
 	virtual bool IsFiber() const			{ QReadLocker Locker(&m_Mutex); return m_IsFiber; }
@@ -79,12 +67,21 @@ public:
 
 
 	virtual int GetApartmentType() const;
-	virtual QString GetApartmentTypeString() const;
-	virtual int GetApartmentFlags() const;
-	virtual QString GetApartmentFlagsString() const;
+	virtual bool IsInNeutralApartment() const;
+	virtual quint32 GetComInitCount() const;
+	virtual quint32 GetApartmentFlags() const;
 
-	virtual QString GetLastSysCallInfoString() const;
-	virtual QString GetLastSysCallStatusString() const;
+	virtual bool    HasLastSysCall() const;
+	virtual quint32 GetLastSysCallNumber() const;
+	virtual QString GetLastSysCallName() const;
+	virtual quint64 GetLastSysCallArgument() const;
+	virtual quint64 GetLastSysCallWaitTime() const;
+	virtual bool    HasLastStatus() const;
+	virtual quint32 GetLastStatusValue() const;
+	virtual QString GetLastStatusMessage() const;
+
+	// How many times a suspended thread has been suspended without a resume.
+	virtual quint32 GetSuspendCount() const;
 
 	virtual bool HasRpcState() const { QReadLocker Locker(&m_Mutex); return m_bHasRpcState; }
 

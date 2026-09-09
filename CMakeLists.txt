@@ -97,6 +97,25 @@ if(UNIX AND NOT APPLE AND TE_BUNDLE_QT)
     add_link_options(-Wl,--disable-new-dtags)
 endif()
 
+if(UNIX AND NOT APPLE)
+    #
+    # Record a dependency only on libraries something actually refers to.
+    #
+    # GNU ld records DT_NEEDED for every library on the link line, used or not.
+    #
+    # This was added when MiscHelpers was one library and handed QtWidgets to
+    # TaskCore through it - a static archive gives its dependencies to whoever
+    # links it, PRIVATE or not. It did not help: --as-needed drops a library
+    # nothing refers to, but the widget code was in the same archive, so
+    # something did refer to it. Splitting MiscHelpers into CoreHelpers and
+    # GuiHelpers is what actually fixed that.
+    #
+    # It stays because the rule is right on its own terms - a shipped .so should
+    # not claim a dependency it does not have.
+    #
+    add_link_options(-Wl,--as-needed)
+endif()
+
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 #
@@ -124,7 +143,7 @@ find_package(Qt6 6.5 REQUIRED COMPONENTS
 # Qt private headers.
 #
 # qextwidgets subclasses QTabBar/QTabWidget and includes private/qwidget_p.h,
-# private/qtextengine_p.h and private/qlayoutengine_p.h. MiscHelpers' 7-Zip
+# private/qtextengine_p.h and private/qlayoutengine_p.h. CoreHelpers' 7-Zip
 # file engine needs private/qabstractfileengine_p.h.
 #
 # The obvious way to get these is the Qt6::CorePrivate / GuiPrivate /
@@ -138,7 +157,20 @@ find_package(Qt6 6.5 REQUIRED COMPONENTS
 # dragging in an extra system package.
 #
 get_filename_component(TE_QT_PREFIX "${Qt6_DIR}/../../.." ABSOLUTE)
-set(TE_QT_INCLUDE_DIR "${TE_QT_PREFIX}/include")
+
+#
+# Where the headers are, asked of Qt rather than guessed from the prefix.
+#
+# An official Qt build is a self-contained tree, so <prefix>/include is right
+# there. A distribution's is not: Ubuntu puts the CMake files under
+# /usr/lib/<triplet>/cmake/Qt6 and the headers under
+# /usr/include/<triplet>/qt6, and walking up three levels from the one lands
+# nowhere near the other. Qt6::Core carries its own include directory and is
+# right in both cases.
+#
+get_target_property(TE_QT_CORE_INCLUDE_DIRS Qt6::Core INTERFACE_INCLUDE_DIRECTORIES)
+list(GET TE_QT_CORE_INCLUDE_DIRS 0 TE_QT_CORE_INCLUDE_DIR)
+get_filename_component(TE_QT_INCLUDE_DIR "${TE_QT_CORE_INCLUDE_DIR}" DIRECTORY)
 
 # Adds the private include paths for the named Qt modules (Core, Gui, Widgets)
 # to a target. Both levels are needed: <QtGui/private/x_p.h> resolves against
@@ -150,8 +182,10 @@ function(te_target_qt_private_includes target)
         set(_versioned "${TE_QT_INCLUDE_DIR}/${_module}/${Qt6_VERSION}")
         if(NOT IS_DIRECTORY "${_versioned}")
             message(FATAL_ERROR
-                "Qt private headers for ${_module} not found at ${_versioned}. "
-                "Check that the Qt installation at ${TE_QT_PREFIX} is complete.")
+                "Qt private headers for ${_module} not found at ${_versioned}.\n"
+                "Qt ${Qt6_VERSION} was found at ${Qt6_DIR} with headers under "
+                "${TE_QT_INCLUDE_DIR}. On a distribution build these come in a "
+                "separate package - qt6-base-private-dev on Debian and Ubuntu.")
         endif()
         list(APPEND _dirs "${_versioned}" "${_versioned}/${_module}")
     endforeach()

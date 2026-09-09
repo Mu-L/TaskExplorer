@@ -34,6 +34,13 @@ protected:
 	QMap<QString, CServicePtr> m_ServiceList;
 
 private slots:
+	//
+	// The panels now show a different machine, so what is held belongs to the
+	// old one - both the model and the cached list, or the next Refresh would
+	// simply sync the old entries back in.
+	//
+	void					OnViewSystemChanged();
+
 	void					OnResetColumns();
 	void					OnColumnsChanged();
 
@@ -57,12 +64,9 @@ private:
 	QAction*				m_pMenuStop;
 	//QAction*				m_pMenuRestart;
 	QAction*				m_pMenuDelete;
-#ifdef WIN32
 	QAction*				m_pMenuOpenKey;
 	QAction*				m_pMenuKernelServices;
-#else
 	QAction*				m_pMenuViewLog;		// journalctl for the unit
-#endif
 	QAction*				m_pMenuOpenProcess;
 };
 

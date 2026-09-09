@@ -1,5 +1,8 @@
 #pragma once
 
+#include "../CGroupInfo.h"
+#include "../ProcessSecurity.h"
+
 #include <qobject.h>
 #include <QByteArray>
 #include <QHostAddress>
@@ -282,7 +285,7 @@ namespace ProcFs
 	// One row of /proc/net/{tcp,tcp6,udp,udp6}.
 	//
 	// State is already translated to the MIB_TCP_STATE numbering the shared
-	// CSocketInfo::GetStateString() expects, rather than the kernel's own
+	// the viewer expects, rather than the kernel's own
 	// TCP_* values - the two do not agree (Linux TCP_ESTABLISHED is 1, the MIB
 	// value is 5).
 	//
@@ -296,6 +299,29 @@ namespace ProcFs
 		quint32		State = 0;
 		quint64		Inode = 0;
 		quint32		Uid = 0;
+
+		//
+		// What each end is called where it has no address - a unix socket's
+		// path, or its abstract name written the way ss writes it. Empty for an
+		// anonymous socket, which is the ordinary case for the client end of a
+		// connected pair.
+		//
+		QString		LocalName;
+		QString		RemoteName;
+
+		//
+		// The socket at the other end, as the kernel identifies it. Resolved to
+		// a name where the peer has one; zero for a socket with no peer, which
+		// is every listening socket and every datagram one.
+		//
+		quint64		PeerInode = 0;
+
+		//
+		// And which process holds that peer, once the fd tables have been
+		// walked. Zero when nothing on this machine holds it.
+		//
+		quint64		PeerPid = 0;
+
 		quint64		TxQueue = 0;
 		quint64		RxQueue = 0;
 
@@ -325,7 +351,7 @@ namespace ProcFs
 	// absent, so sockets owned by other users show up unattributed when running
 	// unprivileged.
 	//
-	QMap<quint64, quint64>	BuildSocketInodeMap();
+	QMultiMap<quint64, quint64>	BuildSocketInodeMap();
 
 	//
 	// One row of /proc/diskstats.
@@ -482,13 +508,12 @@ namespace ProcFs
 	// *every* task was stalled, i.e. outright lost throughput. The averages are
 	// percentages over the trailing 10, 60 and 300 seconds.
 	//
-	struct SPressure
-	{
-		float	SomeAvg10 = 0, SomeAvg60 = 0, SomeAvg300 = 0;
-		float	FullAvg10 = 0, FullAvg60 = 0, FullAvg300 = 0;
-		quint64	SomeTotal = 0, FullTotal = 0;	// cumulative stall, microseconds
-		bool	Valid = false;
-	};
+	//
+	// Defined in API/CGroupInfo.h, so that a process can hand it to a viewer
+	// that has no /sys of its own to read. The alias keeps every existing
+	// ProcFs::SPressure spelling working.
+	//
+	using SPressure = SResourcePressure;
 
 	SPressure		ParsePressure(const QByteArray& Data);
 
@@ -506,36 +531,7 @@ namespace ProcFs
 	// with shared resource limits and shared accounting. Limits read as 0 when
 	// the file says "max", i.e. unlimited.
 	//
-	struct SCGroupStats
-	{
-		bool		Valid = false;
-
-		quint64		MemoryCurrent = 0;
-		quint64		MemoryPeak = 0;
-		quint64		MemoryMax = 0;			// 0 = unlimited
-		quint64		MemoryHigh = 0;			// throttling threshold, 0 = unset
-		quint64		MemorySwapCurrent = 0;
-		quint64		MemorySwapMax = 0;
-
-		// cpu.stat, microseconds
-		quint64		CpuUsageUs = 0;
-		quint64		CpuUserUs = 0;
-		quint64		CpuSystemUs = 0;
-
-		// Throttling, present only when a cpu.max limit is set.
-		quint64		NrPeriods = 0;
-		quint64		NrThrottled = 0;
-		quint64		ThrottledUs = 0;
-
-		quint64		PidsCurrent = 0;
-		quint64		PidsMax = 0;			// 0 = unlimited
-
-		// io.stat, summed over all block devices.
-		quint64		IoReadBytes = 0;
-		quint64		IoWriteBytes = 0;
-
-		QStringList	Controllers;			// cgroup.controllers
-	};
+	using SCGroupStats = ::SCGroupStats;
 
 	SCGroupStats	ReadCGroupStats(const QString& CGroupPath);
 
@@ -549,11 +545,7 @@ namespace ProcFs
 	// detected: anything differing means the process is isolated from the host
 	// in that dimension.
 	//
-	struct SNamespaces
-	{
-		quint64	Pid = 0, Net = 0, Mnt = 0, User = 0;
-		quint64	Uts = 0, Ipc = 0, CGroup = 0, Time = 0;
-	};
+	using SNamespaces = SProcessNamespaces;
 
 	SNamespaces		ReadNamespaces(quint64 Pid);
 
@@ -563,30 +555,12 @@ namespace ProcFs
 	// What a process is permitted to do: capabilities, LSM confinement and
 	// seccomp state. Together these are the Linux answer to the Windows token.
 	//
-	struct SProcSecurity
-	{
-		bool	Valid = false;
-
-		// Capability sets, as bit masks. Inheritable, permitted, effective,
-		// bounding and ambient respectively.
-		quint64	CapInh = 0, CapPrm = 0, CapEff = 0, CapBnd = 0, CapAmb = 0;
-
-		// The LSM label from /proc/<pid>/attr/current: an AppArmor profile
-		// ("snap.firefox.firefox (enforce)") or an SELinux context. Empty when
-		// no LSM is active; "unconfined" when one is but this process is not
-		// confined by it.
-		QString	Confinement;
-
-		int		Seccomp = 0;			// 0 disabled, 1 strict, 2 filter
-		quint64	SeccompFilters = 0;
-		bool	NoNewPrivs = false;
-	};
+	using SProcSecurity = SProcessSecurity;
 
 	SProcSecurity	ReadProcSecurity(quint64 Pid);
 
-	// Capability bit mask -> the CAP_* names it contains.
-	QStringList		DecodeCapabilities(quint64 Mask);
-	QString			SeccompModeToString(int Mode);
+	// The CAP_* names of a capability mask are a reading rather than a value,
+	// so the table lives with the rest of them in GUI/TaskStrings.cpp.
 
 	// ---- out of memory killer ----
 

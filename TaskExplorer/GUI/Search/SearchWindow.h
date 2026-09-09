@@ -14,7 +14,7 @@ private slots:
 
 	virtual void		OnProgress(float value, const QString& Info);
 	virtual void		OnResults(QList<QSharedPointer<QObject>> List) = 0;
-	virtual void		OnError(const QString& Error, int Code);
+	virtual void		OnError(const STATUS& Error);
 	virtual void		OnFinished();
 
 protected:

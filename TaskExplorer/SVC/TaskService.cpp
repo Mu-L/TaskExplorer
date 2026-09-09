@@ -3,8 +3,8 @@
 #include "../../MiscHelpers/Common/Common.h"
 #include "../../MiscHelpers/Common/Settings.h"
 #include "../API/SystemAPI.h"
-#include "../Common/XVariant.h"
-#include "../Common/Buffer.h"
+#include "../../MiscHelpers/Common/XVariant.h"
+#include "../../MiscHelpers/Common/Buffer.h"
 #ifndef WIN32
 #include "../API/Linux/LinuxHelper.h"
 #include <QElapsedTimer>
@@ -352,7 +352,7 @@ bool CTaskService::CheckStatus(long Status)
         return false;
 #endif
 
-    if (theAPI->RootAvaiable())
+    if (theSystem->RootAvaiable())
         return false;
 
 	return theConf->GetBool("Options/AutoElevate", true);
@@ -608,7 +608,7 @@ QString CTaskService::FindWorkerBinary(bool b32Bit)
 	if (b32Bit)
 	{
 #ifdef USE_TASK_HELPER	
-		QString AppDir = QApplication::applicationDirPath();
+		QString AppDir = QCoreApplication::applicationDirPath();
 		QString HemperExe = AppDir + "/x86/TaskHelper.exe";
 		return HemperExe.replace("/", "\\");
 #else
@@ -623,7 +623,7 @@ QString CTaskService::FindWorkerBinary(bool b32Bit)
 #endif
 		};
 
-		QString AppDir = QApplication::applicationDirPath();
+		QString AppDir = QCoreApplication::applicationDirPath();
 
 		for (int i = 0; i < RTL_NUMBER_OF(relativeFileNames); i++)
 		{
@@ -641,11 +641,11 @@ QString CTaskService::FindWorkerBinary(bool b32Bit)
 #endif // _WIN64
 	{
 #ifdef USE_TASK_HELPER	
-		QString AppDir = QApplication::applicationDirPath();
+		QString AppDir = QCoreApplication::applicationDirPath();
 		QString HemperExe = AppDir + "/TaskHelper.exe";
 		return HemperExe.replace("/", "\\");
 #else
-		return QApplication::applicationFilePath();
+		return QCoreApplication::applicationFilePath();
 #endif // USE_TASK_HELPER
 	}
 }
@@ -681,14 +681,20 @@ QVariant CTaskService::SendCommand(const QString& socketName, const QVariant &Co
 	return Response;
 }
 
-QString CTaskService::RunWorker(bool bElevanted, bool b32Bit)
+//
+// Writing through a pointer that may be NULL, without repeating the test at
+// every one of RunWorker's exits.
+//
+#define RUNWORKER_FAILED(st)	do { if (pStatus) *pStatus = (st); return QString(); } while (0)
+
+QString CTaskService::RunWorker(bool bElevanted, bool b32Bit, STATUS* pStatus)
 {
 	QMutexLocker Locker(&m_Mutex);
 
 #ifdef WIN32
 	QString BinaryPath = FindWorkerBinary(b32Bit);
 	if (BinaryPath.isEmpty())
-		return QString();
+		RUNWORKER_FAILED(ERR(TE_HelperStartFailed));
 
 	QString SocketName;
 	{
@@ -718,12 +724,20 @@ QString CTaskService::RunWorker(bool bElevanted, bool b32Bit)
 #endif
 
 	HANDLE ProcessHandle = NULL;
+	NTSTATUS LaunchStatus;
 	if (bElevanted && !PhGetOwnTokenAttributes().Elevated)
-		PhShellProcessHackerEx(NULL, (wchar_t*)BinaryPath.toStdWString().c_str(), (wchar_t*)Arguments.c_str(), SW_HIDE, PH_SHELL_EXECUTE_ADMIN, 0, 0, &ProcessHandle);
+		LaunchStatus = PhShellProcessHackerEx(NULL, (wchar_t*)BinaryPath.toStdWString().c_str(), (wchar_t*)Arguments.c_str(), SW_HIDE, PH_SHELL_EXECUTE_ADMIN, 0, 0, &ProcessHandle);
 	else
-		PhShellProcessHackerEx(NULL, (wchar_t*)BinaryPath.toStdWString().c_str(), (wchar_t*)Arguments.c_str(), SW_HIDE, 0, 0, 0, &ProcessHandle);
+		LaunchStatus = PhShellProcessHackerEx(NULL, (wchar_t*)BinaryPath.toStdWString().c_str(), (wchar_t*)Arguments.c_str(), SW_HIDE, 0, 0, 0, &ProcessHandle);
 	if (ProcessHandle == NULL)
-		return QString();
+	{
+		//
+		// A refused UAC prompt is the common case here, and it is not a fault.
+		//
+		if (LaunchStatus == STATUS_CANCELLED)
+			RUNWORKER_FAILED(ERR(TE_UserCanceled));
+		RUNWORKER_FAILED(CStatus::Native((long)LaunchStatus));
+	}
 
 #ifdef _WIN64
 	if (b32Bit)
@@ -734,6 +748,7 @@ QString CTaskService::RunWorker(bool bElevanted, bool b32Bit)
 
 	if (SendCommand(SocketName, "Refresh", 1000).toBool() == true)
 		return SocketName;
+	RUNWORKER_FAILED(ERR(TE_HelperNoAnswer));
 #else
 	//
 	// Linux. The helper is a small Qt-free binary next to the application; see
@@ -742,7 +757,7 @@ QString CTaskService::RunWorker(bool bElevanted, bool b32Bit)
 	//
 	const QString BinaryPath = QCoreApplication::applicationDirPath() + "/TaskHelper";
 	if (!QFile::exists(BinaryPath))
-		return QString();
+		RUNWORKER_FAILED(ERR(TE_HelperStartFailed));
 
 	QString& CachedSocket = bElevanted ? m_TempSocketRoot : m_TempSocket;
 
@@ -789,7 +804,14 @@ QString CTaskService::RunWorker(bool bElevanted, bool b32Bit)
 		//
 		Arguments << "-owner" << QString::number(geteuid());
 
-		bStarted = !LinuxRunElevated(BinaryPath, Arguments).IsError();
+		//
+		// LinuxRunElevated already reports properly - which helper it tried, or
+		// that there was no graphical one - so it travels as it is.
+		//
+		STATUS Status = LinuxRunElevated(BinaryPath, Arguments);
+		if (Status.IsError())
+			RUNWORKER_FAILED(Status);
+		bStarted = true;
 	}
 	else
 	{
@@ -797,7 +819,7 @@ QString CTaskService::RunWorker(bool bElevanted, bool b32Bit)
 	}
 
 	if (!bStarted)
-		return QString();
+		RUNWORKER_FAILED(ERR(TE_HelperStartFailed));
 
 	//
 	// Wait for the socket to appear rather than assuming it is ready. An
@@ -819,8 +841,10 @@ QString CTaskService::RunWorker(bool bElevanted, bool b32Bit)
 		QThread::msleep(100);
 	}
 #endif
-	return QString();
+	RUNWORKER_FAILED(ERR(TE_HelperNoAnswer));
 }
+
+#undef RUNWORKER_FAILED
 
 QString CTaskService::GetRunningWorker(bool bElevanted)
 {

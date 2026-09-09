@@ -1,9 +1,6 @@
 #include "stdafx.h"
 #include "TaskView.h"
-#ifdef WIN32
-#include "../API/Windows/WinProcess.h"
-#include "../API/Windows/WinThread.h"
-#endif
+#include "../API/SystemAPI.h"
 #include "TaskExplorer.h"
 #include "AffinityDialog.h"
 
@@ -29,7 +26,10 @@ void CTaskView::AddTaskItemsToMenu()
 #define INVALID_PRIORITY INT_MAX
 #define UNDEFINED_PRIORITY INT_MIN
 
-#ifdef WIN32
+//
+// Windows thread-priority values. Plain numbers, spelled out here so the
+// priority menu can offer a Windows target's scale from any client.
+//
 #define THREAD_BASE_PRIORITY_LOWRT  15  // value that gets a thread to LowRealtime-1
 #define THREAD_BASE_PRIORITY_MAX    2   // maximum thread base priority boost
 #define THREAD_BASE_PRIORITY_MIN    (-2)  // minimum thread base priority boost
@@ -43,7 +43,6 @@ void CTaskView::AddTaskItemsToMenu()
 
 #define THREAD_PRIORITY_TIME_CRITICAL   THREAD_BASE_PRIORITY_LOWRT
 #define THREAD_PRIORITY_IDLE            THREAD_BASE_PRIORITY_IDLE
-#endif
 
 void CTaskView::AddPriority(EPriorityType Type, const QString& Name, int Value)
 {
@@ -72,47 +71,58 @@ void CTaskView::AddPriorityItemsToMenu(EPriorityType Style)
 	switch (Style)
 	{
 	default:
-#ifdef WIN32
-		AddPriority(eProcess, tr("Real time"), 4);		// PROCESS_PRIORITY_CLASS_REALTIME
-		AddPriority(eProcess, tr("High"), 3);			// PROCESS_PRIORITY_CLASS_HIGH
-		AddPriority(eProcess, tr("Above normal"), 6);	// PROCESS_PRIORITY_CLASS_ABOVE_NORMAL
-		AddPriority(eProcess, tr("Normal"), 2);			// PROCESS_PRIORITY_CLASS_NORMAL
-		AddPriority(eProcess, tr("Below normal"), 5);	// PROCESS_PRIORITY_CLASS_BELOW_NORMAL
-		AddPriority(eProcess, tr("Idle"), 1);			// PROCESS_PRIORITY_CLASS_IDLE
+		//
+		// Priority classes as Windows numbers them. A system that
+		// schedules by nice value instead offers no fixed classes, so the
+		// menu stays empty there.
+		//
+		if (theSystem->GetOsType() == CSystemAPI::eOsWindows)
+		{
+			AddPriority(eProcess, tr("Real time"), 4);		// PROCESS_PRIORITY_CLASS_REALTIME
+			AddPriority(eProcess, tr("High"), 3);			// PROCESS_PRIORITY_CLASS_HIGH
+			AddPriority(eProcess, tr("Above normal"), 6);	// PROCESS_PRIORITY_CLASS_ABOVE_NORMAL
+			AddPriority(eProcess, tr("Normal"), 2);			// PROCESS_PRIORITY_CLASS_NORMAL
+			AddPriority(eProcess, tr("Below normal"), 5);	// PROCESS_PRIORITY_CLASS_BELOW_NORMAL
+			AddPriority(eProcess, tr("Idle"), 1);			// PROCESS_PRIORITY_CLASS_IDLE
 		
-#endif
+		}
 		break;
 	case eThread:
-#ifdef WIN32
-		AddPriority(eThread, tr("Time critical"), THREAD_PRIORITY_TIME_CRITICAL); // THREAD_BASE_PRIORITY_LOWRT // THREAD_BASE_PRIORITY_LOWRT + 1
-		AddPriority(eThread, tr("Highest"), THREAD_PRIORITY_HIGHEST);
-		AddPriority(eThread, tr("Above normal"), THREAD_PRIORITY_ABOVE_NORMAL);
-		AddPriority(eThread, tr("Normal"), THREAD_PRIORITY_NORMAL);
-		AddPriority(eThread, tr("Below normal"), THREAD_PRIORITY_BELOW_NORMAL);
-		AddPriority(eThread, tr("Lowest"), THREAD_PRIORITY_LOWEST);
-		AddPriority(eThread, tr("Idle"), THREAD_PRIORITY_IDLE); // THREAD_BASE_PRIORITY_IDLE // THREAD_BASE_PRIORITY_IDLE - 1
-#endif
+		if (theSystem->GetOsType() == CSystemAPI::eOsWindows)
+		{
+			AddPriority(eThread, tr("Time critical"), THREAD_PRIORITY_TIME_CRITICAL); // THREAD_BASE_PRIORITY_LOWRT // THREAD_BASE_PRIORITY_LOWRT + 1
+			AddPriority(eThread, tr("Highest"), THREAD_PRIORITY_HIGHEST);
+			AddPriority(eThread, tr("Above normal"), THREAD_PRIORITY_ABOVE_NORMAL);
+			AddPriority(eThread, tr("Normal"), THREAD_PRIORITY_NORMAL);
+			AddPriority(eThread, tr("Below normal"), THREAD_PRIORITY_BELOW_NORMAL);
+			AddPriority(eThread, tr("Lowest"), THREAD_PRIORITY_LOWEST);
+			AddPriority(eThread, tr("Idle"), THREAD_PRIORITY_IDLE); // THREAD_BASE_PRIORITY_IDLE // THREAD_BASE_PRIORITY_IDLE - 1
+		}
 		break;
 	}
 
 	m_pIoPriority = m_pMenu->addMenu(tr("I/O Priority"));
-#ifdef WIN32
-	AddPriority(eIO, tr("Critical"), 4);				// IoPriorityCritical, // Used by memory manager. Not available for applications.
-	AddPriority(eIO, tr("High"), 3);					// IoPriorityHigh, // Used by filesystems for checkpoint I/O.
-	AddPriority(eIO, tr("Normal"), 2);					// IoPriorityNormal, // Normal I/Os.
-	AddPriority(eIO, tr("Low"), 1);						// IoPriorityLow, // Prefetching for applications.
-	AddPriority(eIO, tr("Very low"), 0);				// IoPriorityVeryLow = 0, // Defragging, content indexing and other background I/Os.
-#endif
+	// I/O priority bands, a Windows scheduling concept.
+	if (theSystem->GetOsType() == CSystemAPI::eOsWindows)
+	{
+		AddPriority(eIO, tr("Critical"), 4);				// IoPriorityCritical, // Used by memory manager. Not available for applications.
+		AddPriority(eIO, tr("High"), 3);					// IoPriorityHigh, // Used by filesystems for checkpoint I/O.
+		AddPriority(eIO, tr("Normal"), 2);					// IoPriorityNormal, // Normal I/Os.
+		AddPriority(eIO, tr("Low"), 1);						// IoPriorityLow, // Prefetching for applications.
+		AddPriority(eIO, tr("Very low"), 0);				// IoPriorityVeryLow = 0, // Defragging, content indexing and other background I/Os.
+	}
 
 	m_pPagePriority = m_pMenu->addMenu(tr("Page Priority"));
-#ifdef WIN32
-	AddPriority(ePage, tr("Normal"), 5);				// MEMORY_PRIORITY_NORMAL
-	AddPriority(ePage, tr("Below normal"), 4);			// MEMORY_PRIORITY_BELOW_NORMAL
-	AddPriority(ePage, tr("Medium"), 3);				// MEMORY_PRIORITY_MEDIUM
-	AddPriority(ePage, tr("Low"), 2);					// MEMORY_PRIORITY_LOW
-	AddPriority(ePage, tr("Very low"), 1);				// MEMORY_PRIORITY_VERY_LOW
-	AddPriority(ePage, tr("Lowest"), 0);				// MEMORY_PRIORITY_LOWEST
-#endif
+	// Page priority, likewise.
+	if (theSystem->GetOsType() == CSystemAPI::eOsWindows)
+	{
+		AddPriority(ePage, tr("Normal"), 5);				// MEMORY_PRIORITY_NORMAL
+		AddPriority(ePage, tr("Below normal"), 4);			// MEMORY_PRIORITY_BELOW_NORMAL
+		AddPriority(ePage, tr("Medium"), 3);				// MEMORY_PRIORITY_MEDIUM
+		AddPriority(ePage, tr("Low"), 2);					// MEMORY_PRIORITY_LOW
+		AddPriority(ePage, tr("Very low"), 1);				// MEMORY_PRIORITY_VERY_LOW
+		AddPriority(ePage, tr("Lowest"), 0);				// MEMORY_PRIORITY_LOWEST
+	}
 }
 
 void CTaskView::OnMenu(const QPoint& Point)
@@ -206,7 +216,7 @@ retry:
 			{
 				if (Force == -1)
 				{
-					switch (QMessageBox("TaskExplorer", Status.GetText(), QMessageBox::Question, QMessageBox::Yes, QMessageBox::No, QMessageBox::Cancel | QMessageBox::Default | QMessageBox::Escape).exec())
+					switch (QMessageBox("TaskExplorer", CTaskExplorer::FormatError(Status), QMessageBox::Question, QMessageBox::Yes, QMessageBox::No, QMessageBox::Cancel | QMessageBox::Default | QMessageBox::Escape).exec())
 					{
 					case QMessageBox::Yes:
 						Force = 1;
@@ -251,7 +261,7 @@ void CTaskView::OnAffinity()
 		}
 	}
 	
-	CAffinityDialog AffinityDialog(theAPI->GetCpuCount());
+	CAffinityDialog AffinityDialog(theSystem->GetCpuCount());
 	AffinityDialog.SetName(Tasks.first()->GetName());
 	AffinityDialog.SetAffinity(Affinity);
 	if (!AffinityDialog.exec())

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../mischelpers_global.h"
+#include "../guihelpers_global.h"
 
-class MISCHELPERS_EXPORT CFinder: public QWidget
+class GUIHELPERS_EXPORT CFinder: public QWidget
 {
 	Q_OBJECT
 

@@ -31,12 +31,16 @@ public:
 	//
 	virtual void			SetObjectPath(const QString& Path)	{ QWriteLocker Locker(&m_Mutex); m_ObjectPath = Path; }
 	virtual QString			GetObjectPath() const			{ QReadLocker Locker(&m_Mutex); return m_ObjectPath; }
-	virtual bool			FetchProperties(bool bFragmentPathOnly);
+	//
+	// bForce skips the throttle - used when the unit's state has just changed,
+	// which is when its pid and freezer state may have changed with it.
+	//
+	virtual bool			FetchProperties(bool bFragmentPathOnly, bool bForce = false);
 
 	virtual bool			IsStopped() const;
 	virtual bool			IsRunning(bool bStrict = false) const;
 	virtual bool			IsPaused() const;
-	virtual QString			GetStateString() const;
+	virtual QString			GetStateName() const;
 
 	virtual STATUS			Start();
 	virtual STATUS			Pause();
@@ -44,6 +48,8 @@ public:
 	virtual STATUS			Stop();
 	virtual STATUS			Delete(bool bForce = false);
 
+	virtual STATUS  ViewLog() const;
+	virtual bool    HasLog() const					{ return true; }
 	virtual QString			GetUnitName() const	{ QReadLocker Locker(&m_Mutex); return m_SvcName; }
 	virtual QString			GetActiveState() const	{ QReadLocker Locker(&m_Mutex); return m_ActiveState; }
 	virtual QString			GetSubState() const	{ QReadLocker Locker(&m_Mutex); return m_SubState; }
@@ -54,7 +60,6 @@ public:
 	// Worth a column of its own now that the list is not only services: a
 	// timer and the service it triggers otherwise look alike.
 	//
-	virtual QString			GetTypeString() const	{ QReadLocker Locker(&m_Mutex); return m_SvcName.section('.', -1); }
 
 protected:
 	//
@@ -72,6 +77,10 @@ protected:
 	QString					m_ActiveState;	// active / inactive / failed / activating / deactivating
 	QString					m_SubState;	// running / exited / dead / ...
 	QString					m_FreezerState;	// running / freezing / frozen / thawing
+
+	// When the D-Bus properties above were last read; see FetchProperties.
+	quint64					m_LastPropertyFetch = 0;
+	static const quint64	c_PropertyMaxAge = 5000;
 	QString					m_ObjectPath;
 	bool					m_bHaveFragmentPath = false;
 };

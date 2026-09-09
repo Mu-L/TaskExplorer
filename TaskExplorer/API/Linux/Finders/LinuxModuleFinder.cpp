@@ -51,6 +51,7 @@ void CLinuxModuleFinder::run()
 			Seen.insert(Entry.Path);
 
 			QSharedPointer<CLinuxModule> pModule = QSharedPointer<CLinuxModule>(new CLinuxModule());
+			pModule->SetSystem(m_pSystem);
 			pModule->InitStaticData(Entry.Path, Entry.Start, Entry.End - Entry.Start);
 			pModule->SetLoaded(true);
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "mischelpers_global.h"
+#include "guihelpers_global.h"
 
 #include "./Common/CheckableMessageBox.h"
 #include "./Common/ComboInputDialog.h"
@@ -8,7 +8,7 @@
 #include "./Common/DebugHelpers.h"
 #include "./Common/ExitDialog.h"
 #include "./Common/Finder.h"
-#include "./Common/FlexError.h"
+#include "./Common/Status.h"
 #include "./Common/FlowLayout.h"
 #include "./Common/HistoryGraph.h"
 #include "./Common/ItemChooser.h"
@@ -27,7 +27,7 @@
 #include "./Common/TreeWidgetEx.h"
 #include "./Common/Xml.h"
 
-class MISCHELPERS_EXPORT MiscHelpers
+class GUIHELPERS_EXPORT MiscHelpers
 {
 public:
 	MiscHelpers();

@@ -2,9 +2,6 @@
 #include "../TaskExplorer.h"
 #include "NtObjectModel.h"
 #include "../../../MiscHelpers/Common/Common.h"
-#ifdef WIN32
-#include "../../API/Windows/ProcessHacker.h"
-#endif
 
 
 CNtObjectModel::CNtObjectModel(QObject *parent)
@@ -47,56 +44,7 @@ CNtObjectModel::SNtObjectNode* CNtObjectModel::GetNode(const QModelIndex &index)
 	return pNode;
 }
 
-struct SNtObjectInfo
-{
-	QString Name;
-	QString Type;
-};
-
-typedef struct _DIRECTORY_ENUM_CONTEXT
-{
-	QList<SNtObjectInfo> FoundObjects;
-
-} DIRECTORY_ENUM_CONTEXT, *PDIRECTORY_ENUM_CONTEXT;
-
-static NTSTATUS NTAPI EnumDirectoryObjectsCallback(_In_ HANDLE RootDirectory, _In_ PPH_STRINGREF Name, _In_ PPH_STRINGREF TypeName, _In_opt_ PVOID Context)
-{
-    PDIRECTORY_ENUM_CONTEXT context = (PDIRECTORY_ENUM_CONTEXT)Context;
-
-	SNtObjectInfo NtObject;
-	NtObject.Name = QString::fromWCharArray(Name->Buffer, Name->Length / sizeof(wchar_t));
-	NtObject.Type = QString::fromWCharArray(TypeName->Buffer, TypeName->Length / sizeof(wchar_t));
-	context->FoundObjects.append(NtObject);   
-
-    return STATUS_SUCCESS;
-}
-
-QList<SNtObjectInfo> EnumDirectoryObjects(const QString& ObjectPath)
-{
-	DIRECTORY_ENUM_CONTEXT enumContext;
-
-	std::wstring Name = ObjectPath.toStdWString();
-
-    HANDLE directoryHandle;
-    OBJECT_ATTRIBUTES oa;
-    UNICODE_STRING name;
-	name.Buffer = (wchar_t*)Name.c_str();
-	name.Length = Name.length() * sizeof(wchar_t);
-	name.MaximumLength = (Name.length() + 1) * sizeof(wchar_t);
-
-    InitializeObjectAttributes(&oa, &name, 0, NULL, NULL);
-
-	if (!NT_SUCCESS(NtOpenDirectoryObject(&directoryHandle, DIRECTORY_QUERY, &oa)))
-		return enumContext.FoundObjects;
-
-    PhEnumDirectoryObjects(directoryHandle, EnumDirectoryObjectsCallback, &enumContext);
-
-    NtClose(directoryHandle);
-
-	return enumContext.FoundObjects;
-}
-
-void CNtObjectModel::FillNode(const struct SNtObjectInfo* pNtObject, SNtObjectNode* pChildNode)
+void CNtObjectModel::FillNode(const CSystemAPI::SNtObject* pNtObject, SNtObjectNode* pChildNode)
 {
 	pChildNode->Values.resize(columnCount());
 
@@ -120,7 +68,7 @@ void CNtObjectModel::fetchMore(const QModelIndex &parent)
 	if (pNode->State != 0)
 		return;
 
-	QList<SNtObjectInfo> FoundObjects = EnumDirectoryObjects(pNode->ObjectPath);
+	QList<CSystemAPI::SNtObject> FoundObjects = theSystem->EnumObjectDirectory(pNode->ObjectPath);
 
 	QMap<QList<QVariant>, QList<STreeNode*> > New;
 
@@ -128,7 +76,7 @@ void CNtObjectModel::fetchMore(const QModelIndex &parent)
 	if (pNode->ObjectPath != "\\")
 		ObjectPrefix += "\\";
 
-	foreach(const SNtObjectInfo& NtObject, FoundObjects)
+	foreach(const CSystemAPI::SNtObject& NtObject, FoundObjects)
 	{
 		QString ObjectPath = ObjectPrefix + NtObject.Name;
 
@@ -168,13 +116,13 @@ void CNtObjectModel::Refresh()
 
 void CNtObjectModel::Refresh(SNtObjectNode* pNode, QMap<QList<QVariant>, QList<STreeNode*> >& New, QHash<QVariant, STreeNode*>& Old)
 {
-	QList<SNtObjectInfo> FoundObjects = EnumDirectoryObjects(pNode->ObjectPath);
+	QList<CSystemAPI::SNtObject> FoundObjects = theSystem->EnumObjectDirectory(pNode->ObjectPath);
 
 	QString ObjectPrefix = pNode->ObjectPath;
 	if (pNode->ObjectPath != "\\")
 		ObjectPrefix += "\\";
 
-	foreach(const SNtObjectInfo& NtObject, FoundObjects)
+	foreach(const CSystemAPI::SNtObject& NtObject, FoundObjects)
 	{
 		QString ObjectPath = ObjectPrefix + NtObject.Name;
 

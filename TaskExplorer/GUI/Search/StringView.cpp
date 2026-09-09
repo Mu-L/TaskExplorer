@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "../TaskExplorer.h"
+#include "../TaskStrings.h"
 #include "../TaskInfo/TaskInfoWindow.h"
 #include "StringView.h"
 #include "../../../MiscHelpers/Common/Common.h"
@@ -131,7 +132,7 @@ void CStringView::OnEditString()
 #endif
 
 	CMemoryEditor* pEditor = new CMemoryEditor();
-	pEditor->setWindowTitle(tr("Memory Editor: %1 (%2) 0x%3").arg(pString->GetProcess()->GetName()).arg(pString->GetProcess()->GetProcessId()).arg(pString->GetBaseAddress(),0,16));
+	pEditor->setWindowTitle(tr("Memory Editor: %1 (%2) 0x%3").arg(::LocalizeName(pString->GetProcess()->GetName())).arg(pString->GetProcess()->GetProcessId()).arg(pString->GetBaseAddress(),0,16));
 	pEditor->setDevice(pDevice, pString->GetBaseAddress());
 	pEditor->show();
 	pEditor->select(pString->GetAddress(), pString->GetSize());

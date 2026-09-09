@@ -682,10 +682,12 @@ void CStackProviderJob::OnCallBack(struct _PH_THREAD_STACK_FRAME* StackFrame)
 	QString Symbol = CastPhString(symbol);
     //QString FileName = CastPhString(fileName);
 
-    if (symbol && (StackFrame->Machine == IMAGE_FILE_MACHINE_I386) && !(StackFrame->Flags & PH_THREAD_STACK_FRAME_FPO_DATA_PRESENT))
-    {
-        Symbol += tr(" (No unwind info)");
-    }
+    //
+    // A 32-bit frame walked without FPO data was guessed at rather than
+    // unwound. That is worth saying, but saying it is not this side's job.
+    //
+    const bool bNoUnwindInfo = symbol && (StackFrame->Machine == IMAGE_FILE_MACHINE_I386)
+                            && !(StackFrame->Flags & PH_THREAD_STACK_FRAME_FPO_DATA_PRESENT);
 
 	// case PluginThreadStackResolveSymbol:
     QString ManagedSymbol;
@@ -732,28 +734,51 @@ void CStackProviderJob::OnCallBack(struct _PH_THREAD_STACK_FRAME* StackFrame)
     }
 #endif
 
+    //
+    // A managed frame names the method; the native symbol underneath it, and
+    // how far into the method the address is, are shown alongside.
+    //
+    QString NativeSymbol;
+    quint64 ManagedDisplacement = 0;
     if (!ManagedSymbol.isEmpty())
     {
-		if (displacement != 0)
-			ManagedSymbol.append(tr(" + 0x%1").arg(displacement, 0, 16));
-		ManagedSymbol.append(tr(" <-- %1").arg(Symbol));
-
+		ManagedDisplacement = (quint64)displacement;
+		NativeSymbol = Symbol;
 		Symbol = ManagedSymbol;
     }
 	//
 
 	quint64 Params[4] = { (quint64)StackFrame->Params[0], (quint64)StackFrame->Params[1], (quint64)StackFrame->Params[2], (quint64)StackFrame->Params[3] };
 	
-	QString FileInfo;
+	QString FileName;
+	quint32 LineNumber = 0;
 
     PPH_STRING lineFileName;
     PH_SYMBOL_LINE_INFORMATION lineInfo;
 	if(PhGetLineFromAddress(m->SymbolProvider, StackFrame->PcAddress, &lineFileName, NULL, &lineInfo))
 	{
-		FileInfo = tr("File: %1: line %2").arg(CastPhString(lineFileName)).arg(lineInfo.LineNumber);
+		FileName = CastPhString(lineFileName);
+		LineNumber = lineInfo.LineNumber;
 	}
 
 
-	m_StackTrace->AddFrame(Symbol, (quint64)StackFrame->PcAddress, (quint64)StackFrame->ReturnAddress, (quint64)StackFrame->FrameAddress, 
-									(quint64)StackFrame->StackAddress, (quint64)StackFrame->BStoreAddress, Params, (quint64)StackFrame->Flags, FileInfo);
+	CStackTrace::SStackFrame Frame;
+	Frame.Symbol = Symbol;
+	Frame.PcAddress = (quint64)StackFrame->PcAddress;
+	Frame.ReturnAddress = (quint64)StackFrame->ReturnAddress;
+	Frame.FrameAddress = (quint64)StackFrame->FrameAddress;
+	Frame.StackAddress = (quint64)StackFrame->StackAddress;
+	Frame.BStoreAddress = (quint64)StackFrame->BStoreAddress;
+	Frame.Params[0] = Params[0];
+	Frame.Params[1] = Params[1];
+	Frame.Params[2] = Params[2];
+	Frame.Params[3] = Params[3];
+	Frame.Flags = (quint32)StackFrame->Flags;
+	Frame.FileName = FileName;
+	Frame.LineNumber = LineNumber;
+	Frame.bNoUnwindInfo = bNoUnwindInfo;
+	Frame.ManagedDisplacement = ManagedDisplacement;
+	Frame.NativeSymbol = NativeSymbol;
+
+	m_StackTrace->AddFrame(Frame);
 }

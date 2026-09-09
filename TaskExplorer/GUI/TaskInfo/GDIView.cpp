@@ -4,7 +4,6 @@
 #include "../../../MiscHelpers/Common/KeyValueInputDialog.h"
 #include "../../../MiscHelpers/Common/Finder.h"
 #include "../../API/Windows/WinProcess.h"
-#include "../../API/Windows/ProcessHacker.h"
 
 
 CGDIView::CGDIView(QWidget *parent)
@@ -112,41 +111,27 @@ void CGDIView::Refresh()
 {
 	bool bInitTimeStamp = !m_GDIList.isEmpty();
 
-	QMap<quint64, CWinGDIPtr> OldList = m_GDIList;
+	QMap<quint64, CGdiPtr> OldList = m_GDIList;
 
 	foreach(const CProcessPtr& pProcess, m_Processes)
 	{
-		QString ProcessName = pProcess->GetName();
+		QMap<quint64, CGdiPtr> Current = pProcess->GetGdiList();
 
-		PGDI_SHARED_MEMORY gdiShared = (PGDI_SHARED_MEMORY)NtCurrentPeb()->GdiSharedHandleTable;
-		USHORT processId = (USHORT)pProcess->GetProcessId();
-
-		for (ulong i = 0; i < GDI_MAX_HANDLE_COUNT; i++)
+		for (QMap<quint64, CGdiPtr>::const_iterator I = Current.constBegin(); I != Current.constEnd(); ++I)
 		{
-			PWSTR typeName;
-			INT lvItemIndex;
-			WCHAR pointer[PH_PTR_STR_LEN_1];
+			if (!OldList.take(I.key()).isNull())
+				continue; // already listed - keep the existing entry and its timestamp
 
-			PGDI_HANDLE_ENTRY handle = &gdiShared->Handles[i];
-
-			if (handle->Owner.ProcessId != processId)
-				continue;
-
-			CWinGDIPtr pWinGDI = OldList.take(GDI_MAKE_HANDLE(i, handle->Unique));
-			if (!pWinGDI)
-			{
-				pWinGDI = CWinGDIPtr(new CWinGDI());
-				if (bInitTimeStamp)
-					pWinGDI->InitTimeStamp();
-				pWinGDI->InitData(i, handle, ProcessName);
-				m_GDIList.insert(pWinGDI->GetHandleId(), pWinGDI);
-			}
+			CGdiPtr pWinGDI = I.value();
+			if (bInitTimeStamp)
+				pWinGDI->InitTimeStamp();
+			m_GDIList.insert(pWinGDI->GetHandleId(), pWinGDI);
 		}
 	}
 
 	foreach(quint64 HandleId, OldList.keys())
 	{
-		CWinGDIPtr pWinGDI = m_GDIList.value(HandleId);
+		CGdiPtr pWinGDI = m_GDIList.value(HandleId);
 		if (pWinGDI->CanBeRemoved())
 			m_GDIList.remove(HandleId);
 		else if (!pWinGDI->IsMarkedForRemoval())

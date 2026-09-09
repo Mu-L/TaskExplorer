@@ -78,19 +78,6 @@ void CSocketInfo::UpdateStats()
 	m_Stats.UpdateStats();
 }
 
-QString CSocketInfo::GetProtocolString()
-{
-	QReadLocker Locker(&m_Mutex);
-    switch (m_ProtocolType)
-    {
-		case NET_TYPE_IPV4_TCP:	return tr("TCP");
-		case NET_TYPE_IPV6_TCP:	return tr("TCP6");
-		case NET_TYPE_IPV4_UDP:	return tr("UDP");
-		case NET_TYPE_IPV6_UDP:	return tr("UDP6");
-		default:						return tr("Unknown");
-    }
-}
-
 #ifndef MIB_TCP_STATE
 typedef enum {
     MIB_TCP_STATE_CLOSED     =  1,
@@ -112,6 +99,12 @@ typedef enum {
 } MIB_TCP_STATE;
 #endif
 
+static_assert(eTcpClosed      == MIB_TCP_STATE_CLOSED,      "tcp state drifted");
+static_assert(eTcpListen      == MIB_TCP_STATE_LISTEN,      "tcp state drifted");
+static_assert(eTcpEstablished == MIB_TCP_STATE_ESTAB,       "tcp state drifted");
+static_assert(eTcpTimeWait    == MIB_TCP_STATE_TIME_WAIT,   "tcp state drifted");
+static_assert(eTcpDeleteTcb   == MIB_TCP_STATE_DELETE_TCB,  "tcp state drifted");
+
 void CSocketInfo::SetClosed()
 { 
 	QWriteLocker Locker(&m_Mutex); 
@@ -128,33 +121,3 @@ void CSocketInfo::SetClosed()
 	m_Stats.Net.SendRate.Clear();
 }
 
-QString CSocketInfo::GetStateString()
-{
-	QReadLocker Locker(&m_Mutex);
-
-	if ((m_ProtocolType & NET_TYPE_PROTOCOL_TCP) == 0)
-	{
-		if(m_State == MIB_TCP_STATE_CLOSED)
-			return tr("Closed");
-		return tr("Open");
-	}
-
-	// all these are TCP states
-    switch (m_State)
-    {
-    case MIB_TCP_STATE_CLOSED:		return tr("Closed");
-    case MIB_TCP_STATE_LISTEN:		return tr("Listen");
-    case MIB_TCP_STATE_SYN_SENT:	return tr("SYN sent");
-    case MIB_TCP_STATE_SYN_RCVD:	return tr("SYN received");
-    case MIB_TCP_STATE_ESTAB:		return tr("Established");
-    case MIB_TCP_STATE_FIN_WAIT1:	return tr("FIN wait 1");
-    case MIB_TCP_STATE_FIN_WAIT2:	return tr("FIN wait 2");
-    case MIB_TCP_STATE_CLOSE_WAIT:	return tr("Close wait");
-    case MIB_TCP_STATE_CLOSING:		return tr("Closing");
-    case MIB_TCP_STATE_LAST_ACK:	return tr("Last ACK");
-    case MIB_TCP_STATE_TIME_WAIT:	return tr("Time wait");
-    case MIB_TCP_STATE_DELETE_TCB:	return tr("Delete TCB");
-	case -1u:						return tr("Blocked");
-    default:						return tr("Unknown %1").arg(m_State);
-    }
-}

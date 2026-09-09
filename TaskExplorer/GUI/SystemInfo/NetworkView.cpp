@@ -1,10 +1,7 @@
 #include "stdafx.h"
+#include "../../API/Cluster.h"
 #include "NetworkView.h"
 #include "../TaskExplorer.h"
-#ifdef WIN32
-#include "../../API/Windows/WindowsAPI.h"
-#include "../../API/Windows/Monitors/WinNetMonitor.h"
-#endif
 
 
 CNetworkView::CNetworkView(QWidget *parent)
@@ -120,6 +117,12 @@ void CNetworkView::OnResetColumns()
 	m_pNICList->GetView()->setColumnHidden(eAddress, false);		
 }
 
+void CNetworkView::ResetPlots()
+{
+	m_pDlPlot->Reset();
+	m_pUlPlot->Reset();
+}
+
 void CNetworkView::ReConfigurePlots()
 {
 	m_PlotLimit = theGUI->GetGraphLimit(true);
@@ -159,7 +162,17 @@ QStringList CNetworkView__JoinAddresses(const QList<QHostAddress>& Addresses, co
 
 void CNetworkView::Refresh()
 {
-	CNetMonitor* pNetMonitor = theAPI->GetNetMonitor();
+	CNetMonitor* pNetMonitor = CCluster::GetViewSystem()->GetNetMonitor();
+
+	//
+	// A machine this process does not collect from has no device monitor - the
+	// per-device lists these panels draw are not on the wire. The tab is greyed
+	// for that reason (see CSystemInfoView::UpdateTabAvailability); this is the
+	// second half of it, because UpdateGraphs runs for every panel on every
+	// tick whether its tab is shown or not.
+	//
+	if (!pNetMonitor)
+		return;
 
 	QMap<QString, CNetMonitor::SNicInfo> NicList = pNetMonitor->GetNicList(false);
 
@@ -230,7 +243,17 @@ void CNetworkView::Refresh()
 
 void CNetworkView::UpdateGraphs()
 {
-	CNetMonitor* pNetMonitor = theAPI->GetNetMonitor();
+	CNetMonitor* pNetMonitor = CCluster::GetViewSystem()->GetNetMonitor();
+
+	//
+	// A machine this process does not collect from has no device monitor - the
+	// per-device lists these panels draw are not on the wire. The tab is greyed
+	// for that reason (see CSystemInfoView::UpdateTabAvailability); this is the
+	// second half of it, because UpdateGraphs runs for every panel on every
+	// tick whether its tab is shown or not.
+	//
+	if (!pNetMonitor)
+		return;
 
 	QMap<QString, CNetMonitor::SNicInfo> NicList = pNetMonitor->GetNicList();
 

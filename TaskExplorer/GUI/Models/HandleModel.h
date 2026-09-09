@@ -30,7 +30,6 @@ public:
 		eSize,
 		//eRefs,
 		eGrantedAccess,
-#ifdef WIN32
 		eFileShareAccess,
 		eAttributes,
 		eObjectAddress,
@@ -39,7 +38,6 @@ public:
 		//eRefCount,
 		//ePagedSize,
 		//eNonPagedSize,
-#endif
 		eCount
 	};
 

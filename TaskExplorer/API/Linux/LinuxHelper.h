@@ -2,7 +2,7 @@
 
 #include <qobject.h>
 #include "ProcFs.h"
-#include "../../../MiscHelpers/Common/FlexError.h"
+#include "../../../MiscHelpers/Common/Status.h"
 
 //
 // Small shared helpers for the Linux backend: turning errno into the STATUS
@@ -12,21 +12,18 @@
 
 // Builds a STATUS carrying strerror(err) as its text. Pass the errno value
 // captured immediately after the failing call.
-STATUS	ErrnoToStatus(const QString& Context, int Error);
+STATUS ErrnoToStatus(ETaskMsgCode Context, int Error);
 
 // Convenience wrapper: uses the current errno.
-STATUS	ErrnoToStatus(const QString& Context);
+STATUS ErrnoToStatus(ETaskMsgCode Context);
 
 // /proc/<pid>/stat single-letter state -> human readable ("Running",
 // "Sleeping", "Zombie", ...).
-QString	LinuxStateToString(char State);
 
 // Scheduling policy (SCHED_OTHER, SCHED_FIFO, ...) -> name.
-QString	LinuxSchedPolicyToString(int Policy);
 
 // Maps a nice value (-20..19) onto a coarse priority name so the shared GUI,
 // which was written against Windows priority classes, has something to show.
-QString	LinuxNiceToPriorityString(int Nice);
 
 // ioprio_get/ioprio_set are not exposed by glibc; these wrap the raw syscalls.
 // Returns -1 and sets errno on failure.
@@ -34,7 +31,6 @@ int	LinuxGetIoPrio(quint64 Pid);
 int	LinuxSetIoPrio(quint64 Pid, int Priority);
 
 // Decodes the class/level packed into an ioprio value into a name.
-QString	LinuxIoPrioToString(int IoPrio);
 
 // Packs an I/O scheduling class (0 none, 1 realtime, 2 best effort, 3 idle)
 // and a level of 0..7 into the value ioprio_set expects.
@@ -112,7 +108,7 @@ QString		LinuxHelperReadProcLink(quint64 Pid, const QString& Leaf, bool bMayStar
 
 // One entry per open descriptor: Fd, Target, and the raw fdinfo text.
 QList<QMap<QString, QVariant>>
-		LinuxHelperListFds(quint64 Pid);
+		LinuxHelperListFds(quint64 Pid, bool bMayStart = true);
 
 QByteArray	LinuxHelperReadMemory(quint64 Pid, quint64 Address, quint64 Size);
 

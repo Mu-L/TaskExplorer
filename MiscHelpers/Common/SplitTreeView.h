@@ -4,9 +4,9 @@
 
 #include "TreeViewEx.h"
 
-#include "../mischelpers_global.h"
+#include "../guihelpers_global.h"
 
-class MISCHELPERS_EXPORT COneColumnModel : public QIdentityProxyModel
+class GUIHELPERS_EXPORT COneColumnModel : public QIdentityProxyModel
 {
 	Q_OBJECT
 public:
@@ -15,7 +15,7 @@ public:
 	int	columnCount(const QModelIndex &parent = QModelIndex()) const { return 1; }
 };
 
-class MISCHELPERS_EXPORT CSplitTreeView : public QWidget
+class GUIHELPERS_EXPORT CSplitTreeView : public QWidget
 {
 	Q_OBJECT
 public:

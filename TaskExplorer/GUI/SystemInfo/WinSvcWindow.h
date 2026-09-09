@@ -2,6 +2,7 @@
 
 #include <QtWidgets/QMainWindow>
 #include "ui_WinSvcWindow.h"
+#include "../../API/SystemAPI.h"
 #include "../../API/Windows/WinService.h"	
 
 class CServiceListWidget;
@@ -11,7 +12,12 @@ class CWinSvcWindow : public QMainWindow
 	Q_OBJECT
 
 public:
-	CWinSvcWindow(QSharedPointer<CWinService> pService, QWidget *parent = Q_NULLPTR);
+	//
+	// CServicePtr, not a backend pointer. Everything this window reads and
+	// writes is a virtual on CServiceInfo; the one thing that was not - the
+	// Windows flag word - is now asked as RunsInSystemProcess().
+	//
+	CWinSvcWindow(const CServicePtr& pService, QWidget *parent = Q_NULLPTR);
 	~CWinSvcWindow();
 
 signals:
@@ -63,7 +69,7 @@ protected:
 	void LoadOther();
 	void SaveOther();
 
-	QSharedPointer<CWinService>		m_pService;
+	CServicePtr						m_pService;
 
 	bool							m_GeneralChanged;
 	bool							m_OldDelayedStart;
@@ -79,7 +85,8 @@ protected:
 	bool							m_DependantsValid;
 
 	bool							m_TriggerValid;
-	QVector<void*>					m_TriggerInfos;
+	QList<CServiceInfo::STrigger>	m_Triggers;
+	QList<CSystemAPI::SPrivilege>	m_Privileges;
 
 	bool							m_TriggersChanged;
 	int								m_InitialNumberOfTriggers;
@@ -94,8 +101,8 @@ protected:
 	bool							m_OtherChanged;
 
 private:
-	void							AddTrigger(void* pInfo);
-	void							UpdateTrigger(QTreeWidgetItem* pItem, void* pInfo);
+	void							AddTrigger(const CServiceInfo::STrigger& Trigger);
+	void							UpdateTrigger(QTreeWidgetItem* pItem, const CServiceInfo::STrigger& Trigger);
 	void							AddPrivilege(const QString& Privilege);
 	Ui::WinSvcWindow ui;
 	CServiceListWidget* m_pDependencies;

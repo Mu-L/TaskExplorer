@@ -1,7 +1,7 @@
 #pragma once
-#include "../mischelpers_global.h"
+#include "../guihelpers_global.h"
 
-class MISCHELPERS_EXPORT CCustomTheme//: QObject
+class GUIHELPERS_EXPORT CCustomTheme//: QObject
 {
 	//Q_OBJECT
 public:
@@ -24,4 +24,4 @@ private:
 	static bool			m_DarkTheme;
 };
 
-void MISCHELPERS_EXPORT FixTriStateBoxPallete(QWidget* pWidget);
+void GUIHELPERS_EXPORT FixTriStateBoxPallete(QWidget* pWidget);

@@ -20,11 +20,8 @@ public:
 	CLinuxHeap(QObject *parent = nullptr);
 	virtual ~CLinuxHeap();
 
-	virtual QString			GetFlagsString() const;
 	virtual quint32			GetClass() const;
-	virtual QString			GetClassString() const;
 	virtual quint32			GetType() const;
-	virtual QString			GetTypeString() const;
 };
 
 typedef QSharedPointer<CLinuxHeap> CLinuxHeapPtr;

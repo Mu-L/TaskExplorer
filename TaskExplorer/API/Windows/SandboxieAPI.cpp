@@ -1,5 +1,4 @@
 #include "stdafx.h"
-#include "../../GUI/TaskExplorer.h"
 #include "SandboxieAPI.h"
 #include "WindowsAPI.h"
 #include "ProcessHacker.h"
@@ -679,45 +678,6 @@ enum {
 	DLL_IMAGE_LAST
 };
 
-QString CSandboxieAPI::ImageTypeToStr(quint32 type)
-{
-	switch (type)
-	{
-		case DLL_IMAGE_UNSPECIFIED: return tr("Generic");
-		case DLL_IMAGE_SANDBOXIE_RPCSS: return tr("Sbie RpcSs");
-		case DLL_IMAGE_SANDBOXIE_DCOMLAUNCH: return tr("Sbie DcomLaunch");
-		case DLL_IMAGE_SANDBOXIE_CRYPTO: return tr("Sbie Crypto");
-		case DLL_IMAGE_SANDBOXIE_WUAU: return tr("Sbie WuAu Svc");
-		case DLL_IMAGE_SANDBOXIE_BITS: return tr("Sbie BITS");
-		case DLL_IMAGE_SANDBOXIE_SBIESVC: return tr("Sbie Svc");
-		case DLL_IMAGE_MSI_INSTALLER: return tr("Msi Installer");
-		case DLL_IMAGE_TRUSTED_INSTALLER: return tr("Trusted Installer");
-		case DLL_IMAGE_WUAUCLT: return tr("Windows Update");
-		case DLL_IMAGE_SHELL_EXPLORER: return tr("Windows Explorer");
-		case DLL_IMAGE_INTERNET_EXPLORER: return tr("Internet Explorer");
-		case DLL_IMAGE_MOZILLA_FIREFOX: return tr("Mozilla Firefox (or derivative)");
-		case DLL_IMAGE_WINDOWS_MEDIA_PLAYER: return tr("Windows Media Player");
-		case DLL_IMAGE_NULLSOFT_WINAMP: return tr("WinAmp");
-		case DLL_IMAGE_PANDORA_KMPLAYER: return tr("KM Player");
-		case DLL_IMAGE_WINDOWS_LIVE_MAIL: return tr("Windows Live Mail");
-		case DLL_IMAGE_SERVICE_MODEL_REG: return tr("Service Model Reg");
-		case DLL_IMAGE_RUNDLL32: return tr("RunDll32");
-		case DLL_IMAGE_DLLHOST: return tr("DllHost");
-		case DLL_IMAGE_DLLHOST_WININET_CACHE: return tr("DllHost (WinInet Cache)");
-		case DLL_IMAGE_WISPTIS: return tr("Windows Ink Services");
-		case DLL_IMAGE_GOOGLE_CHROME: return tr("Google Chrome (or derivative)");
-		case DLL_IMAGE_GOOGLE_UPDATE: return tr("Google Updater");
-		case DLL_IMAGE_ACROBAT_READER: return tr("Acrobat Reader");
-		case DLL_IMAGE_OFFICE_OUTLOOK: return tr("MS Outlook");
-		case DLL_IMAGE_OFFICE_EXCEL: return tr("MS Excel");
-		case DLL_IMAGE_FLASH_PLAYER_SANDBOX: return tr("Flash Player");
-		case DLL_IMAGE_PLUGIN_CONTAINER: return tr("Firefox plugin container");
-		case DLL_IMAGE_OTHER_WEB_BROWSER: return tr("Generic Web Browser");
-		case DLL_IMAGE_OTHER_MAIL_CLIENT: return tr("Generic Mail Client");
-		default: return tr("Unknown");
-	}
-}
-
 #define SBIE_FLAG_VALID_PROCESS         0x00000001
 #define SBIE_FLAG_FORCED_PROCESS        0x00000002
 #define SBIE_FLAG_UNUSED_00000004       0x00000004
@@ -728,49 +688,34 @@ QString CSandboxieAPI::ImageTypeToStr(quint32 type)
 #define SBIE_FLAG_DROP_RIGHTS           0x00000080
 #define SBIE_FLAG_RIGHTS_DROPPED        0x00000100
 #define SBIE_FLAG_OPEN_ALL_WIN_CLASS    0x00002000
-//#define SBIE_FLAG_BLOCK_FAKE_INPUT      0x00001000
-//#define SBIE_FLAG_BLOCK_SYS_PARAM       0x00004000
 #define SBIE_FLAG_PROCESS_IN_PCA_JOB    0x08000000
 #define SBIE_FLAG_CREATE_CONSOLE_HIDE   0x10000000
 #define SBIE_FLAG_CREATE_CONSOLE_SHOW   0x20000000
 #define SBIE_FLAG_PROTECTED_PROCESS     0x40000000
 #define SBIE_FLAG_HOST_INJECT_PROCESS   0x80000000
 
-QStringList CSandboxieAPI::ImageFlagsToStr(quint32 flags)
-{
-	QStringList Flags;
+//
+// The image classification and flag values CSandboxieAPI names are the
+// service's own; a typo has to break the build rather than mislabel a process.
+//
+static_assert(CSandboxieAPI::eImageOtherMailClient + 1 == DLL_IMAGE_LAST, "sandboxie image type count");
+static_assert(CSandboxieAPI::eImageSandboxieRpcSs      == DLL_IMAGE_SANDBOXIE_RPCSS,       "sandboxie image rpcss");
+static_assert(CSandboxieAPI::eImageShellExplorer       == DLL_IMAGE_SHELL_EXPLORER,        "sandboxie image explorer");
+static_assert(CSandboxieAPI::eImageDllHostWinInetCache == DLL_IMAGE_DLLHOST_WININET_CACHE, "sandboxie image dllhost wininet");
+static_assert(CSandboxieAPI::eImageOtherWebBrowser     == DLL_IMAGE_OTHER_WEB_BROWSER,     "sandboxie image other browser");
 
-	if ((flags & SBIE_FLAG_VALID_PROCESS) != 0)
-		Flags.append("Valid");
-	if ((flags & SBIE_FLAG_FORCED_PROCESS) != 0)
-		Flags.append("Forced");
-	if ((flags & SBIE_FLAG_PROCESS_IS_START_EXE) != 0)
-		Flags.append("Is StartExe");
-	if ((flags & SBIE_FLAG_PARENT_WAS_START_EXE) != 0)
-		Flags.append("Started by StartExe");
-	if ((flags & SBIE_FLAG_IMAGE_FROM_SBIE_DIR) != 0)
-		Flags.append("From Sbie Dir");
-	if ((flags & SBIE_FLAG_IMAGE_FROM_SANDBOX) != 0)
-		Flags.append("Image from Box");
-	if ((flags & SBIE_FLAG_DROP_RIGHTS) != 0)
-		Flags.append("Drop Rights");
-	if ((flags & SBIE_FLAG_RIGHTS_DROPPED) != 0)
-		Flags.append("Rights Dropped");
-	if ((flags & SBIE_FLAG_OPEN_ALL_WIN_CLASS) != 0)
-		Flags.append("Win Class Open");
-	if ((flags & SBIE_FLAG_PROCESS_IN_PCA_JOB) != 0)
-		Flags.append("In PAC Job");
-	if ((flags & SBIE_FLAG_CREATE_CONSOLE_HIDE) != 0)
-		Flags.append("Cons Hide");
-	if ((flags & SBIE_FLAG_CREATE_CONSOLE_SHOW) != 0)
-		Flags.append("Cons Show");
-	if ((flags & SBIE_FLAG_PROTECTED_PROCESS) != 0)
-		Flags.append("Protected");
-	if ((flags & SBIE_FLAG_HOST_INJECT_PROCESS) != 0)
-		Flags.append("Host Inject");
+static_assert(CSandboxieAPI::eSbieValidProcess      == SBIE_FLAG_VALID_PROCESS,        "sbie valid process");
+static_assert(CSandboxieAPI::eSbieForcedProcess     == SBIE_FLAG_FORCED_PROCESS,       "sbie forced process");
+static_assert(CSandboxieAPI::eSbieProcessIsStartExe == SBIE_FLAG_PROCESS_IS_START_EXE, "sbie is startexe");
+static_assert(CSandboxieAPI::eSbieParentWasStartExe == SBIE_FLAG_PARENT_WAS_START_EXE, "sbie parent was startexe");
+static_assert(CSandboxieAPI::eSbieImageFromSbieDir  == SBIE_FLAG_IMAGE_FROM_SBIE_DIR,  "sbie image from sbie dir");
+static_assert(CSandboxieAPI::eSbieImageFromSandbox  == SBIE_FLAG_IMAGE_FROM_SANDBOX,   "sbie image from sandbox");
+static_assert(CSandboxieAPI::eSbieDropRights        == SBIE_FLAG_DROP_RIGHTS,          "sbie drop rights");
+static_assert(CSandboxieAPI::eSbieRightsDropped     == SBIE_FLAG_RIGHTS_DROPPED,       "sbie rights dropped");
+static_assert(CSandboxieAPI::eSbieOpenAllWinClass   == SBIE_FLAG_OPEN_ALL_WIN_CLASS,   "sbie open all win class");
+static_assert(CSandboxieAPI::eSbieProcessInPcaJob   == SBIE_FLAG_PROCESS_IN_PCA_JOB,   "sbie in pca job");
+static_assert(CSandboxieAPI::eSbieCreateConsoleHide == SBIE_FLAG_CREATE_CONSOLE_HIDE,  "sbie console hide");
+static_assert(CSandboxieAPI::eSbieCreateConsoleShow == SBIE_FLAG_CREATE_CONSOLE_SHOW,  "sbie console show");
+static_assert(CSandboxieAPI::eSbieProtectedProcess  == SBIE_FLAG_PROTECTED_PROCESS,    "sbie protected process");
+static_assert(CSandboxieAPI::eSbieHostInjectProcess == SBIE_FLAG_HOST_INJECT_PROCESS,  "sbie host inject");
 
-	//if(Flags.isEmpty())
-	//	Flags.append("None");
-
-	return Flags;
-}

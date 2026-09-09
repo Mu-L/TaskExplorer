@@ -57,6 +57,32 @@
 #include <QFutureWatcher>
 #include <QtConcurrent>
 #include <QHostInfo>
+
+//
+// ---- QtWidgets ----
+//
+// TaskCore does not draw anything: it collects, and hands values to whoever is
+// looking. It links Qt6Core, Qt6Gui and Qt6Network and nothing else, which
+// `dumpbin /imports TaskCore.dll` confirms - but it was still *compiling*
+// against QtWidgets, because this header is shared and included everything.
+//
+// TE_WITH_WIDGETS is defined by the front end alone. The polarity is
+// deliberate: a target that says nothing gets no widgets, so the headless core
+// planned for phase 5 needs no change here to stay headless, and a stray
+// QWidget in the collector becomes a compile error rather than something to
+// find later.
+//
+// A few classes below are QtGui or QtCore rather than QtWidgets - QClipboard,
+// QPainter, QScreen, QAction, QCloseEvent, QSortFilterProxyModel. They are in
+// here anyway because nothing in the core uses them; the ones it does use are
+// included above, explicitly.
+//
+#ifdef TE_WITH_WIDGETS
+
+#include <QPixmap>
+#include <QIcon>
+#include <QImage>
+
 #include <QApplication>
 #include <QClipboard>
 
@@ -103,6 +129,9 @@
 #include <QToolButton>
 #include <QScreen>
 #include <QActionGroup>
+
+#endif // TE_WITH_WIDGETS
+
 #include <QRegularExpression>
 
 // other includes
@@ -130,8 +159,17 @@
 
 #include "../MiscHelpers/Common/ObjectTracker.h"
 
+#include "taskcore_global.h"
+#include "API/TaskStatus.h"
+
 #define USING_QT
 
-#define USE_QEXTWIDGETS
+// USE_QEXTWIDGETS lives in MiscHelpers/guihelpers_global.h - see the note there
+// for why it cannot be set per front end.
 
-extern class CSettings*		theConf;
+//
+// The settings live in TaskCore: everything below the GUI reads them, and with
+// the core in its own module the definition has to be on that side. main() still
+// creates the object and assigns it.
+//
+extern TASKCORE_EXPORT class CSettings*		theConf;

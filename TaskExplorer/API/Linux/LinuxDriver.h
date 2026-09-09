@@ -17,10 +17,18 @@ public:
 	virtual bool			UpdateDynamicData(quint64 Size, quint32 RefCount, const QString& UsedBy, const QString& State);
 
 	virtual QString			GetName() const		{ QReadLocker Locker(&m_Mutex); return m_Name; }
-	virtual quint64			GetSize() const		{ QReadLocker Locker(&m_Mutex); return m_Size; }
+
+	//
+	// The module's size in the base class's terms rather than under a name of
+	// its own. A kernel module has no image base to speak of - /proc/modules
+	// gives an offset, not a mapping - but its size is the same quantity a
+	// driver's image size is, and the shared view reads it through this.
+	//
+	virtual quint64			GetImageSize() const{ QReadLocker Locker(&m_Mutex); return m_Size; }
+
 	virtual quint32			GetRefCount() const	{ QReadLocker Locker(&m_Mutex); return m_RefCount; }
 	virtual QString			GetUsedBy() const	{ QReadLocker Locker(&m_Mutex); return m_UsedBy; }
-	virtual QString			GetStateString() const	{ QReadLocker Locker(&m_Mutex); return m_State; }
+	virtual QString			GetState() const	{ QReadLocker Locker(&m_Mutex); return m_State; }
 
 protected:
 	QString					m_Name;

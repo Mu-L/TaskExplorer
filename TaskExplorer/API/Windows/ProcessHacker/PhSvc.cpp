@@ -151,6 +151,8 @@ SUBTYPE_ENTRY SubTypeEntries[] =
 	{ SERVICE_TRIGGER_TYPE_NETWORK_ENDPOINT, &SubTypeUnknownGuid, L"Network endpoint: Unknown" }
 };
 
+const int SubTypeEntryCount = RTL_NUMBER_OF(SubTypeEntries);
+
 static PH_STRINGREF PublishersKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\WINEVT\\Publishers\\");
 
 PPH_STRING EspLookupEtwPublisherName(
@@ -851,7 +853,7 @@ STATUS PhBackupService(const std::wstring& svcName, const std::wstring& backFile
     }
 
     if (!NT_SUCCESS(status))
-		return ERR(QObject::tr("Unable to backup the service"), status);
+		return ERR(TE_BackupService, status);
     
 	return OK;
 }
@@ -953,10 +955,10 @@ STATUS PhRestoreService(const std::wstring& backFile, const std::wstring& svcNam
     }
 
 	if(!err.empty())
-		return ERR(QString::fromStdWString(err), -1);
+		return ERR(TE_Generic, QVariantList() << QString::fromStdWString(err), -1);
 
     if (!NT_SUCCESS(status))
-		return ERR(QObject::tr("Unable to backup the service"), status);
+		return ERR(TE_BackupService, status);
     
 	return OK;
 }

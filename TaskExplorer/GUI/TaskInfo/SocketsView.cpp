@@ -1,10 +1,8 @@
 #include "stdafx.h"
+#include "../../API/Cluster.h"
 #include "../TaskExplorer.h"
 #include "SocketsView.h"
 #include "../../../MiscHelpers/Common/Common.h"
-#ifdef WIN32
-#include "../../API/Windows/WinSocket.h"		
-#endif
 #include "../../../MiscHelpers/Common/Finder.h"
 
 
@@ -51,7 +49,10 @@ CSocketsView::CSocketsView(bool bAll, QWidget *parent)
 	m_pMainLayout->addWidget(new CFinder(m_pSortProxy, this));
 
 	if(bAll)
-		connect(theAPI, SIGNAL(SocketListUpdated(QSet<quint64>, QSet<quint64>, QSet<quint64>)), this, SLOT(OnSocketListUpdated(QSet<quint64>, QSet<quint64>, QSet<quint64>)));
+		{
+		new CViewSystemLink(this, SIGNAL(SocketListUpdated(QSet<quint64>, QSet<quint64>, QSet<quint64>)), SLOT(OnSocketListUpdated(QSet<quint64>, QSet<quint64>, QSet<quint64>)));
+		connect(theGUI, SIGNAL(ViewSystemChanged()), this, SLOT(OnViewSystemChanged()));
+	}
 
 	//m_pMenu = new QMenu();
 	m_pClose = m_pMenu->addAction(tr("Close"), this, SLOT(OnClose()));
@@ -105,9 +106,7 @@ void CSocketsView::OnResetColumns()
 	if (m_ViewMode == eMulti)
 	{
 		m_pSocketList->SetColumnHidden(CSocketModel::eProcess, false);
-#ifdef WIN32
 		m_pSocketList->SetColumnHidden(CSocketModel::eOwnerService, false);
-#endif
 	}
 	m_pSocketList->SetColumnHidden(CSocketModel::eProtocol, false);
 	m_pSocketList->SetColumnHidden(CSocketModel::eState, false);
@@ -137,6 +136,26 @@ void CSocketsView::ShowProcesses(const QList<CProcessPtr>& Processes)
 	Refresh();
 }
 
+//
+// Whether a socket belongs in this list.
+//
+// The Sockets tab is a network view, as it is on Windows. A Linux machine also
+// has unix domain sockets - hundreds of them, and most of what any one process
+// holds - and they are listed with the process's handles, where a named pipe
+// would be on Windows. Showing them here as well is a choice rather than a
+// default: they swamp the connections that the list exists for.
+//
+static bool IsSocketShown(const CSocketPtr& pSocket)
+{
+	if (pSocket.isNull())
+		return false;
+
+	if ((pSocket->GetProtocolType() & NET_TYPE_NETWORK_UNIX) == 0)
+		return true;
+
+	return theConf->GetBool("Options/ShowUnixSockets", false);
+}
+
 void CSocketsView::Refresh()
 {
 	if (!m_Processes.isEmpty())
@@ -148,6 +167,22 @@ void CSocketsView::Refresh()
 			{
 				if (pSocket.isNull()) // Note: GetSocketList contains weak refs
 					continue;
+				if (!IsSocketShown(pSocket))
+					continue;
+
+				//
+				// And it has to still be this process's.
+				//
+				// A process's socket list is filed into as sockets are learned
+				// about and is not rebuilt from scratch, so an entry can outlive
+				// what put it there: a socket that moved to another process, or
+				// one superseded when the target renumbered its list. The socket
+				// itself always knows whose it is, so that is what decides.
+				//
+				if (pSocket->GetProcessId() != pProcess->GetProcessId())
+					continue;
+				if (pSocket->IsMarkedForRemoval())
+					continue;
 				m_SocketList.insert((quint64)pSocket.data(), pSocket);
 			}
 		}
@@ -156,9 +191,28 @@ void CSocketsView::Refresh()
 	m_pSocketModel->Sync(m_SocketList);
 }
 
+void CSocketsView::OnViewSystemChanged()
+{
+	m_SocketList.clear();
+	m_pSocketModel->Clear();
+}
+
 void CSocketsView::OnSocketListUpdated(QSet<quint64> Added, QSet<quint64> Changed, QSet<quint64> Removed)
 {
-	m_SocketList = theAPI->GetSocketList();
+	m_SocketList = CCluster::GetViewSystem()->GetSocketList();
+
+	//
+	// Filtered on the way in rather than on the way out, so that turning the
+	// option off empties the list on the next round the way a closed socket
+	// would - Sync removes what it is no longer given.
+	//
+	for (QMultiMap<quint64, CSocketPtr>::iterator I = m_SocketList.begin(); I != m_SocketList.end(); )
+	{
+		if (IsSocketShown(I.value()))
+			++I;
+		else
+			I = m_SocketList.erase(I);
+	}
 }
 
 void CSocketsView::OnMenu(const QPoint &point)

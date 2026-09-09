@@ -6,9 +6,9 @@
 
 class CMultiLineInputDialogPrivate;
 
-#include "../mischelpers_global.h"
+#include "../guihelpers_global.h"
 
-class MISCHELPERS_EXPORT CMultiLineInputDialog : public QDialog
+class GUIHELPERS_EXPORT CMultiLineInputDialog : public QDialog
 {
     Q_OBJECT
     Q_PROPERTY(QString text READ text WRITE setText)

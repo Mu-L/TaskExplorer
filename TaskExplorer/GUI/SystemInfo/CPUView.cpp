@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "../../API/Cluster.h"
 #include "CPUView.h"
 #include "../TaskExplorer.h"
 
@@ -57,22 +58,8 @@ CCPUView::CCPUView(QWidget *parent)
 	m_pCPUGrid = new CSmartGridWidget();
 	m_pStackedLayout->addWidget(m_pCPUGrid);
 
-	QVector<QColor> Colors = theGUI->GetPlotColors();
-	for (int i = 0; i < theAPI->GetCpuCount(); i++)
-	{
-		m_pCPUPlot->AddPlot("Cpu_" + QString::number(i), Colors[i % Colors.size()], Qt::SolidLine, false, tr("CPU %1").arg(i));
-		m_pCPUPlot->AddPlot("CpuK_" + QString::number(i), Colors[i % Colors.size()], Qt::DotLine, false);
-
-		CIncrementalPlot* pPlot = new CIncrementalPlot(Back, Qt::transparent, Grid);
-		pPlot->SetRagne(100);
-		pPlot->SetLimit(m_PlotLimit);
-		pPlot->SetTextColor(Front);
-		m_pCPUGrid->AddWidget(pPlot);
-
-		pPlot->SetText(tr("CPU %1").arg(i));
-		pPlot->AddPlot("Cpu", Qt::green, Qt::SolidLine, true);
-		pPlot->AddPlot("CpuK", Qt::red, Qt::SolidLine, true);
-	}
+	m_CpuCount = 0;
+	BuildCpuPlots();
 
 	m_pMultiGraph = new QCheckBox(tr("Show one graph per CPU"));
 	connect(m_pMultiGraph, SIGNAL(stateChanged(int)), this, SLOT(OnMultiPlot(int)));
@@ -163,6 +150,64 @@ void CCPUView::OnMultiPlot(int State)
 	m_pStackedLayout->setCurrentIndex(m_pMultiGraph->isChecked() ? 1 : 0);
 }
 
+//
+// The per-CPU plots, sized to the machine currently being shown.
+//
+// Called from every path that is about to touch the grid, because the two that
+// do - Refresh and UpdateGraphs - are driven separately: the panel only
+// refreshes its current tab, while the graphs update on every tick regardless.
+// Either one may therefore be the first to see a machine with a different
+// number of CPUs, and reading past the end of the grid is a crash rather than a
+// wrong number.
+//
+void CCPUView::BuildCpuPlots()
+{
+	const int Count = CCluster::GetViewSystem()->GetCpuCount();
+	if (Count == m_CpuCount)
+		return;
+
+	for (int i = 0; i < m_CpuCount; i++)
+	{
+		m_pCPUPlot->RemovePlot("Cpu_" + QString::number(i));
+		m_pCPUPlot->RemovePlot("CpuK_" + QString::number(i));
+	}
+	m_pCPUGrid->Clear();
+
+	QColor Back = theGUI->GetColor(CTaskExplorer::ePlotBack);
+	QColor Front = theGUI->GetColor(CTaskExplorer::ePlotFront);
+	QColor Grid = theGUI->GetColor(CTaskExplorer::ePlotGrid);
+
+	QVector<QColor> Colors = theGUI->GetPlotColors();
+	for (int i = 0; i < Count; i++)
+	{
+		m_pCPUPlot->AddPlot("Cpu_" + QString::number(i), Colors[i % Colors.size()], Qt::SolidLine, false, tr("CPU %1").arg(i));
+		m_pCPUPlot->AddPlot("CpuK_" + QString::number(i), Colors[i % Colors.size()], Qt::DotLine, false);
+
+		CIncrementalPlot* pPlot = new CIncrementalPlot(Back, Qt::transparent, Grid);
+		pPlot->SetRagne(100);
+		pPlot->SetLimit(m_PlotLimit);
+		pPlot->SetTextColor(Front);
+		m_pCPUGrid->AddWidget(pPlot);
+
+		pPlot->SetText(tr("CPU %1").arg(i));
+		pPlot->AddPlot("Cpu", Qt::green, Qt::SolidLine, true);
+		pPlot->AddPlot("CpuK", Qt::red, Qt::SolidLine, true);
+	}
+
+	m_CpuCount = Count;
+}
+
+void CCPUView::ResetPlots()
+{
+	m_pCPUPlot->Reset();
+	for (int i = 0; i < m_pCPUGrid->GetCount(); i++)
+	{
+		if (CIncrementalPlot* pPlot = qobject_cast<CIncrementalPlot*>(m_pCPUGrid->GetWidget(i)))
+			pPlot->Reset();
+	}
+	BuildCpuPlots();
+}
+
 void CCPUView::ReConfigurePlots()
 {
 	m_PlotLimit = theGUI->GetGraphLimit(true);
@@ -183,14 +228,16 @@ void CCPUView::ReConfigurePlots()
 
 void CCPUView::Refresh()
 {
-	m_pCPUModel->setText(theAPI->GetCpuModel());
+	BuildCpuPlots();
 
-	m_pCPUUsage->setText(tr("%1%").arg(int(100 * theAPI->GetCpuUsage())));
-	m_pCPUSpeed->setText(tr("%1 / %2 GHz").arg(theAPI->GetCpuCurrentClock(), 2, 'g', 3).arg(theAPI->GetCpuBaseClock(), 2, 'g', 3));
-	m_pCPUNumaCount->setText(tr("%1 sockets / %2 nodes").arg(theAPI->GetPackageCount()).arg(theAPI->GetNumaCount()));
-	m_pCPUCoreCount->setText(tr("%1 threads / %2 cores").arg(theAPI->GetCpuCount()).arg(theAPI->GetCoreCount()));
+	m_pCPUModel->setText(CCluster::GetViewSystem()->GetCpuModel());
 
-	SCpuStatsEx Stats = theAPI->GetCpuStats();
+	m_pCPUUsage->setText(tr("%1%").arg(int(100 * CCluster::GetViewSystem()->GetCpuUsage())));
+	m_pCPUSpeed->setText(tr("%1 / %2 GHz").arg(CCluster::GetViewSystem()->GetCpuCurrentClock(), 2, 'g', 3).arg(CCluster::GetViewSystem()->GetCpuBaseClock(), 2, 'g', 3));
+	m_pCPUNumaCount->setText(tr("%1 sockets / %2 nodes").arg(CCluster::GetViewSystem()->GetPackageCount()).arg(CCluster::GetViewSystem()->GetNumaCount()));
+	m_pCPUCoreCount->setText(tr("%1 threads / %2 cores").arg(CCluster::GetViewSystem()->GetCpuCount()).arg(CCluster::GetViewSystem()->GetCoreCount()));
+
+	SCpuStatsEx Stats = CCluster::GetViewSystem()->GetCpuStats();
 
 	m_pSwitches->setText(tr("%1 / %2").arg(FormatNumber(Stats.ContextSwitchesDelta.Delta)).arg(FormatNumber(Stats.ContextSwitchesDelta.Value)));
 	m_pInterrupts->setText(tr("%1 / %2").arg(FormatNumber(Stats.InterruptsDelta.Delta)).arg(FormatNumber(Stats.InterruptsDelta.Value)));
@@ -200,9 +247,11 @@ void CCPUView::Refresh()
 
 void CCPUView::UpdateGraphs()
 {
-	for (int i = 0; i < theAPI->GetCpuCount(); i++)
+	BuildCpuPlots();
+
+	for (int i = 0; i < m_CpuCount; i++)
 	{
-		SCpuStats Stats = theAPI->GetCpuStats(i);
+		SCpuStats Stats = CCluster::GetViewSystem()->GetCpuStats(i);
 		
 		m_pCPUPlot->AddPlotPoint("Cpu_" + QString::number(i), 100 * (Stats.KernelUsage + Stats.UserUsage));
 		m_pCPUPlot->AddPlotPoint("CpuK_" + QString::number(i), 100 * (Stats.KernelUsage));

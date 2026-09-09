@@ -55,9 +55,9 @@
 #include <QRect>
 #include <QStyle>
 //! [0]
-#include "../mischelpers_global.h"
+#include "../guihelpers_global.h"
 
-class MISCHELPERS_EXPORT QFlowLayout : public QLayout
+class GUIHELPERS_EXPORT QFlowLayout : public QLayout
 {
 public:
     explicit QFlowLayout(QWidget *parent, int margin = -1, int hSpacing = -1, int vSpacing = -1);

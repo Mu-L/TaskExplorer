@@ -3,9 +3,9 @@
 #include <QtWidgets/QMainWindow>
 #include <QListWidgetItem>
 
-#include "../mischelpers_global.h"
+#include "../guihelpers_global.h"
 
-class MISCHELPERS_EXPORT CItemChooser : public QDialog
+class GUIHELPERS_EXPORT CItemChooser : public QDialog
 {
 	Q_OBJECT
 

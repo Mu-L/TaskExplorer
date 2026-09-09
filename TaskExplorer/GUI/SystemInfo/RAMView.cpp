@@ -1,9 +1,7 @@
 #include "stdafx.h"
+#include "../../API/Cluster.h"
 #include "RAMView.h"
 #include "../TaskExplorer.h"
-#ifdef WIN32
-#include "../../API/Windows/ProcessHacker.h"
-#endif
 
 
 CRAMView::CRAMView(QWidget *parent)
@@ -188,7 +186,12 @@ CRAMView::CRAMView(QWidget *parent)
 
 	////////////////////////////////////////
 
-#ifdef WIN32
+	//
+	// The whole tab, not just its values: a target with no page lists should not
+	// be offered an empty panel to stare at.
+	//
+	if (CCluster::GetViewSystem()->GetMemoryList().Available)
+	{
 	m_pListsWidget = new QWidget();
 	m_pListsLayout = new QGridLayout();
 	m_pListsLayout->setContentsMargins(3, 3, 3, 3);
@@ -273,7 +276,7 @@ CRAMView::CRAMView(QWidget *parent)
 	m_pStanbyLayout->addWidget(m_pPriority7, row++, 4);
 
 	m_pListsLayout->addItem(new QSpacerItem(20, 40, QSizePolicy::Expanding, QSizePolicy::Minimum), 0, 3);
-#endif
+	}
 
 	////////////////////////////////////////
 
@@ -292,6 +295,11 @@ CRAMView::~CRAMView()
 	theConf->SetValue(objectName() + "/RAMView_Tab", m_pInfoTabs->currentIndex());
 }
 
+void CRAMView::ResetPlots()
+{
+	m_pRAMPlot->Reset();
+}
+
 void CRAMView::ReConfigurePlots()
 {
 	m_PlotLimit = theGUI->GetGraphLimit(true);
@@ -305,22 +313,22 @@ void CRAMView::ReConfigurePlots()
 
 void CRAMView::Refresh()
 {
-	m_pRAMSize->setText(tr("%1 installed").arg(FormatSize(theAPI->GetInstalledMemory())));
+	m_pRAMSize->setText(tr("%1 installed").arg(FormatSize(CCluster::GetViewSystem()->GetInstalledMemory())));
 
-	m_pVMemCurrent->setText(FormatSize(theAPI->GetCommitedMemory()));
-	m_pVMemPeak->setText(FormatSize(theAPI->GetCommitedMemoryPeak()));
-	m_pVMemLimit->setText(FormatSize(theAPI->GetMemoryLimit()));
-	m_pSwapSize->setText(FormatSize(theAPI->GetTotalSwapMemory()));
+	m_pVMemCurrent->setText(FormatSize(CCluster::GetViewSystem()->GetCommitedMemory()));
+	m_pVMemPeak->setText(FormatSize(CCluster::GetViewSystem()->GetCommitedMemoryPeak()));
+	m_pVMemLimit->setText(FormatSize(CCluster::GetViewSystem()->GetMemoryLimit()));
+	m_pSwapSize->setText(FormatSize(CCluster::GetViewSystem()->GetTotalSwapMemory()));
 
-	m_pRAMUsed->setText(FormatSize(theAPI->GetPhysicalUsed()));
-	m_pRAMTotal->setText(FormatSize(theAPI->GetAvailableMemory()));
-	m_pRAMReserved->setText(FormatSize(theAPI->GetReservedMemory()));
-	m_pRAMCacheWS->setText(FormatSize(theAPI->GetCacheMemory()));
-	m_pRAMKernelWS->setText(FormatSize(theAPI->GetKernelMemory()));
-	m_pRAMDriverWS->setText(FormatSize(theAPI->GetDriverMemory()));
+	m_pRAMUsed->setText(FormatSize(CCluster::GetViewSystem()->GetPhysicalUsed()));
+	m_pRAMTotal->setText(FormatSize(CCluster::GetViewSystem()->GetAvailableMemory()));
+	m_pRAMReserved->setText(FormatSize(CCluster::GetViewSystem()->GetReservedMemory()));
+	m_pRAMCacheWS->setText(FormatSize(CCluster::GetViewSystem()->GetCacheMemory()));
+	m_pRAMKernelWS->setText(FormatSize(CCluster::GetViewSystem()->GetKernelMemory()));
+	m_pRAMDriverWS->setText(FormatSize(CCluster::GetViewSystem()->GetDriverMemory()));
 
 
-	SCpuStatsEx CpuStats = theAPI->GetCpuStats();
+	SCpuStatsEx CpuStats = CCluster::GetViewSystem()->GetCpuStats();
 
 	m_pPagingFault->setText(tr("%2 / %1").arg(FormatNumber(CpuStats.PageFaultsDelta.Value)).arg(FormatNumber(CpuStats.PageFaultsDelta.Delta)));
 	m_pPagingReads->setText(tr("%2 / %1").arg(FormatNumber(CpuStats.PageReadsDelta.Value)).arg(FormatNumber(CpuStats.PageReadsDelta.Delta)));
@@ -337,7 +345,7 @@ void CRAMView::Refresh()
 		OldFiles.insert(Device, pItem);
 	}
 
-	QList<SPageFile> PageFiles = theAPI->GetPageFiles();
+	QList<SPageFile> PageFiles = CCluster::GetViewSystem()->GetPageFiles();
 
 	for (int i=0; i < PageFiles.size(); i++)
 	{
@@ -361,51 +369,50 @@ void CRAMView::Refresh()
 		delete pItem;
 
 
-#ifdef WIN32
-    SYSTEM_MEMORY_LIST_INFORMATION memoryListInfo;
+	//
+	// Page lists, where the target reports them. Left blank rather than zeroed
+	// where it does not, so an empty row reads as "not available" instead of as
+	// a measurement.
+	//
+	CSystemAPI::SMemoryList MemList = CCluster::GetViewSystem()->GetMemoryList();
 
-	if (NT_SUCCESS(NtQuerySystemInformation(SystemMemoryListInformation, &memoryListInfo, sizeof(SYSTEM_MEMORY_LIST_INFORMATION), NULL)))
+	//
+	// The tab holding these labels is only built when the machine showing at
+	// the time reported page lists, so a machine that reports them where the
+	// first one did not has nowhere to put them. Rebuilding the panel per
+	// machine is the real answer and belongs with the disabled-view work; until
+	// then the values are dropped rather than written through a pointer that
+	// was never set.
+	//
+	if (MemList.Available && m_pListsWidget)
 	{
-		ULONG_PTR standbyPageCount = 0;
-		ULONG_PTR repurposedPageCount = 0;
+		m_pZeroed->setText(FormatSize(MemList.Zeroed));
+		m_pFree->setText(FormatSize(MemList.Free));
+		m_pModified->setText(FormatSize(MemList.Modified));
+		m_pModifiedNoWrite->setText(FormatSize(MemList.ModifiedNoWrite));
+		m_pModifiedPaged->setText(FormatSize(MemList.Bad));
+
+		quint64 Standby = 0, Repurposed = 0;
 		for (int i = 0; i < 8; i++)
 		{
-			standbyPageCount += memoryListInfo.PageCountByPriority[i];
-			repurposedPageCount += memoryListInfo.RepurposedPagesByPriority[i];
+			Standby += MemList.StandbyByPriority[i];
+			Repurposed += MemList.RepurposedByPriority[i];
 		}
 
-		m_pZeroed->setText(FormatSize((ULONG64)memoryListInfo.ZeroPageCount * PAGE_SIZE));
-		m_pFree->setText(FormatSize((ULONG64)memoryListInfo.FreePageCount * PAGE_SIZE));
-		m_pModified->setText(FormatSize((ULONG64)memoryListInfo.ModifiedPageCount * PAGE_SIZE));
-		m_pModifiedNoWrite->setText(FormatSize((ULONG64)memoryListInfo.ModifiedNoWritePageCount * PAGE_SIZE));
-		m_pModifiedPaged->setText(FormatSize((ULONG64)memoryListInfo.BadPageCount * PAGE_SIZE));
+		QLabel* Priorities[8] = { m_pPriority0, m_pPriority1, m_pPriority2, m_pPriority3,
+								  m_pPriority4, m_pPriority5, m_pPriority6, m_pPriority7 };
 
-		m_pStandby->setText(tr("%1 (%2)").arg(FormatSize((ULONG64)standbyPageCount * PAGE_SIZE))
-			.arg(FormatSize((ULONG64)repurposedPageCount * PAGE_SIZE)));
-		m_pPriority0->setText(tr("%1 (%2)").arg(FormatSize((ULONG64)memoryListInfo.PageCountByPriority[0] * PAGE_SIZE))
-			.arg(FormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[0] * PAGE_SIZE)));
-		m_pPriority1->setText(tr("%1 (%2)").arg(FormatSize((ULONG64)memoryListInfo.PageCountByPriority[1] * PAGE_SIZE))
-			.arg(FormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[1] * PAGE_SIZE)));
-		m_pPriority2->setText(tr("%1 (%2)").arg(FormatSize((ULONG64)memoryListInfo.PageCountByPriority[2] * PAGE_SIZE))
-			.arg(FormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[2] * PAGE_SIZE)));
-		m_pPriority3->setText(tr("%1 (%2)").arg(FormatSize((ULONG64)memoryListInfo.PageCountByPriority[3] * PAGE_SIZE))
-			.arg(FormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[3] * PAGE_SIZE)));
-		m_pPriority4->setText(tr("%1 (%2)").arg(FormatSize((ULONG64)memoryListInfo.PageCountByPriority[4] * PAGE_SIZE))
-			.arg(FormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[4] * PAGE_SIZE)));
-		m_pPriority5->setText(tr("%1 (%2)").arg(FormatSize((ULONG64)memoryListInfo.PageCountByPriority[5] * PAGE_SIZE))
-			.arg(FormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[5] * PAGE_SIZE)));
-		m_pPriority6->setText(tr("%1 (%2)").arg(FormatSize((ULONG64)memoryListInfo.PageCountByPriority[6] * PAGE_SIZE))
-			.arg(FormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[6] * PAGE_SIZE)));
-		m_pPriority7->setText(tr("%1 (%2)").arg(FormatSize((ULONG64)memoryListInfo.PageCountByPriority[7] * PAGE_SIZE))
-			.arg(FormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[7] * PAGE_SIZE)));
+		m_pStandby->setText(tr("%1 (%2)").arg(FormatSize(Standby)).arg(FormatSize(Repurposed)));
+		for (int i = 0; i < 8; i++)
+			Priorities[i]->setText(tr("%1 (%2)").arg(FormatSize(MemList.StandbyByPriority[i]))
+				.arg(FormatSize(MemList.RepurposedByPriority[i])));
 	}
-#endif
 }
 
 void CRAMView::UpdateGraphs()
 {
-	m_pRAMPlot->AddPlotPoint("Commited", theAPI->GetCommitedMemory());
-	m_pRAMPlot->AddPlotPoint("Swapped", theAPI->GetSwapedOutMemory());
-	m_pRAMPlot->AddPlotPoint("Cache", theAPI->GetCacheMemory());
-	m_pRAMPlot->AddPlotPoint("Physical", theAPI->GetPhysicalUsed());
+	m_pRAMPlot->AddPlotPoint("Commited", CCluster::GetViewSystem()->GetCommitedMemory());
+	m_pRAMPlot->AddPlotPoint("Swapped", CCluster::GetViewSystem()->GetSwapedOutMemory());
+	m_pRAMPlot->AddPlotPoint("Cache", CCluster::GetViewSystem()->GetCacheMemory());
+	m_pRAMPlot->AddPlotPoint("Physical", CCluster::GetViewSystem()->GetPhysicalUsed());
 }

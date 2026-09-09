@@ -1,6 +1,7 @@
 #pragma once
 #include <qwidget.h>
 #include "../../API/WndInfo.h"
+#include "../../API/SystemAPI.h"
 #include "../../../MiscHelpers/Common/TreeItemModel.h"
 
 
@@ -39,7 +40,7 @@ protected:
 		QString			ObjectPath;
 	};
 
-	virtual void FillNode(const struct SNtObjectInfo* pNtObject, SNtObjectNode* pChildNode);
+	virtual void FillNode(const CSystemAPI::SNtObject* pNtObject, SNtObjectNode* pChildNode);
 	virtual void Refresh(SNtObjectNode* pNode, QMap<QList<QVariant>, QList<STreeNode*> >& New, QHash<QVariant, STreeNode*>& Old);
 
 	virtual SNtObjectNode*	GetNode(const QModelIndex &index) const;

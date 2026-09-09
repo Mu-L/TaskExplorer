@@ -1,5 +1,5 @@
 #pragma once
-#include "../Common/StatusEx.h"
+#include "../API/StatusEx.h"
 #include "../MiscHelpers/Common/NetworkAccessManager.h"
 #include "../MiscHelpers/Common/ProgressDialog.h"
 
@@ -83,6 +83,33 @@ protected:
 
 signals:
 	void				UpdateData(const QVariantMap& Data, const QVariantMap& Params);
+};
+
+//
+// The supporter certificate, fetched from the issuer.
+//
+// A job of its own rather than a use of CGetFileJob, because what comes back is
+// not a file to save but either a certificate or a reason there is none: the
+// service answers with the certificate as plain text, or with a JSON object
+// carrying an error. Both arrive as a 200, so the two are told apart by what
+// the body starts with.
+//
+class CGetCertJob : public CNetworkJob
+{
+	Q_OBJECT
+
+protected:
+	friend class COnlineUpdater;
+
+	CGetCertJob(const QVariantMap& Params, QObject* parent = nullptr) : CNetworkJob(Params, parent) {}
+
+	void Finish(QNetworkReply* pReply) override;
+
+signals:
+	//
+	// The certificate, or an empty one with "error" filled in. Never both.
+	//
+	void				Certificate(const QByteArray& Certificate, const QVariantMap& Params);
 };
 
 class CGetFileJob : public CNetworkJob
@@ -191,6 +218,32 @@ public:
 
 	// Incremental updating
 	bool				ApplyUpdate(bool bSilent);
+
+	//
+	// Asks the issuer for the certificate belonging to a serial number.
+	//
+	// The answer arrives at receiver/member as
+	// (const QByteArray&, const QVariantMap&) - see CGetCertJob. Params may
+	// carry "key", the UPDATEKEY out of a certificate already held, which is
+	// how a renewal is recognised as belonging to the same person.
+	//
+	// The hardware id is sent only when it is needed: for a node-locked serial
+	// and for an evaluation. There is no reason to hand it over otherwise.
+	//
+	void				GetSupportCert(const QString& Serial, QObject* receiver, const char* member,
+									   const QVariantMap& Params = QVariantMap(),
+									   const CProgressDialogPtr& pDialog = CProgressDialogPtr());
+
+	//
+	// A number that identifies this installation to the issuer and says nothing
+	// about the machine.
+	//
+	// Made once and kept in the configuration. It exists so that two requests
+	// can be recognised as coming from the same place - which the issuer needs
+	// to limit how many evaluation certificates one installation asks for -
+	// without a hardware id being sent for a request that does not need one.
+	//
+	static quint64		GetRandID();
 
 	// Helpers
 	static QString		GetCurrentVersion();

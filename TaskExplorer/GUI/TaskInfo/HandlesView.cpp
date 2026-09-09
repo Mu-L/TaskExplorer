@@ -1,14 +1,11 @@
 #include "stdafx.h"
+#include "../../API/Cluster.h"
 #include "../TaskExplorer.h"
+#include "../DesktopActions.h"
+#include "../TaskStrings.h"
 #include "HandlesView.h"
 #include "../../../MiscHelpers/Common/Common.h"
-#ifdef WIN32
-#include "../../API/Windows/WinHandle.h"
-#include "../../API/Windows/ProcessHacker.h"
-#include "../../API/Windows/WinMemIO.h"
-#include "../../API/Windows/WindowsAPI.h"
-#include "../../API/Windows/ProcessHacker/appsup.h"	
-#endif
+#include "../../API/SystemAPI.h"
 #include "TaskInfoWindow.h"
 #include "TokenView.h"
 #include "JobView.h"
@@ -52,7 +49,16 @@ CHandlesView::CHandlesView(int iAll, QWidget *parent)
 	m_pMainLayout->setContentsMargins(0, 0, 0, 0);
 	this->setLayout(m_pMainLayout);
 
-#ifdef WIN32
+	//
+	// The type filter is built from whatever kinds of object the target
+	// reports. A system with no such classification returns an empty list and
+	// the whole filter row stays hidden.
+	//
+	//
+	// Built for the per-process view whether or not the machine in front of us
+	// right now reports any types: which machine that is changes, and the row
+	// is filled in - and hidden when empty - by RebuildTypeFilter.
+	//
 	if (m_ShowAllFiles == 0)
 	{
 		m_pFilterWidget = new QWidget();
@@ -66,46 +72,19 @@ CHandlesView::CHandlesView(int iAll, QWidget *parent)
 		m_pShowType = new QComboBox();
 		m_pFilterLayout->addWidget(m_pShowType);
 
-		QStandardItemModel* model = new QStandardItemModel(this);
+		//
+		// One model for the life of the view, refilled when the machine changes
+		// rather than replaced. Swapping a combo's model means deciding who owns
+		// the one being dropped - and the first one is the combo's own, which
+		// must not be deleted from under it.
+		//
+		m_pTypeModel = new QStandardItemModel(this);
+		CHandleSortModel* pTypeProxy = new CHandleSortModel();
+		pTypeProxy->setParent(this);
+		pTypeProxy->setSourceModel(m_pTypeModel);
+		pTypeProxy->sort(0);
+		m_pShowType->setModel(pTypeProxy);
 
-		//m_pShowType->addItem(tr("All"), "");
-		//m_pShowType->addItem(tr("All"), -1);
-		auto itemAll = new QStandardItem(tr("[All]"));
-		itemAll->setData(-1, Qt::UserRole);
-		model->appendRow(itemAll);
-
-		POBJECT_TYPES_INFORMATION objectTypes;
-		if (NT_SUCCESS(PhEnumObjectTypes(&objectTypes)))
-		{
-			POBJECT_TYPE_INFORMATION objectType = (POBJECT_TYPE_INFORMATION)PH_FIRST_OBJECT_TYPE(objectTypes);
-			for (ULONG i = 0; i < objectTypes->NumberOfTypes; i++)
-			{
-				QString Type = QString::fromWCharArray(objectType->TypeName.Buffer, objectType->TypeName.Length / sizeof(wchar_t));
-
-				//m_pShowType->addItem(Type, Type);
-
-				int objectIndex;
-				if (WindowsVersion >= WINDOWS_8_1)
-					objectIndex = objectType->TypeIndex;
-				else
-					objectIndex = i + 2;
-
-				//m_pShowType->addItem(Type, objectIndex);
-				auto item = new QStandardItem(Type);
-				item->setData(objectIndex, Qt::UserRole);
-				model->appendRow(item);
-
-				objectType = (POBJECT_TYPE_INFORMATION)PH_NEXT_OBJECT_TYPE(objectType);
-			}
-			PhFree(objectTypes);
-		}
-
-		auto proxy1 = new CHandleSortModel();
-		proxy1->setSourceModel(model);
-		proxy1->sort(0);
-		m_pShowType->setModel(proxy1);
-
-		//m_pShowType->setEditable(true); // just in case we forgot a type
 
 
 		m_pHideUnnamed = new QCheckBox(tr("Hide Unnamed"));
@@ -137,8 +116,6 @@ CHandlesView::CHandlesView(int iAll, QWidget *parent)
 
 		m_pFilterLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum));
 	}
-#endif
-
 	m_pSplitter = new QSplitter();
 	m_pSplitter->setOrientation(Qt::Vertical);
 	m_pMainLayout->addWidget(m_pSplitter);
@@ -163,7 +140,10 @@ CHandlesView::CHandlesView(int iAll, QWidget *parent)
 	connect(theGUI, SIGNAL(ReloadPanels()), m_pHandleModel, SLOT(Clear()));
 
 	if (m_ShowAllFiles == 0)
+	{
+		RebuildTypeFilter();
 		UpdateFilter();
+	}
 	m_pHandleModel->SetUseIcons(true);
 
 	m_pHandleList->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -182,7 +162,10 @@ CHandlesView::CHandlesView(int iAll, QWidget *parent)
 	{
 		m_pHandleDetails = NULL;
 
-		connect(theAPI, SIGNAL(OpenFileListUpdated(QSet<quint64>, QSet<quint64>, QSet<quint64>)), this, SLOT(ShowOpenFiles(QSet<quint64>, QSet<quint64>, QSet<quint64>)));
+		{
+		new CViewSystemLink(this, SIGNAL(OpenFileListUpdated(QSet<quint64>, QSet<quint64>, QSet<quint64>)), SLOT(ShowOpenFiles(QSet<quint64>, QSet<quint64>, QSet<quint64>)));
+		connect(theGUI, SIGNAL(ViewSystemChanged()), this, SLOT(OnViewSystemChanged()));
+	}
 	}
 	else if (m_ShowAllFiles == 3)
 	{
@@ -221,11 +204,9 @@ CHandlesView::CHandlesView(int iAll, QWidget *parent)
 	if (m_ShowAllFiles == 1 || m_ShowAllFiles == 3)
 	{
 		m_pHandleList->SetColumnHidden(CHandleModel::eType, true, true);
-#ifdef WIN32
 		m_pHandleList->SetColumnHidden(CHandleModel::eAttributes, true, true);
 		m_pHandleList->SetColumnHidden(CHandleModel::eObjectAddress, true, true);
 		m_pHandleList->SetColumnHidden(CHandleModel::eOriginalName, true, true);
-#endif
 	}
 
 	m_ViewMode = eNone;
@@ -243,18 +224,11 @@ CHandlesView::CHandlesView(int iAll, QWidget *parent)
 	m_pClose->setShortcut(QKeySequence::Delete);
 	m_pClose->setShortcutContext(Qt::WidgetWithChildrenShortcut);
 	this->addAction(m_pClose);
-
-#ifdef WIN32
 	m_pProtect = m_pMenu->addAction(tr("Protect"), this, SLOT(OnHandleAction()));
 	m_pProtect->setCheckable(true);
 	m_pInherit = m_pMenu->addAction(tr("Inherit"), this, SLOT(OnHandleAction()));
 	m_pInherit->setCheckable(true);
-
-#endif
-	
 	m_pMenu->addSeparator();
-
-#ifdef WIN32
 	m_pSemaphore = m_pMenu->addMenu(tr("Semaphore"));
 		m_pSemaphoreAcquire = m_pSemaphore->addAction(tr("Acquire"), this, SLOT(OnHandleAction()));
 		m_pSemaphoreRelease = m_pSemaphore->addAction(tr("Release"), this, SLOT(OnHandleAction()));
@@ -279,8 +253,6 @@ CHandlesView::CHandlesView(int iAll, QWidget *parent)
 
 	m_pMenu->addSeparator();
 	m_pPermissions = m_pMenu->addAction(tr("Permissions"), this, SLOT(OnPermissions()));
-#endif
-
 	AddPanelItemsToMenu();
 }
 
@@ -345,9 +317,103 @@ void CHandlesView::OnResetColumns()
 	}
 	//m_pHandleList->SetColumnHidden(CHandleModel::eRefs, false);
 	m_pHandleList->SetColumnHidden(CHandleModel::eGrantedAccess, false);
-#ifdef WIN32
 	m_pHandleList->SetColumnHidden(CHandleModel::eFileShareAccess, false);
-#endif
+}
+
+//
+// Fill the type filter from the machine now being looked at.
+//
+// The types are that machine's own numbering - a Windows object table is built
+// when its drivers load, a Linux fd is one of seven fixed kinds - so this cannot
+// be decided once at construction. It used to be, which meant a Windows viewer
+// watching a Linux box offered Windows object types, none of which any
+// descriptor there could ever match.
+//
+// A machine that reports none hides the row rather than showing an empty combo.
+//
+void CHandlesView::RebuildTypeFilter()
+{
+	if (!m_pShowType || !m_pFilterWidget)
+		return;
+
+	CSystemPtr pSystem = CCluster::GetViewSystem();
+	const QList<CSystemAPI::SHandleType> All = pSystem.isNull()
+		? QList<CSystemAPI::SHandleType>() : pSystem->GetHandleTypes();
+
+	//
+	// A machine can classify handles in more than one way at once. A Linux
+	// machine with Wine on it reports the kernel's descriptor kinds and
+	// wineserver's object kinds, and which of them a process can hold depends on
+	// the process: only one inside a prefix has the second sort. Offering all of
+	// them for every process would mean a filter with entries that can never
+	// match anything, which reads as a broken list rather than as an empty one.
+	//
+	bool bWine = false;
+	foreach(const CProcessPtr& pProcess, m_Processes)
+	{
+		if (pProcess->GetStatusFlags() & CProcessInfo::eStatusWine)
+			bWine = true;
+	}
+
+	QList<CSystemAPI::SHandleType> HandleTypes;
+	foreach(const CSystemAPI::SHandleType& Type, All)
+	{
+		if (Type.Group == 0 || bWine)
+			HandleTypes.append(Type);
+	}
+
+	//
+	// Two of the filters only mean something on some machines.
+	//
+	// ETW registrations are a Windows object kind: a Linux machine has none, and
+	// neither has Wine, which stubs the tracing API rather than implementing it.
+	// Unnamed handles are the same shape of question - every descriptor on Linux
+	// resolves to something, a path or a socket:[n], so nothing there is ever
+	// unnamed, while a Wine process's events and mutexes mostly are. Disabled
+	// rather than hidden, so the row does not change shape as the selection
+	// moves, and read as disabled by the filter itself rather than only looking it.
+	//
+	if (m_pHideETW)
+		m_pHideETW->setEnabled(!pSystem.isNull() && pSystem->GetEtwHandleTypeIndex() != -1);
+	if (m_pHideUnnamed)
+		m_pHideUnnamed->setEnabled(bWine || (!pSystem.isNull() && pSystem->GetOsType() == CSystemAPI::eOsWindows));
+
+	//
+	// The filtered list is what is remembered, so that moving between a Wine
+	// process and an ordinary one on the same machine counts as a change - the
+	// machine has not changed, but what it can show for this process has.
+	//
+	if (HandleTypes == m_HandleTypes)
+		return;		// same machine, or two that classify alike
+	m_HandleTypes = HandleTypes;
+
+
+	m_pFilterWidget->setVisible(!HandleTypes.isEmpty());
+	if (HandleTypes.isEmpty())
+		return;
+
+	//
+	// The selection is kept across the rebuild where the new machine has a type
+	// of the same name. Keeping the *index* would be wrong - the same number
+	// means something else on the other machine.
+	//
+	const QString Selected = m_pShowType->currentText();
+
+	m_pTypeModel->clear();
+
+	auto pAll = new QStandardItem(tr("[All]"));
+	pAll->setData(-1, Qt::UserRole);
+	m_pTypeModel->appendRow(pAll);
+
+	foreach (const CSystemAPI::SHandleType& Type, HandleTypes)
+	{
+		auto pItem = new QStandardItem(GetHandleTypeLabel(Type));
+		pItem->setData(Type.Index, Qt::UserRole);
+		m_pTypeModel->appendRow(pItem);
+	}
+
+	const int Index = m_pShowType->findText(Selected);
+	m_pShowType->setCurrentIndex(Index >= 0 ? Index : 0);
 }
 
 void CHandlesView::OnColumnsChanged()
@@ -378,6 +444,27 @@ void CHandlesView::ShowProcesses(const QList<CProcessPtr>& Processes)
 		m_Processes = Processes;
 		m_PendingUpdates = 0;
 
+		//
+		// Emptied the moment the selection moves, before anything is asked for
+		// the new process.
+		//
+		// What is on screen belongs to one process, and an update that fails -
+		// another user's process on a viewer with no privilege, a process that
+		// exited between the click and the read - emits nothing at all. Without
+		// this the previous process's list simply stayed there, under the new
+		// process's name, which is worse than showing nothing: it is wrong and
+		// it looks right. CThreadsView and CWindowsView already did this.
+		//
+		m_Handles.clear();
+		m_pHandleModel->Clear();
+
+		//
+		// The selection may have moved to a machine that classifies handles
+		// differently; the filter has to follow it.
+		//
+		if (m_ShowAllFiles == 0)
+			RebuildTypeFilter();
+
 		SwitchView(m_Processes.size() > 1 ? eMulti : eSingle);
 
 		foreach(const CProcessPtr& pProcess, m_Processes)
@@ -391,7 +478,7 @@ void CHandlesView::Refresh()
 {
 	if (m_ShowAllFiles == 1)
 	{
-		theAPI->UpdateOpenFileListAsync();
+		CCluster::GetViewSystem()->UpdateOpenFileListAsync();
 	}
 	else
 	{
@@ -420,31 +507,35 @@ void CHandlesView::ShowHandles(QSet<quint64> Added, QSet<quint64> Changed, QSet<
 		if (--m_PendingUpdates != 0)
 			return;
 
-#ifdef WIN32
-		int ShowType = g_fileObjectTypeIndex;
+		//
+		// Defaults for the "all files" variant of this view, which has no
+		// filter row of its own. -1 means every type; 0 would match only
+		// eUnknown and hide the entire list.
+		//
+		const int EtwTypeIndex = CCluster::GetViewSystem()->GetEtwHandleTypeIndex();
+		int ShowType = CCluster::GetViewSystem()->GetFileHandleTypeIndex();
 		bool HideUnnamed = true;
 		bool HideETW = true;
 
-		//
-		// The filter widgets below are only constructed under WIN32 (see the
-		// constructor), so reading them here has to be guarded the same way -
-		// otherwise m_pShowType is an uninitialised pointer on Linux.
-		//
 		if (m_ShowAllFiles == 0)
 		{
-			ShowType = m_pShowType->currentData().toInt();
-			HideUnnamed = m_pHideUnnamed->isChecked();
-			HideETW = m_pHideETW->isChecked();
+			if (m_pShowType)
+			{
+				ShowType = m_pShowType->currentData().toInt();
+				//
+				// A disabled box is not a checked one, whatever it was left on
+				// by the last machine that had the notion.
+				//
+				HideUnnamed = m_pHideUnnamed->isEnabled() && m_pHideUnnamed->isChecked();
+				HideETW = m_pHideETW->isEnabled() && m_pHideETW->isChecked();
+			}
+			else
+			{
+				ShowType = -1;
+				HideUnnamed = false;
+				HideETW = false;
+			}
 		}
-#else
-		//
-		// -1 means "every type"; 0 would match only eUnknown and hide the whole
-		// list. There is no type filter UI on Linux yet, so nothing is filtered.
-		//
-		int ShowType = -1;
-		bool HideUnnamed = false;
-		bool HideETW = false;
-#endif
 
 		QMap<quint64, CHandlePtr> AllHandles;
 		foreach(const CProcessPtr& pProcess, m_Processes) {
@@ -456,10 +547,12 @@ void CHandlesView::ShowHandles(QSet<quint64> Added, QSet<quint64> Changed, QSet<
 					continue;
 				if (HideUnnamed && pHandle->GetFileName().isEmpty())
 					continue;
-#ifdef WIN32
-				if(HideETW && g_EtwRegistrationTypeIndex == pHandle->GetTypeIndex())
+				//
+				// A busy process can hold thousands of ETW registrations; the
+				// filter exists to keep them out of the way.
+				//
+				if (HideETW && EtwTypeIndex != -1 && EtwTypeIndex == (int)pHandle->GetTypeIndex())
 					continue;
-#endif
 
 				ASSERT(!AllHandles.contains(I.key()));
 				AllHandles.insert(I.key(), I.value());
@@ -469,13 +562,19 @@ void CHandlesView::ShowHandles(QSet<quint64> Added, QSet<quint64> Changed, QSet<
 	}
 }
 
+void CHandlesView::OnViewSystemChanged()
+{
+	m_Handles.clear();
+	m_pHandleModel->Clear();
+}
+
 void CHandlesView::ShowOpenFiles(QSet<quint64> Added, QSet<quint64> Changed, QSet<quint64> Removed)
 {
 	bool bGetDanymicData = theConf->GetBool("Options/OpenFileGetPosition", false);
 
 	m_pHandleModel->SetSizePosNA(!bGetDanymicData);
 
-	ShowHandles(theAPI->GetOpenFilesList());
+	ShowHandles(CCluster::GetViewSystem()->GetOpenFilesList());
 }
 
 void CHandlesView::ShowHandles(const QMap<quint64, CHandlePtr>& Handles)
@@ -487,19 +586,19 @@ void CHandlesView::ShowHandles(const QMap<quint64, CHandlePtr>& Handles)
 
 void CHandlesView::UpdateFilter()
 {
-#ifdef WIN32
-    UpdateFilter(m_pShowType->currentText());
-#endif
+	if (m_pShowType)
+		UpdateFilter(m_pShowType->currentText());
 }
 
 void CHandlesView::UpdateFilter(const QString & filter)
 {
-#ifdef WIN32
-	theConf->SetValue("HandleView/ShowType", filter);
-	theConf->SetValue("HandleView/HideUnNamed", m_pHideUnnamed->isChecked());
-	theConf->SetValue("HandleView/HideETW", m_pHideETW->isChecked());
+	if (m_pShowType)
+	{
+		theConf->SetValue("HandleView/ShowType", filter);
+		theConf->SetValue("HandleView/HideUnNamed", m_pHideUnnamed->isChecked());
+		theConf->SetValue("HandleView/HideETW", m_pHideETW->isChecked());
+	}
 	//m_pSortProxy->SetFilter(filter, m_pHideUnnamed->isChecked(), m_pHideETW->isChecked());
-#endif
 }
 
 //void CHandlesView::OnShowDetails()
@@ -507,6 +606,29 @@ void CHandlesView::UpdateFilter(const QString & filter)
 //	theConf->SetValue("HandleView/ShowDetails", m_pShowDetails->isChecked());
 //	m_pHandleDetails->setVisible(m_pShowDetails->isChecked());
 //}
+
+//
+// What a handle points at, on the machine the handle came from.
+//
+// Asked of that machine and not of the global, because a viewer watching two
+// machines would otherwise resolve one's pids against the other's. And guarded,
+// because the machine may be gone: a panel holds its handle by shared pointer,
+// so the object outlives a disconnected system and GetSystem() answers null.
+// Nothing found is the honest answer then, and every caller here already draws
+// "unknown" for it.
+//
+static CProcessPtr ProcessOnItsMachine(const CHandlePtr& pHandle, quint64 Pid)
+{
+	const CSystemPtr pSystem = pHandle.isNull() ? CSystemPtr() : pHandle->GetSystem();
+	return pSystem ? pSystem->GetProcessByID(Pid) : CProcessPtr();
+}
+
+static CThreadPtr ThreadOnItsMachine(const CHandlePtr& pHandle, quint64 Tid)
+{
+	const CSystemPtr pSystem = pHandle.isNull() ? CSystemPtr() : pHandle->GetSystem();
+	return pSystem ? pSystem->GetThreadByID(Tid) : CThreadPtr();
+}
+
 
 void CHandlesView::OnItemSelected(const QModelIndex &current)
 {
@@ -520,27 +642,24 @@ void CHandlesView::OnItemSelected(const QModelIndex &current)
 	// Note: we don't auto refresh this infos
 	pDetails->clear();
 
-#ifdef WIN32
-	CWinHandle* pWinHandle = qobject_cast<CWinHandle*>(pHandle.data());
-
-	QString TypeName = pWinHandle->GetTypeName();
-	QVariantMap HandleInfo = pWinHandle->GetHandleInfo();
+	QString TypeName = pHandle->GetTypeName();
+	QVariantMap HandleInfo = pHandle->GetHandleInfo();
 	
 	QTreeWidgetItem* pBasicInfo = new QTreeWidgetItem(QStringList(tr("Basic information")));
 	pDetails->addTopLevelItem(pBasicInfo);
 
-	QTreeWidgetEx::AddSubItem(pBasicInfo, tr("Name"), pWinHandle->GetFileName()); // pWinHandle->GetOriginalName()
-	//if (!pWinHandle->GetOriginalName().isEmpty())
-	//	QTreeWidgetEx::AddSubItem(pBasicInfo, tr("Original Name"), pWinHandle->GetOriginalName());
-	QTreeWidgetEx::AddSubItem(pBasicInfo, tr("Type"), pWinHandle->GetTypeString());
-	QTreeWidgetEx::AddSubItem(pBasicInfo, tr("Object address"), FormatAddress(pWinHandle->GetObjectAddress()));
+	QTreeWidgetEx::AddSubItem(pBasicInfo, tr("Name"), pHandle->GetFileName()); // pHandle->GetOriginalName()
+	//if (!pHandle->GetOriginalName().isEmpty())
+	//	QTreeWidgetEx::AddSubItem(pBasicInfo, tr("Original Name"), pHandle->GetOriginalName());
+	QTreeWidgetEx::AddSubItem(pBasicInfo, tr("Type"), ::GetHandleTypeString(pHandle));
+	QTreeWidgetEx::AddSubItem(pBasicInfo, tr("Object address"), FormatAddress(pHandle->GetObjectAddress()));
 
 	QTreeWidgetItem* pSecInfo = new QTreeWidgetItem(QStringList(tr("Security information")));
 	pDetails->addTopLevelItem(pSecInfo);
-	QTreeWidgetEx::AddSubItem(pSecInfo, tr("Granted access"), pWinHandle->GetGrantedAccessString());
-	QTreeWidgetEx::AddSubItem(pSecInfo, tr("Granted access (generic)"), pWinHandle->GetGenericAccessString());
-	QTreeWidgetEx::AddSubItem(pSecInfo, tr("Granted access (mask)"), tr("0x%1").arg(pWinHandle->GetGrantedAccess(), 8, 16, QChar('0')));
-	QTreeWidgetEx::AddSubItem(pSecInfo, tr("SDDL"), pWinHandle->GetObjectSecurityDescriptorString());
+	QTreeWidgetEx::AddSubItem(pSecInfo, tr("Granted access"), ::GetGrantedAccessString(pHandle));
+	QTreeWidgetEx::AddSubItem(pSecInfo, tr("Granted access (generic)"), ::GetGenericAccessString(pHandle));
+	QTreeWidgetEx::AddSubItem(pSecInfo, tr("Granted access (mask)"), tr("0x%1").arg(pHandle->GetGrantedAccess(), 8, 16, QChar('0')));
+	QTreeWidgetEx::AddSubItem(pSecInfo, tr("SDDL"), pHandle->GetSecurityDescriptorSddl());
 
 	QTreeWidgetItem* pReferences = new QTreeWidgetItem(QStringList(tr("References")));
 	pDetails->addTopLevelItem(pReferences);
@@ -559,77 +678,20 @@ void CHandlesView::OnItemSelected(const QModelIndex &current)
 	QTreeWidgetItem* pExtendedInfo = new QTreeWidgetItem(QStringList(tr("Extended information")));
 	pDetails->addTopLevelItem(pExtendedInfo);
 
-	if(TypeName == "ALPC Port")
+	//
+	// ALPC port flags, decoded by the backend that knows what they mean.
+	//
+	if (TypeName == "ALPC Port")
 	{
-		QStringList Flags;
-		ULONG remainingFlags = HandleInfo["Flags"].toUInt();
-        if (remainingFlags & ALPC_PORFLG_LPC_MODE)
-        {
-			Flags.append(tr("LPC mode"));
-            ClearFlag(remainingFlags, ALPC_PORFLG_LPC_MODE);
-        }
-        if (remainingFlags & ALPC_PORFLG_ALLOW_IMPERSONATION)
-        {
-            Flags.append(tr("Allow impersonation"));
-            ClearFlag(remainingFlags, ALPC_PORFLG_ALLOW_IMPERSONATION);
-        }
-        if (remainingFlags & ALPC_PORFLG_ALLOW_LPC_REQUESTS)
-        {
-            Flags.append(tr("Allow LPC requests"));
-            ClearFlag(remainingFlags, ALPC_PORFLG_ALLOW_LPC_REQUESTS);
-        }
-        if (remainingFlags & ALPC_PORFLG_WAITABLE_PORT)
-        {
-            Flags.append(tr("Waitable"));
-            ClearFlag(remainingFlags, ALPC_PORFLG_WAITABLE_PORT);
-        }
-        if (remainingFlags & ALPC_PORFLG_ALLOW_DUP_OBJECT)
-        {
-            Flags.append(tr("Allow object duplication"));
-            ClearFlag(remainingFlags, ALPC_PORFLG_ALLOW_DUP_OBJECT);
-        }
-        if (remainingFlags & ALPC_PORFLG_SYSTEM_PROCESS)
-        {
-            Flags.append(tr("System process only"));
-            ClearFlag(remainingFlags, ALPC_PORFLG_SYSTEM_PROCESS);
-        }
-        if (remainingFlags & ALPC_PORFLG_WAKE_POLICY1)
-        {
-            Flags.append(tr("Wake policy (1)"));
-            ClearFlag(remainingFlags, ALPC_PORFLG_WAKE_POLICY1);
-        }
-        if (remainingFlags & ALPC_PORFLG_WAKE_POLICY2)
-        {
-            Flags.append(tr("Wake policy (2)"));
-            ClearFlag(remainingFlags, ALPC_PORFLG_WAKE_POLICY2);
-        }
-        if (remainingFlags & ALPC_PORFLG_WAKE_POLICY3)
-        {
-            Flags.append(tr("Wake policy (3)"));
-            ClearFlag(remainingFlags, ALPC_PORFLG_WAKE_POLICY3);
-        }
-        if (remainingFlags & ALPC_PORFLG_DIRECT_MESSAGE)
-        {
-            Flags.append(tr("No shared section (direct)"));
-            ClearFlag(remainingFlags, ALPC_PORFLG_DIRECT_MESSAGE);
-        }
-        if (remainingFlags & ALPC_PORFLG_ALLOW_MULTIHANDLE_ATTRIBUTE)
-        {
-            Flags.append(tr("Allow multi-handle attributes"));
-            ClearFlag(remainingFlags, ALPC_PORFLG_ALLOW_MULTIHANDLE_ATTRIBUTE);
-        }    
-        if (remainingFlags)
-        {
-			Flags.append(tr("UNKNOWN: %1").arg((quint32)remainingFlags, 8, 16, QChar('0')));
-        }
-
-		QTreeWidgetEx::AddSubItem(pExtendedInfo, tr("Flags"), Flags.join(", "));
+		// The flag word is decoded by the backend that knows what its bits mean.
+		QTreeWidgetEx::AddSubItem(pExtendedInfo, tr("Flags"), ::GetAlpcPortFlagsString(HandleInfo["Flags"].toUInt()));
 		QTreeWidgetEx::AddSubItem(pExtendedInfo, tr("Sequence number"), HandleInfo["SeqNumber"].toString());
 		QTreeWidgetEx::AddSubItem(pExtendedInfo, tr("Port context"), HandleInfo["Context"].toString());
 
-		auto GetProcCon = [HandleInfo](const QString& PidName, const QString& PortName) {
-			CProcessPtr pProcess = theAPI->GetProcessByID(HandleInfo[PidName].toULongLong());
-			QString Name = tr("%1 (%2)").arg(QString(pProcess ? pProcess->GetName() : tr("unknown"))).arg(theGUI->FormatID(HandleInfo[PidName].toULongLong()));
+		const CSystemPtr pSystem = pHandle->GetSystem();
+		auto GetProcCon = [HandleInfo, pSystem](const QString& PidName, const QString& PortName) {
+			CProcessPtr pProcess = pSystem->GetProcessByID(HandleInfo[PidName].toULongLong());
+			QString Name = tr("%1 (%2)").arg(::LocalizeName(pProcess ? pProcess->GetName() : QString())).arg(theGUI->FormatID(HandleInfo[PidName].toULongLong()));
 			QString Port = HandleInfo[PortName].toString();
 			if (Port.isEmpty())
 				return Name;
@@ -643,7 +705,7 @@ void CHandlesView::OnItemSelected(const QModelIndex &current)
 	else if(TypeName == "File")
 	{
 		QTreeWidgetEx::AddSubItem(pExtendedInfo, tr("Is directory"), HandleInfo["IsDir"].toBool() ? tr("True") : tr("False"));
-		QTreeWidgetEx::AddSubItem(pExtendedInfo, tr("File mode"), CWinHandle::GetFileAccessMode(HandleInfo["Mode"].toUInt()));
+		QTreeWidgetEx::AddSubItem(pExtendedInfo, tr("File mode"), ::GetFileAccessModeString(pHandle, HandleInfo["Mode"].toUInt()));
 		QTreeWidgetEx::AddSubItem(pExtendedInfo, tr("File size"), FormatSize(HandleInfo["Size"].toULongLong()));
 
 		QTreeWidgetEx::AddSubItem(pExtendedInfo, tr("Driver Device"), HandleInfo["DrvDevice"].toString());
@@ -651,7 +713,7 @@ void CHandlesView::OnItemSelected(const QModelIndex &current)
 	}
 	else if(TypeName == "Section")
 	{
-		QTreeWidgetEx::AddSubItem(pExtendedInfo, tr("Section type"), CWinHandle::GetSectionType(HandleInfo["Attribs"].toUInt()));
+		QTreeWidgetEx::AddSubItem(pExtendedInfo, tr("Section type"), ::GetSectionTypeString(HandleInfo["Attribs"].toUInt()));
 		QTreeWidgetEx::AddSubItem(pExtendedInfo, tr("Size"), FormatSize(HandleInfo["Size"].toULongLong()));
 		QTreeWidgetEx::AddSubItem(pExtendedInfo, tr("File"), HandleInfo["File"].toString());
 	}
@@ -659,7 +721,7 @@ void CHandlesView::OnItemSelected(const QModelIndex &current)
 	{
 		QTreeWidgetEx::AddSubItem(pExtendedInfo, tr("Count"), HandleInfo["Count"].toString());
 		QTreeWidgetEx::AddSubItem(pExtendedInfo, tr("Abandoned"), HandleInfo["Abandoned"].toBool() ? tr("True") : tr("False"));
-		CThreadPtr pThread = theAPI->GetThreadByID(HandleInfo["TID"].toULongLong());
+		CThreadPtr pThread = ThreadOnItsMachine(pHandle, HandleInfo["TID"].toULongLong());
 		QTreeWidgetEx::AddSubItem(pExtendedInfo, tr("Owner"), tr("%1 (%2): %3").arg(pThread ? pThread->GetName() : tr("unknown")).arg(theGUI->FormatID(HandleInfo["PID"].toULongLong())).arg(theGUI->FormatID(HandleInfo["TID"].toULongLong())));
 	}
 	else if(TypeName == "Process" || TypeName == "Thread")
@@ -667,12 +729,12 @@ void CHandlesView::OnItemSelected(const QModelIndex &current)
 		QString Name;
 		if (TypeName == "Process")
 		{
-			CProcessPtr pProcess = theAPI->GetProcessByID(HandleInfo["PID"].toULongLong());
-			Name = tr("%1 (%2)").arg(QString(pProcess ? pProcess->GetName() : tr("unknown"))).arg(theGUI->FormatID(HandleInfo["PID"].toULongLong()));
+			CProcessPtr pProcess = ProcessOnItsMachine(pHandle, HandleInfo["PID"].toULongLong());
+			Name = tr("%1 (%2)").arg(::LocalizeName(pProcess ? pProcess->GetName() : QString())).arg(theGUI->FormatID(HandleInfo["PID"].toULongLong()));
 		}
 		else
 		{
-			CThreadPtr pThread = theAPI->GetThreadByID(HandleInfo["TID"].toULongLong());
+			CThreadPtr pThread = ThreadOnItsMachine(pHandle, HandleInfo["TID"].toULongLong());
 			Name = tr("%1 (%2): %3").arg(pThread ? pThread->GetName() : tr("unknown")).arg(theGUI->FormatID(HandleInfo["PID"].toULongLong())).arg(theGUI->FormatID(HandleInfo["TID"].toULongLong()));
 		}
 
@@ -690,7 +752,6 @@ void CHandlesView::OnItemSelected(const QModelIndex &current)
 		delete pExtendedInfo;
 
 	pDetails->expandAll();
-#endif
 }
 
 
@@ -703,16 +764,17 @@ void CHandlesView::OnMenu(const QPoint &point)
 	QModelIndexList selectedRows = m_pHandleList->selectedRows();
 
 	m_pClose->setEnabled(!pHandle.isNull());
+	//
+	// Changing a handle's flags needs the kernel driver; without it these are
+	// shown but not offered.
+	//
+	const bool bCanEditHandle = CCluster::GetViewSystem()->HasCapability(CSystemAPI::eCapKernelDriver);
+	m_pProtect->setEnabled(!pHandle.isNull() && bCanEditHandle);
+	m_pProtect->setChecked(!pHandle.isNull() && pHandle->IsProtected());
+	m_pInherit->setEnabled(!pHandle.isNull() && bCanEditHandle);
+	m_pInherit->setChecked(!pHandle.isNull() && pHandle->IsInherited());
 
-#ifdef WIN32
-	QSharedPointer<CWinHandle> pWinHandle = pHandle.staticCast<CWinHandle>();
-
-	m_pProtect->setEnabled(!pHandle.isNull() && KphCommsIsConnected());
-	m_pProtect->setChecked(pWinHandle && pWinHandle->IsProtected());
-	m_pInherit->setEnabled(!pHandle.isNull() && KphCommsIsConnected());
-	m_pInherit->setChecked(pWinHandle && pWinHandle->IsInherited());
-
-	QString Type = pWinHandle ? pWinHandle->GetTypeName() : "";
+	QString Type = !pHandle.isNull() ? pHandle->GetTypeName() : "";
 
 	m_pOpen->setVisible(Type == "Token" || Type == "File" || Type == "Mapped file" || Type == "DLL" || Type == "Mapped image" || Type == "Job" || Type == "Process" || Type == "Thread" || Type == "Section");
 
@@ -723,9 +785,7 @@ void CHandlesView::OnMenu(const QPoint &point)
 
 	m_pTask->menuAction()->setVisible(Type == "Process" || Type == "Thread");
 
-	m_pPermissions->setEnabled(selectedRows.count() == 1);
-#endif
-	
+	m_pPermissions->setEnabled(selectedRows.count() == 1 && CCluster::GetViewSystem()->HasCapability(CSystemAPI::eCapSecurityEditor));
 	CPanelView::OnMenu(point);
 }
 
@@ -743,59 +803,55 @@ void CHandlesView::OnHandleAction()
 	{
 		QModelIndex ModelIndex = m_pSortProxy->mapToSource(Index);
 		CHandlePtr pHandle = m_pHandleModel->GetHandle(ModelIndex);
-#ifdef WIN32
-		QSharedPointer<CWinHandle> pWinHandle = pHandle.staticCast<CWinHandle>();
-#endif
 		if (!pHandle.isNull())
 		{
 			STATUS Status = OK;
 retry:
 			if (sender() == m_pClose)
 				Status = pHandle->Close(Force == 1);
-#ifdef WIN32
 			else if (sender() == m_pProtect)
-				Status = pWinHandle->SetProtected(m_pProtect->isChecked());
+				Status = pHandle->SetProtected(m_pProtect->isChecked());
 			else if (sender() == m_pInherit)
-				Status = pWinHandle->SetInherited(m_pInherit->isChecked());
+				Status = pHandle->SetInherited(m_pInherit->isChecked());
 			else 
 
 			if (sender() == m_pSemaphoreAcquire)
-				Status = pWinHandle->DoHandleAction(CWinHandle::eSemaphoreAcquire);
+				Status = pHandle->DoHandleAction(CHandleInfo::eSemaphoreAcquire);
 			else if (sender() == m_pSemaphoreRelease)
-				Status = pWinHandle->DoHandleAction(CWinHandle::eSemaphoreRelease);
+				Status = pHandle->DoHandleAction(CHandleInfo::eSemaphoreRelease);
 			else 
 
 			if (sender() == m_pEventSet)
-				Status = pWinHandle->DoHandleAction(CWinHandle::eEventSet);
+				Status = pHandle->DoHandleAction(CHandleInfo::eEventSet);
 			else if (sender() == m_pEventReset)
-				Status = pWinHandle->DoHandleAction(CWinHandle::eEventReset);
+				Status = pHandle->DoHandleAction(CHandleInfo::eEventReset);
 			else if (sender() == m_pEventPulse)
-				Status = pWinHandle->DoHandleAction(CWinHandle::eEventPulse);
+				Status = pHandle->DoHandleAction(CHandleInfo::eEventPulse);
 			else
 
 			if (sender() == m_pEventSetLow)
-				Status = pWinHandle->DoHandleAction(CWinHandle::eSetLow);
+				Status = pHandle->DoHandleAction(CHandleInfo::eSetLow);
 			else if (sender() == m_pEventSetHigh)
-				Status = pWinHandle->DoHandleAction(CWinHandle::eSetHigh);
+				Status = pHandle->DoHandleAction(CHandleInfo::eSetHigh);
 			else
 				
 			if (sender() == m_pTimerCancel)
-				Status = pWinHandle->DoHandleAction(CWinHandle::eCancelTimer);
+				Status = pHandle->DoHandleAction(CHandleInfo::eCancelTimer);
 			else 
 
 			if (sender() == m_pTerminate || sender() == m_pSuspend || sender() == m_pResume)
 			{
-				QString TypeName = pWinHandle->GetTypeName();
-				QVariantMap HandleInfo = pWinHandle->GetHandleInfo();
+				QString TypeName = pHandle->GetTypeName();
+				QVariantMap HandleInfo = pHandle->GetHandleInfo();
 
 				QSharedPointer<CAbstractTask> pTask;
 				if (TypeName == "Thread")
-					pTask = theAPI->GetThreadByID(HandleInfo["TID"].toULongLong());
+					pTask = ThreadOnItsMachine(pHandle, HandleInfo["TID"].toULongLong());
 				else if (TypeName == "Process")
-					pTask = theAPI->GetProcessByID(HandleInfo["PID"].toULongLong());
+					pTask = ProcessOnItsMachine(pHandle, HandleInfo["PID"].toULongLong());
 
 				if (!pTask)
-					Status = ERR("Not Found");
+					Status = ERR(TE_Message, QVariantList() << tr("Not found."));
 				else if (sender() == m_pTerminate)
 					Status = pTask->Terminate(Force == 1);
 				else if (sender() == m_pSuspend)
@@ -803,16 +859,13 @@ retry:
 				else if (sender() == m_pResume)
 					Status = pTask->Resume();
 			}
-			
-			
-#endif
 			if (Status.IsError())
 			{
 				if (Status.GetStatus() == ERROR_CONFIRM)
 				{
 					if (Force == -1)
 					{
-						switch (QMessageBox("TaskExplorer", Status.GetText(), QMessageBox::Question, QMessageBox::Yes, QMessageBox::No, QMessageBox::Cancel | QMessageBox::Default | QMessageBox::Escape).exec())
+						switch (QMessageBox("TaskExplorer", CTaskExplorer::FormatError(Status), QMessageBox::Question, QMessageBox::Yes, QMessageBox::No, QMessageBox::Cancel | QMessageBox::Default | QMessageBox::Escape).exec())
 						{
 						case QMessageBox::Yes:
 							Force = 1;
@@ -838,16 +891,12 @@ retry:
 
 void CHandlesView::OnPermissions()
 {
-#ifdef WIN32
 	QModelIndex Index = m_pHandleList->currentIndex();
 	QModelIndex ModelIndex = m_pSortProxy->mapToSource(Index);
 	CHandlePtr pHandle = m_pHandleModel->GetHandle(ModelIndex);
 	if (!pHandle)
 		return;
-
-	QSharedPointer<CWinHandle> pWinHandle = pHandle.staticCast<CWinHandle>();
-	pWinHandle->OpenPermissions();
-#endif
+	CTaskExplorer::ShowSecurity(pHandle->GetSecurityObject(), this);
 }
 
 void CHandlesView::OnDoubleClicked()
@@ -879,41 +928,37 @@ void CHandlesView::OnOpenHandle()
 	if (!pHandle)
 		return;
 
-	QString Type;
-#ifdef WIN32
-	CWinHandle* pWinHandle = qobject_cast<CWinHandle*>(pHandle.data());
-	Type = pWinHandle->GetTypeName();
-#else
-	// unix
-#endif
-
-#ifdef WIN32
+	const QString Type = pHandle->GetTypeName();
 	if (Type == "Token")
 	{
-		CWinToken* pToken = CWinToken::TokenFromHandle(pHandle->GetProcessId(), pHandle->GetHandleId());
+#ifdef WIN32	// this view is in TE_GUI_WIN; phase 4 gives it a portable API
+		CTokenInfoPtr pToken = pHandle->GetToken();
 		if (pToken)
 		{
 			CTokenView* pTokenView = new CTokenView();
 			CTaskInfoWindow* pTaskInfoWindow = new CTaskInfoWindow(pTokenView, tr("Token"));
-			pTokenView->ShowToken(CWinTokenPtr(pToken));
+			pTokenView->ShowToken(pToken);
 			pTaskInfoWindow->show();
 		}
+#endif
 	}
 	else if (Type == "Job")
 	{
-		CWinJob* pJob = CWinJob::JobFromHandle(pHandle->GetProcessId(), pHandle->GetHandleId());
+#ifdef WIN32	// this view is in TE_GUI_WIN; phase 4 gives it a portable API
+		CJobInfoPtr pJob = pHandle->GetJob();
 		if (pJob)
 		{
 			CJobView* pJobView = new CJobView();
 			CTaskInfoWindow* pTaskInfoWindow = new CTaskInfoWindow(pJobView, tr("Job"));
-			pJobView->ShowJob(CWinJobPtr(pJob));
+			pJobView->ShowJob(pJob);
 			pTaskInfoWindow->show();
 		}
+#endif
 	}
 	else if (Type == "Section")
 	{
 		// Read/Write &memory
-		CWinMemIO* pDevice = CWinMemIO::FromHandle(pHandle->GetProcessId(), pHandle->GetHandleId());
+		QIODevice* pDevice = pHandle->OpenDevice();
 		if (!pDevice) {
 			QMessageBox("TaskExplorer", tr("This memory region can not be edited"), QMessageBox::Warning, QMessageBox::Ok, QMessageBox::NoButton, QMessageBox::NoButton).exec();
 			return;
@@ -921,7 +966,7 @@ void CHandlesView::OnOpenHandle()
 
 		CMemoryEditor* pEditor = new CMemoryEditor();
 		if(CProcessPtr pProcess = pHandle->GetProcess().staticCast<CProcessInfo>())
-			pEditor->setWindowTitle(tr("Memory Editor: %1 (%2)").arg(pProcess->GetName()).arg(pProcess->GetParentId()));
+			pEditor->setWindowTitle(tr("Memory Editor: %1 (%2)").arg(::LocalizeName(pProcess->GetName())).arg(pProcess->GetParentId()));
 		pEditor->setDevice(pDevice);
 		pEditor->show();
 	}
@@ -930,32 +975,23 @@ void CHandlesView::OnOpenHandle()
 		//if(Type == "File") // file properties
 		// PhShellProperties(hWnd, Info->BestObjectName->Buffer);
            
-		PPH_STRING phFileName = CastQString(pHandle->GetFileName());
-		PhShellExecuteUserString(NULL, (PWSTR)L"FileBrowseExecutable", phFileName->Buffer, FALSE, (PWSTR)L"Make sure the Explorer executable file is present." );
-		PhDereferenceObject(phFileName);
+		::ExploreFile(pHandle->GetSystem().data(), pHandle->GetFileName());
 	}
 	else if (Type == "Key")
 	{
-		PPH_STRING phRegKey = CastQString(pHandle->GetFileName());
-		PhShellOpenKey2(NULL, phRegKey);
-		PhDereferenceObject(phRegKey);
+		::OpenRegistryKey(pHandle->GetSystem().data(), pHandle->GetFileName());
 	}
 	else
-#endif
 	if (Type == "Process" || Type == "Thread")
 	{
-		CProcessPtr pProcess = theAPI->GetProcessByID(pHandle->GetProcessId());
+		CProcessPtr pProcess = ProcessOnItsMachine(pHandle, pHandle->GetProcessId());
 
 		quint64 ThreadId = 0;
-#ifdef WIN32
 		if (Type == "Thread")
 		{
-			QVariantMap HandleInfo = pWinHandle->GetHandleInfo();
+			QVariantMap HandleInfo = pHandle->GetHandleInfo();
 			ThreadId = HandleInfo["TID"].toULongLong();
 		}
-#else
-		// unix
-#endif
 
 		CTaskInfoWindow* pTaskInfoWindow = new CTaskInfoWindow(QList<CProcessPtr>() << pProcess, ThreadId);
 		pTaskInfoWindow->show();

@@ -56,6 +56,21 @@
 #include <QSharedPointer>
 #include <QFutureWatcher>
 #include <QHostInfo>
+#include <QSortFilterProxyModel>
+#include <QIdentityProxyModel>
+#include <QRandomGenerator>
+#include <QElapsedTimer>
+
+//
+// ---- QtGui and QtWidgets ----
+//
+// Behind the same switch as everything else that draws. CoreHelpers is
+// compiled without it and so cannot reach a widget header even by accident;
+// GuiHelpers defines it. Both use this file as their precompiled header, and
+// each gets its own PCH built from it.
+//
+#ifdef TE_WITH_WIDGETS
+
 #include <QApplication>
 #include <QClipboard>
 
@@ -77,7 +92,6 @@
 #include <QToolBar>
 #include <QScrollBar>
 #include <QStyleFactory>
-#include <QSortFilterProxyModel>
 #include <QStackedLayout>
 #include <QTreeWidget>
 #include <QFormLayout>
@@ -103,9 +117,21 @@
 #include <QColorDialog>
 #include <QToolButton>
 #include <QScreen>
-#include <QIdentityProxyModel>
-#include <QRandomGenerator>
-#include <QElapsedTimer>
+
+#endif // TE_WITH_WIDGETS
+
+//
+// The serialisation moved here from TaskCore, and CBuffer/CVariant carry
+// QByteArray and QVariant conveniences behind USING_QT. TaskExplorer/stdafx.h
+// defines it; this one has to as well, or those members are declared to
+// consumers but never emitted into CoreHelpers.dll - which on Windows is two
+// unresolved externals and on Linux is silently nothing, since inline members
+// there are simply emitted wherever they are used.
+//
+// TaskHelper deliberately does not define it: its own Qt-free stdafx.h comes
+// first on its include path, and CBuffer without Qt is the whole point there.
+//
+#define USING_QT
 
 // other includes
 

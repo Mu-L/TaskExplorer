@@ -87,7 +87,7 @@ void CSearchWindow::OnFind()
 
 	QObject::connect(m_pFinder, SIGNAL(Progress(float, const QString&)), this, SLOT(OnProgress(float, const QString&)));
 	QObject::connect(m_pFinder, SIGNAL(Results(QList<QSharedPointer<QObject>>)), this, SLOT(OnResults(QList<QSharedPointer<QObject>>)));
-	QObject::connect(m_pFinder, SIGNAL(Error(const QString&, int)), this, SLOT(OnError(const QString&, int)));
+	QObject::connect(m_pFinder, SIGNAL(Error(const STATUS&)), this, SLOT(OnError(const STATUS&)));
 	QObject::connect(m_pFinder, SIGNAL(Finished()), this, SLOT(OnFinished()));
 
 	QObject::connect(m_pFinder, SIGNAL(Finished()), m_pFinder, SLOT(deleteLater()));
@@ -123,10 +123,9 @@ bool CSearchWindow::CheckCountAndAbbort(int Count)
 	return false;
 }
 
-void CSearchWindow::OnError(const QString& Error, int Code)
+void CSearchWindow::OnError(const STATUS& Error)
 {
-	STATUS Status = ERR(Error, Code);
-	CTaskExplorer::CheckErrors(QList<STATUS>() << Status);
+	CTaskExplorer::CheckErrors(QList<STATUS>() << Error);
 }
 
 void CSearchWindow::OnFinished()

@@ -44,6 +44,7 @@ void CWinHandleFinder::run()
 				continue;
 
 			QSharedPointer<CWinHandle> pWinHandle = QSharedPointer<CWinHandle>(new CWinHandle());
+			pWinHandle->SetSystem(m_pSystem);
 
 			HANDLE &ProcessHandle = ProcessHandles[handle->UniqueProcessId];
 			if (ProcessHandle == NULL)
@@ -68,7 +69,7 @@ void CWinHandleFinder::run()
 			List.append(pWinHandle);
 
 			if (pWinHandle->m_pProcess.isNull())
-				pWinHandle->m_pProcess = theAPI->GetProcessByID((quint64)handle->UniqueProcessId, true);
+				pWinHandle->m_pProcess = m_pSystem->GetProcessByID((quint64)handle->UniqueProcessId, true);
 
 			// emit results every second
 			quint64 NewStamp = GetTime() * 1000;

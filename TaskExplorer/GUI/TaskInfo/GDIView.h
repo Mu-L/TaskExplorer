@@ -45,7 +45,7 @@ protected:
 
 	QList<CProcessPtr>			m_Processes;
 
-	QMap<quint64, CWinGDIPtr>	m_GDIList;
+	QMap<quint64, CGdiPtr>	m_GDIList;
 
 private:
 

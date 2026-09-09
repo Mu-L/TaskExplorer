@@ -1,10 +1,8 @@
 #include "stdafx.h"
 #include "../TaskExplorer.h"
+#include "../TaskStrings.h"
 #include "MemoryView.h"
 #include "../../../MiscHelpers/Common/Common.h"
-#ifdef WIN32
-#include "../../API/Windows/WinMemory.h"
-#endif
 #include "../MemoryEditor.h"
 #include "../../../MiscHelpers/Common/Finder.h"
 #include "../Search/MemorySearch.h"
@@ -205,7 +203,7 @@ void CMemoryView::OnDoubleClicked()
 	}
 
 	CMemoryEditor* pEditor = new CMemoryEditor();
-	pEditor->setWindowTitle(tr("Memory Editor: %1 (%2) 0x%3").arg(m_pCurProcess->GetName()).arg(m_pCurProcess->GetProcessId()).arg(pMemory->GetBaseAddress(),0,16));
+	pEditor->setWindowTitle(tr("Memory Editor: %1 (%2) 0x%3").arg(::LocalizeName(m_pCurProcess->GetName())).arg(m_pCurProcess->GetProcessId()).arg(pMemory->GetBaseAddress(),0,16));
 	pEditor->setDevice(pDevice, pMemory->GetBaseAddress());
 	pEditor->show();
 }

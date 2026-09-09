@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../../../MiscHelpers/Common/FlexError.h"
+#include "../../../../MiscHelpers/Common/Status.h"
 
 class CWinDbgMonitor : public QObject
 {

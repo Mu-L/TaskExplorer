@@ -1,8 +1,5 @@
 #include "stdafx.h"
 #include "WinSvcShutdown.h"
-#ifdef WIN32
-#include "../../API/Windows/ProcessHacker/PhSvc.h"
-#endif
 
 
 CWinSvcShutdown::CWinSvcShutdown(QWidget *parent)

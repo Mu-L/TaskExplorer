@@ -4,9 +4,6 @@
 #include "../../../../MiscHelpers/Common/Common.h"
 #include "../../../../MiscHelpers/Common/SortFilterProxyModel.h"
 #include "../../../../MiscHelpers/Common/Finder.h"
-#ifdef WIN32
-#include "../../../API/Windows/WindowsAPI.h"		
-#endif
 
 
 CNtObjectView::CNtObjectView(QWidget *parent)

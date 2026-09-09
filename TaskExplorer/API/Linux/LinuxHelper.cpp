@@ -22,7 +22,12 @@
 #include <fcntl.h>
 #include <sys/wait.h>
 
-STATUS ErrnoToStatus(const QString& Context, int Error)
+//
+// What went wrong travels as a code saying what was attempted, plus the two
+// things only this machine can supply: the system's own wording for the errno,
+// and the number itself.
+//
+STATUS ErrnoToStatus(ETaskMsgCode Context, int Error)
 {
 	if (Error == 0)
 		return OK;
@@ -34,63 +39,12 @@ STATUS ErrnoToStatus(const QString& Context, int Error)
 	if (!pMessage)
 		pMessage = Buffer;
 
-	return ERR(QString("%1: %2 (errno %3)").arg(Context).arg(QString::fromLocal8Bit(pMessage)).arg(Error), Error);
+	return ERR(Context, QVariantList() << QString::fromLocal8Bit(pMessage) << Error, Error);
 }
 
-STATUS ErrnoToStatus(const QString& Context)
+STATUS ErrnoToStatus(ETaskMsgCode Context)
 {
 	return ErrnoToStatus(Context, errno);
-}
-
-QString LinuxStateToString(char State)
-{
-	switch (State)
-	{
-		case 'R': return QObject::tr("Running");
-		case 'S': return QObject::tr("Sleeping");
-		case 'D': return QObject::tr("Disk Sleep");
-		case 'Z': return QObject::tr("Zombie");
-		case 'T': return QObject::tr("Stopped");
-		case 't': return QObject::tr("Tracing Stop");
-		case 'X':
-		case 'x': return QObject::tr("Dead");
-		case 'K': return QObject::tr("Wakekill");
-		case 'W': return QObject::tr("Waking");
-		case 'P': return QObject::tr("Parked");
-		case 'I': return QObject::tr("Idle");
-	}
-	return QObject::tr("Unknown");
-}
-
-QString LinuxSchedPolicyToString(int Policy)
-{
-	switch (Policy)
-	{
-		case SCHED_OTHER:	return QObject::tr("Normal");
-		case SCHED_FIFO:	return QObject::tr("FIFO");
-		case SCHED_RR:		return QObject::tr("Round Robin");
-		case SCHED_BATCH:	return QObject::tr("Batch");
-		case SCHED_IDLE:	return QObject::tr("Idle");
-#ifdef SCHED_DEADLINE
-		case SCHED_DEADLINE:	return QObject::tr("Deadline");
-#endif
-	}
-	return QObject::tr("Unknown");
-}
-
-QString LinuxNiceToPriorityString(int Nice)
-{
-	//
-	// The shared GUI expects Windows-style priority class names. Bucketing the
-	// nice range onto them keeps the process list readable without inventing a
-	// Linux-specific column, at the cost of being approximate by nature.
-	//
-	if (Nice <= -15)	return QObject::tr("Realtime");
-	if (Nice <= -5)		return QObject::tr("High");
-	if (Nice < 0)		return QObject::tr("Above Normal");
-	if (Nice == 0)		return QObject::tr("Normal");
-	if (Nice <= 9)		return QObject::tr("Below Normal");
-	return QObject::tr("Idle");
 }
 
 //
@@ -275,14 +229,14 @@ QString LinuxHelperReadProcLink(quint64 Pid, const QString& Leaf, bool bMayStart
 	return LinuxHelperCall("ReadProcLink", Parameters, 10000, bMayStart).toString();
 }
 
-QList<QMap<QString, QVariant>> LinuxHelperListFds(quint64 Pid)
+QList<QMap<QString, QVariant>> LinuxHelperListFds(quint64 Pid, bool bMayStart)
 {
 	QList<QMap<QString, QVariant>> Result;
 
 	QVariantMap Parameters;
 	Parameters["ProcessId"] = Pid;
 
-	foreach(const QVariant& Entry, LinuxHelperCall("ListProcFds", Parameters).toList())
+	foreach(const QVariant& Entry, LinuxHelperCall("ListProcFds", Parameters, 10000, bMayStart).toList())
 		Result.append(Entry.toMap());
 
 	return Result;
@@ -500,7 +454,7 @@ STATUS LinuxRunInTerminal(const QString& Program, const QStringList& Arguments)
 		Tried.append(Terminals[i].Program);
 	}
 
-	return ERR(QObject::tr("No terminal emulator could be started. Looked for: %1.").arg(Tried.join(", ")));
+	return ERR(TE_NoTerminalEmulator, QVariantList() << Tried.join(", "));
 }
 
 QString LinuxResolveAddress(quint64 Pid, quint64 Address, quint64* pOffset, QString* pModulePath)
@@ -828,11 +782,9 @@ STATUS LinuxRunElevated(const QString& Program, const QStringList& Arguments, qi
 	{
 		if (SessionType == "wayland")
 		{
-			return ERR(QObject::tr("Cannot restart elevated under a Wayland session: a compositor does not accept "
-			                       "connections from a process running as another user. Run TaskExplorer from a "
-			                       "terminal with 'sudo' instead."));
+			return ERR(TE_RestartElevatedWayland);
 		}
-		return ERR(QObject::tr("Cannot restart elevated: no X display is available."));
+		return ERR(TE_RestartElevatedNoDisplay);
 	}
 
 	//
@@ -960,26 +912,18 @@ STATUS LinuxRunElevated(const QString& Program, const QStringList& Arguments, qi
 	}
 
 	if (!Tried.isEmpty())
-		return ERR(QObject::tr("Cannot restart elevated: %1 could not be started.").arg(Tried.join(", ")));
+		return ERR(TE_RestartElevatedStarted, QVariantList() << Tried.join(", "));
 
-	return ERR(QObject::tr("Cannot restart elevated: no graphical privilege escalation helper was found. "
-	                       "Install polkit (for pkexec), or run TaskExplorer from a terminal with 'sudo'."));
+	return ERR(TE_RestartElevatedNoGraphical);
 }
 
-QString LinuxIoPrioToString(int IoPrio)
+//
+// The wording for a native status - see CTaskStatus. On Linux these are errno
+// values, so strerror is the whole answer.
+//
+QString FormatNativeStatus(long Status)
 {
-	if (IoPrio < 0)
-		return QObject::tr("Unknown");
-
-	const int Class = IoPrio >> IOPRIO_CLASS_SHIFT;
-	const int Level = IoPrio & IOPRIO_PRIO_MASK;
-
-	switch (Class)
-	{
-		case 0: return QObject::tr("None");
-		case 1: return QObject::tr("Realtime (%1)").arg(Level);
-		case 2: return QObject::tr("Best Effort (%1)").arg(Level);
-		case 3: return QObject::tr("Idle");
-	}
-	return QObject::tr("Unknown");
+	if (Status == 0)
+		return QString();
+	return QString::fromLocal8Bit(strerror((int)Status));
 }

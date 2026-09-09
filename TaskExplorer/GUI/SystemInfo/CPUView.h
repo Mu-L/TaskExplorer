@@ -4,7 +4,7 @@
 #include "../../../MiscHelpers/Common/PanelView.h"
 #include "../../../MiscHelpers/Common/TreeWidgetEx.h"
 #include "../../../MiscHelpers/Common/SmartGridWidget.h"
-#include "../../Common/IncrementalPlot.h"
+#include "../../../MiscHelpers/Common/IncrementalPlot.h"
 
 class CCPUView : public QWidget //CPanelView
 {
@@ -18,6 +18,13 @@ public slots:
 	void					UpdateGraphs();
 	void					ReConfigurePlots();
 
+	//
+	// Throw the plotted history away. The points belong to whichever machine
+	// was being shown when they were taken, so they cannot be carried over to
+	// the next one.
+	//
+	void					ResetPlots();
+
 private slots:
 	void					OnMultiPlot(int State);
 protected:
@@ -26,6 +33,15 @@ protected:
 	//virtual QAbstractItemModel* GetModel()	{ return m_pStatsList->model(); }
 
 private:
+	//
+	// One plot per CPU, so the grid has to be rebuilt when the machine being
+	// shown has a different number of them. Cheap to call - it returns at once
+	// unless the count actually changed.
+	//
+	void					BuildCpuPlots();
+
+	int						m_CpuCount;
+
 	int						m_PlotLimit;
 
 	QGridLayout*			m_pMainLayout;

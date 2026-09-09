@@ -21,13 +21,13 @@
     <ClCompile Include="Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\TaskExplorer\Common\Buffer.cpp">
+    <ClCompile Include="..\MiscHelpers\Common\Buffer.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="..\TaskExplorer\Common\Strings.cpp">
+    <ClCompile Include="..\MiscHelpers\Common\Strings.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="..\TaskExplorer\Common\Variant.cpp">
+    <ClCompile Include="..\MiscHelpers\Common\Variant.cpp">
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="stdafx.cpp">
@@ -35,22 +35,22 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\TaskExplorer\Common\Buffer.h">
+    <ClInclude Include="..\MiscHelpers\Common\Buffer.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="..\TaskExplorer\Common\Exception.h">
+    <ClInclude Include="..\MiscHelpers\Common\Exception.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="..\TaskExplorer\Common\Strings.h">
+    <ClInclude Include="..\MiscHelpers\Common\Strings.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="..\TaskExplorer\Common\Types.h">
+    <ClInclude Include="..\MiscHelpers\Common\Types.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="..\TaskExplorer\Common\Variant.h">
+    <ClInclude Include="..\MiscHelpers\Common\Variant.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="..\TaskExplorer\Common\VariantDefs.h">
+    <ClInclude Include="..\MiscHelpers\Common\VariantDefs.h">
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="stdafx.h">

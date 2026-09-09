@@ -38,7 +38,11 @@ protected:
 	virtual QTreeView*		GetView()	{ return m_pList->GetView(); }
 	virtual QAbstractItemModel* GetModel() { return nullptr; }
 
-	QSharedPointer<CLinuxProcess>	m_pCurProcess;
+	//
+	// CProcessPtr, not a backend pointer: the process on the other end may be a
+	// remote one, and this view has no business knowing which.
+	//
+	CProcessPtr				m_pCurProcess;
 
 private:
 	// Adds or updates one row, keyed by name so the tree is rebuilt in place
@@ -46,7 +50,7 @@ private:
 	void					SetValue(const QString& Group, const QString& Name, const QString& Value);
 	void					PruneStale();
 
-	QGridLayout*			m_pMainLayout;
+	QGridLayout*			m_pHeaderLayout;
 
 	QLabel*					m_pPathLabel;
 	QLineEdit*				m_pPath;

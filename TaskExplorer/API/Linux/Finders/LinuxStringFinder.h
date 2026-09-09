@@ -1,6 +1,6 @@
 #pragma once
 #include "../../Finders/AbstractFinder.h"
-#include "../../../../MiscHelpers/Common/FlexError.h"
+#include "../../../../MiscHelpers/Common/Status.h"
 
 //
 // Scans process memory for printable strings matching RegExp.

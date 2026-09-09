@@ -1,10 +1,8 @@
 #include "stdafx.h"
 #include "../../TaskExplorer.h"
 #include "DriversView.h"
+#include "../../../API/Cluster.h"
 #include "../../../../MiscHelpers/Common/Common.h"
-#ifdef WIN32
-#include "../../../API/Windows/WinDriver.h"		
-#endif
 #include "../../../../MiscHelpers/Common/SortFilterProxyModel.h"
 #include "../../../../MiscHelpers/Common/Finder.h"
 
@@ -55,7 +53,15 @@ CDriversView::CDriversView(QWidget *parent)
 	//m_pMenu = new QMenu();
 	AddPanelItemsToMenu();
 
-	connect(theAPI, SIGNAL(DriverListUpdated(QSet<QString>, QSet<QString>, QSet<QString>)), this, SLOT(OnDriverListUpdated(QSet<QString>, QSet<QString>, QSet<QString>)));
+	//
+	// Through the link rather than straight at theSystem, which is this machine
+	// and not necessarily the one being looked at. The other kernel tabs may
+	// only ever show the local machine because they reach into Windows kernel
+	// tables directly, but this list is one both collectors fill and the wire
+	// carries, so it follows the selection like the rest of the panel.
+	//
+	new CViewSystemLink(this, SIGNAL(DriverListUpdated(QSet<QString>, QSet<QString>, QSet<QString>)),
+		SLOT(OnDriverListUpdated(QSet<QString>, QSet<QString>, QSet<QString>)));
 }
 
 
@@ -69,10 +75,26 @@ void CDriversView::OnResetColumns()
 	for (int i = 0; i < m_pDriverModel->columnCount(); i++)
 		m_pDriverList->SetColumnHidden(i, true);
 
+	//
+	// The same list either way, but the two kinds of machine describe their
+	// kernel modules differently: Windows has a signed binary with a version
+	// resource, Linux has a refcount and the modules holding it. Asked of the
+	// machine being looked at, not the one doing the looking.
+	//
+	CSystemPtr pSystem = CCluster::GetViewSystem();
+	const bool bWindows = pSystem.isNull()
+		|| pSystem->GetOsType() == CSystemAPI::eOsWindows;
+
 	m_pDriverList->SetColumnHidden(CDriverModel::eDriver, false);
-#ifdef WIN32
-	m_pDriverList->SetColumnHidden(CDriverModel::eDescription, false);
-#endif
+	if (bWindows)
+		m_pDriverList->SetColumnHidden(CDriverModel::eDescription, false);
+	else
+	{
+		m_pDriverList->SetColumnHidden(CDriverModel::eImageSize, false);
+		m_pDriverList->SetColumnHidden(CDriverModel::eRefCount, false);
+		m_pDriverList->SetColumnHidden(CDriverModel::eUsedBy, false);
+		m_pDriverList->SetColumnHidden(CDriverModel::eState, false);
+	}
 	m_pDriverList->SetColumnHidden(CDriverModel::eBinaryPath, false);
 }
 
@@ -83,12 +105,20 @@ void CDriversView::OnColumnsChanged()
 
 void CDriversView::Refresh()
 {
-	QTimer::singleShot(0, theAPI, SLOT(UpdateDriverList()));
+	CSystemPtr pSystem = CCluster::GetViewSystem();
+	if (pSystem.isNull())
+		return;
+
+	QTimer::singleShot(0, pSystem.data(), SLOT(UpdateDriverList()));
 }
 
 void CDriversView::OnDriverListUpdated(QSet<QString> Added, QSet<QString> Changed, QSet<QString> Removed)
 {
-	m_DriverList = theAPI->GetDriverList();
-	
+	CSystemPtr pSystem = CCluster::GetViewSystem();
+	if (pSystem.isNull())
+		return;
+
+	m_DriverList = pSystem->GetDriverList();
+
 	m_pDriverModel->Sync(m_DriverList);
 }

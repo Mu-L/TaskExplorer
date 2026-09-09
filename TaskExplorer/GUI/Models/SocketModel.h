@@ -30,9 +30,7 @@ public:
 		eLocalPort,
 		eRemoteAddress,
 		eRemotePort,
-#ifdef WIN32
 		eOwnerService,
-#endif
 		eTimeStamp,
 
 		eReceives,
@@ -48,9 +46,7 @@ public:
 		eReceiveRate,
 		eSendRate,
 		//eTotalRate,
-#ifdef WIN32
 		eFirewallStatus,
-#endif
 		//eLocalHostname,
 		eRemoteHostname,
 		eCount

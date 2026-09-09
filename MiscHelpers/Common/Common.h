@@ -1,47 +1,49 @@
 #pragma once
 
-#include "../mischelpers_global.h"
+#include "../corehelpers_global.h"
 
 // The vswprintf_l shim lives in a Qt-free header so that STL-only code (and
 // TaskHelper) can use it too.
 #include "Compat.h"
 
-MISCHELPERS_EXPORT time_t GetTime();
+COREHELPERS_EXPORT time_t GetTime();
 // Was __time64_t, which is an MSVC extension. QDateTime::toMSecsSinceEpoch()
 // returns qint64 and __time64_t is a 64-bit signed integer, so this is the same
 // type on Windows and portable everywhere else.
-MISCHELPERS_EXPORT qint64 GetTimeMs();
-MISCHELPERS_EXPORT quint64 GetCurTick();
+COREHELPERS_EXPORT qint64 GetTimeMs();
+COREHELPERS_EXPORT quint64 GetCurTick();
 
 
-MISCHELPERS_EXPORT quint64 GetRand64();
-MISCHELPERS_EXPORT QString GetRand64Str(bool forUrl = true);
+COREHELPERS_EXPORT quint64 GetRand64();
+COREHELPERS_EXPORT QString GetRand64Str(bool forUrl = true);
 
-MISCHELPERS_EXPORT int	GetRandomInt(int iMin, int iMax);
+COREHELPERS_EXPORT int	GetRandomInt(int iMin, int iMax);
 
-MISCHELPERS_EXPORT typedef QPair<QString,QString> StrPair;
-MISCHELPERS_EXPORT StrPair Split2(const QString& String, QString Separator = "=", bool Back = false);
-MISCHELPERS_EXPORT QStringList SplitStr(const QString& String, QString Separator);
+COREHELPERS_EXPORT typedef QPair<QString,QString> StrPair;
+COREHELPERS_EXPORT StrPair Split2(const QString& String, QString Separator = "=", bool Back = false);
+COREHELPERS_EXPORT QStringList SplitStr(const QString& String, QString Separator);
 
-MISCHELPERS_EXPORT bool PathStartsWith(const QString& Path, const QString& Start);
+COREHELPERS_EXPORT bool PathStartsWith(const QString& Path, const QString& Start);
 
-typedef MISCHELPERS_EXPORT QMultiMap<QString,QString> TArguments;
+typedef COREHELPERS_EXPORT QMultiMap<QString,QString> TArguments;
 // The separators were spelled L';' / L'=' - wchar_t, which QChar no longer
 // converts from implicitly (and which is 32-bit on Linux). u'' gives char16_t,
 // the type QChar actually holds.
-TArguments MISCHELPERS_EXPORT GetArguments(const QString& Arguments, QChar Separator = u';', QChar Assigner = u'=', QString* First = NULL, bool bLowerKeys = false, bool bReadEsc = false);
+TArguments COREHELPERS_EXPORT GetArguments(const QString& Arguments, QChar Separator = u';', QChar Assigner = u'=', QString* First = NULL, bool bLowerKeys = false, bool bReadEsc = false);
 
-MISCHELPERS_EXPORT QString UnEscape(QString Text);
+COREHELPERS_EXPORT QString UnEscape(QString Text);
 
-MISCHELPERS_EXPORT QString FormatSize(quint64 Size, int Precision = 2);
+COREHELPERS_EXPORT QString FormatSize(quint64 Size, int Precision = 2);
 __inline QString FormatSizeEx(quint64 Size, bool bEx) { return bEx && (Size == 0) ? QString() : FormatSize(Size); }
-MISCHELPERS_EXPORT QString FormatRate(quint64 Size, int Precision = 2);
+COREHELPERS_EXPORT QString FormatRate(quint64 Size, int Precision = 2);
 __inline QString FormatRateEx(quint64 Size, bool bEx) { return bEx && (Size == 0) ? QString() : FormatRate(Size); }
-MISCHELPERS_EXPORT QString FormatUnit(quint64 Size, int Precision = 0);
-MISCHELPERS_EXPORT QString	FormatTime(quint64 Time, bool ms = false);
-MISCHELPERS_EXPORT QString	FormatNumber(quint64 Number);
+COREHELPERS_EXPORT QString FormatUnit(quint64 Size, int Precision = 0);
+COREHELPERS_EXPORT QString	FormatTime(quint64 Time, bool ms = false);
+COREHELPERS_EXPORT QString	FormatNumber(quint64 Number);
 __inline QString FormatNumberEx(quint64 Number, bool bEx) { return bEx && (Number == 0) ? QString() : FormatNumber(Number); }
-MISCHELPERS_EXPORT QString	FormatAddress(quint64 Address, int length = 16);
+COREHELPERS_EXPORT QString	FormatAddress(quint64 Address, int length = 16);
+// a process or thread id, shown decimal and hex
+COREHELPERS_EXPORT QString	FormatID(quint64 ID);
 
 
 inline bool operator < (const QHostAddress &key1, const QHostAddress &key2)
@@ -91,37 +93,17 @@ private:
 	T*	m_Val;
 };
 
-MISCHELPERS_EXPORT bool ReadFromDevice(QIODevice* dev, char* data, int len, int timeout = 5000);
+COREHELPERS_EXPORT bool ReadFromDevice(QIODevice* dev, char* data, int len, int timeout = 5000);
 
-typedef struct {
-    double r;       // a fraction between 0 and 1
-    double g;       // a fraction between 0 and 1
-    double b;       // a fraction between 0 and 1
-} my_rgb;
-
-typedef struct {
-    double h;       // angle in degrees
-    double s;       // a fraction between 0 and 1
-    double v;       // a fraction between 0 and 1
-} my_hsv;
-
-my_hsv MISCHELPERS_EXPORT rgb2hsv(my_rgb in);
-my_rgb MISCHELPERS_EXPORT hsv2rgb(my_hsv in);
-
-QRgb MISCHELPERS_EXPORT change_hsv_c(QRgb rgb, float fHue, float fSat, float fVal);
-MISCHELPERS_EXPORT void GrayScale (QImage& Image);
-
-MISCHELPERS_EXPORT QIcon MakeNormalAndGrayIcon(QIcon Icon);
-MISCHELPERS_EXPORT QIcon MakeActionIcon(const QString& IconFile);
-MISCHELPERS_EXPORT QAction* MakeAction(QToolBar* pParent, const QString& IconFile, const QString& Text = "");
-MISCHELPERS_EXPORT QMenu* MakeMenu(QMenu* pParent, const QString& Text, const QString& IconFile = "");
-MISCHELPERS_EXPORT QAction* MakeAction(QMenu* pParent, const QString& Text, const QString& IconFile = "");
-MISCHELPERS_EXPORT QAction* MakeAction(QActionGroup* pGroup, QMenu* pParent, const QString& Text, const QVariant& Data);
-MISCHELPERS_EXPORT void SetPaleteTexture(QPalette& palette, QPalette::ColorRole role, const QImage& image);
-MISCHELPERS_EXPORT QAction* MakeActionCheck(QMenu* pParent, const QString& Text, const QVariant& Data, bool bTriState);
-
-MISCHELPERS_EXPORT void SafeShow(QWidget* pWidget);
-MISCHELPERS_EXPORT void SetFocus(QWidget* pWidget);
+//
+// The widget builders and the colour helpers moved to GuiHelpers. The guard
+// stays so that every `#include "Common.h"` in the front end still reaches
+// them, and the collector - which does not define TE_WITH_WIDGETS - still
+// cannot see a QtGui declaration.
+//
+#ifdef TE_WITH_WIDGETS
+#include "CommonGui.h"
+#endif
 
 template <typename T>
 QSet<T> ListToSet(const QList<T>& qList) { return QSet<T>(qList.begin(), qList.end()); }
@@ -130,10 +112,10 @@ template <typename T>
 QList<T> SetToList(const QSet<T>& qSet) { return QList<T>(qSet.begin(), qSet.end()); }
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-bool MISCHELPERS_EXPORT operator < (const QVariant& l, const QVariant& r);
+bool COREHELPERS_EXPORT operator < (const QVariant& l, const QVariant& r);
 #endif
 
 
 #ifdef WIN32
-MISCHELPERS_EXPORT bool InitConsole(bool bCreateIfNeeded = true);
+COREHELPERS_EXPORT bool InitConsole(bool bCreateIfNeeded = true);
 #endif

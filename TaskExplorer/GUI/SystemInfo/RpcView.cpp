@@ -2,7 +2,7 @@
 #include "../TaskExplorer.h"
 #include "RpcView.h"
 #include "../../../MiscHelpers/Common/Common.h"
-#include "../../API/Windows/WindowsAPI.h"		
+#include "../../API/Cluster.h"
 #include "../../../MiscHelpers/Common/SortFilterProxyModel.h"
 #include "../../../MiscHelpers/Common/Finder.h"
 
@@ -53,7 +53,7 @@ CRpcView::CRpcView(QWidget *parent)
 	//m_pMenu = new QMenu();
 	AddPanelItemsToMenu();
 
-	connect(theAPI, SIGNAL(RpcListUpdated(QSet<QString>, QSet<QString>, QSet<QString>)), this, SLOT(OnRpcListUpdated(QSet<QString>, QSet<QString>, QSet<QString>)));
+	connect(theSystem.data(), SIGNAL(RpcListUpdated(QSet<QString>, QSet<QString>, QSet<QString>)), this, SLOT(OnRpcListUpdated(QSet<QString>, QSet<QString>, QSet<QString>)));
 }
 
 
@@ -75,12 +75,12 @@ void CRpcView::OnColumnsChanged()
 
 void CRpcView::Refresh()
 {
-	QTimer::singleShot(0, theAPI, SLOT(UpdateRpcList()));
+	QTimer::singleShot(0, theSystem.data(), SLOT(UpdateRpcList()));
 }
 
 void CRpcView::OnRpcListUpdated(QSet<QString> Added, QSet<QString> Changed, QSet<QString> Removed)
 {
-	m_RpcList = ((CWindowsAPI*)theAPI)->GetRpcTableList();
+	m_RpcList = CCluster::GetViewSystem()->GetRpcTableList();
 	
 	m_pRpcModel->Sync(m_RpcList);
 }

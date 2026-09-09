@@ -1,9 +1,11 @@
 #pragma once
 
+#include "../../taskcore_global.h"
+
 #include "../../../MiscHelpers/Common/Common.h"
 #include "../ProcessInfo.h"
 
-class CGpuMonitor : public QObject
+class TASKCORE_EXPORT CGpuMonitor : public QObject
 {
 	Q_OBJECT
 
@@ -34,14 +36,43 @@ public:
 		quint64	SharedUsage;
 	};
 
+	//
+	// What a GPU engine is for. A driver that reports no metadata leaves the
+	// type unknown, and such a node is named by its index alone.
+	//
+	enum EEngineType
+	{
+		eEngineOther			= 0,	// DXGK_ENGINE_TYPE_OTHER: the driver named it itself
+		eEngine3D				= 1,
+		eEngineVideoDecode		= 2,
+		eEngineVideoEncode		= 3,
+		eEngineVideoProcessing	= 4,
+		eEngineSceneAssembly	= 5,
+		eEngineCopy				= 6,
+		eEngineOverlay			= 7,
+		eEngineCrypto			= 8,
+
+		eEngineUnknown			= -1,	// no metadata to go on
+	};
+
 	struct SGpuNode
 	{
-		SGpuNode(const QString& name = QString())
+		SGpuNode(quint32 index = 0, int engineType = eEngineUnknown, const QString& friendlyName = QString())
 		{
-			Name = name;
+			Index = index;
+			EngineType = engineType;
+			FriendlyName = friendlyName;
 			TimeUsage = 0;
 		}
-		QString Name;
+		quint32 Index;
+		int EngineType;
+
+		//
+		// The name the driver gave an engine it did not otherwise classify.
+		// Only meaningful for eEngineOther.
+		//
+		QString FriendlyName;
+
 		float TimeUsage;
 	};
 

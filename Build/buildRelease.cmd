@@ -29,9 +29,22 @@ if NOT EXIST %~dp0..\bin\%build_arch%\Release\qhexedit.dll goto :error
 call %~dp0.\buildModule.cmd qextwidgets %~dp0..\qextwidgets\qextwidgets.qc.pro
 if NOT EXIST %~dp0..\bin\%build_arch%\Release\qextwidgets.dll goto :error
 
-call %~dp0.\buildModule.cmd MiscHelpers %~dp0..\MiscHelpers\MiscHelpers.qc.pro
-if NOT EXIST %~dp0..\bin\%build_arch%\Release\MiscHelpers.dll goto :error
+rem
+rem CoreHelpers before GuiHelpers: GuiHelpers links it. What used to be one
+rem MiscHelpers is these two, so that the collector can be built without
+rem QtWidgets - see TODO.md, "The MiscHelpers split".
+rem
+call %~dp0.\buildModule.cmd CoreHelpers %~dp0..\MiscHelpers\CoreHelpers.qc.pro
+if NOT EXIST %~dp0..\bin\%build_arch%\Release\CoreHelpers.dll goto :error
 
+call %~dp0.\buildModule.cmd GuiHelpers %~dp0..\MiscHelpers\GuiHelpers.qc.pro
+if NOT EXIST %~dp0..\bin\%build_arch%\Release\GuiHelpers.dll goto :error
+
+rem
+rem This builds a monolithic TaskExplorer.exe: TaskExplorer.pri lists the API
+rem sources itself, so unlike the MSVC and CMake builds there is no TaskCore
+rem library on this path and no step for one is missing.
+rem
 call %~dp0.\buildModule.cmd TaskExplorer %~dp0..\TaskExplorer\TaskExplorer.qc.pro
 if NOT EXIST %~dp0..\bin\%build_arch%\Release\TaskExplorer.exe goto :error
 

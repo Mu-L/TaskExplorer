@@ -2,7 +2,7 @@
 #include "RpcEndpoint.h"
 
 
-CRpcEndpoint::CRpcEndpoint(QObject *parent) : CAbstractInfoEx(parent)
+CRpcEndpoint::CRpcEndpoint(QObject *parent) : CRpcEndpointInfo(parent)
 {
 }
 

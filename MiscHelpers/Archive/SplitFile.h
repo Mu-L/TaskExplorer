@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../mischelpers_global.h"
+#include "../corehelpers_global.h"
 
-class MISCHELPERS_EXPORT CSplitFile : public QIODevice
+class COREHELPERS_EXPORT CSplitFile : public QIODevice
 {
 	Q_OBJECT
 public:

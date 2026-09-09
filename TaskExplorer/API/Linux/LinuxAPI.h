@@ -32,14 +32,48 @@ public:
 	CLinuxAPI(QObject *parent = nullptr);
 	virtual ~CLinuxAPI();
 
+
 	virtual bool			RootAvaiable();
+
+	//
+	// pid 1's namespaces, read once. Nothing short of a reboot changes them,
+	// and every process shown is compared against them.
+	//
+	virtual SProcessNamespaces	GetHostNamespaces() const;
+
+	virtual EOsType GetOsType() const					{ return eOsLinux; }
+	virtual quint64 GetCpuTimeDivider() const;   // CPU_TIME_DIVIDER, defined below the class
+	virtual bool HasCapability(ECapability Capability) const;
 
 	virtual bool			UpdateAll();
 	virtual bool			UpdateSysStats();
+	//
+	// Pair Wine's Windows process ids with the Linux ones. Opt-in and
+	// throttled; see the implementation for why both.
+	//
+	void					UpdateWineIds();
+	quint64					m_LastWineQuery = 0;
+	static const quint64	c_WineQueryMaxAge = 60000;
+
 	virtual bool			UpdateProcessList();
 	virtual bool			UpdateSocketList();
 	virtual bool			UpdateOpenFileList();
 	virtual bool			UpdateServiceList(bool bRefresh = false);
+	//
+	// What kinds of thing a descriptor can be here. The indexes are
+	// CLinuxHandle::EHandleType, which is what GetTypeIndex returns, so the
+	// handle view can filter on them without knowing what platform answered.
+	//
+	virtual QList<SHandleType> GetHandleTypes() const;
+	virtual int				GetHandleTypeGroup(int Index) const;
+
+	//
+	// Which of them the Files views mean by "a file". Without this the base
+	// returns -1 - every type - and those views listed sockets, pipes and
+	// eventfds alongside the files, which is the one thing they exist not to do.
+	//
+	virtual int				GetFileHandleTypeIndex() const;
+
 	virtual bool			UpdateDriverList();
 
 	//
@@ -52,6 +86,27 @@ public:
 
 	virtual quint64			GetUpTime() const;
 	virtual QList<SUser>	GetUsers() const;
+
+	//
+	// Starting programs - see LinuxRun.cpp. None of this was overridden, so the
+	// base class refused and the run dialogs offered empty boxes above a button
+	// that could not work.
+	//
+	virtual QStringList		GetRunHistory() const;
+	virtual STATUS			RunProgram(const SRunOptions& Options);
+	virtual SRunAsChoices	GetRunAsChoices() const;
+	virtual bool			IsServiceAccount(const QString& UserName) const;
+	virtual STATUS			RunProgramAs(const SRunAsOptions& Options);
+
+protected:
+	void					AddRunHistory(const QString& Program);
+public:
+
+	//
+	// Unaltered: systemd unit names are case sensitive - see the note on the
+	// base - and this backend files them exactly as systemd gave them.
+	//
+	virtual QString			CanonicalServiceName(const QString& Name) const { return Name; }
 
 	virtual QMultiMap<QString, CDnsCacheEntryPtr>	GetDnsEntryList() const;
 	virtual bool			UpdateDnsCache();
@@ -71,6 +126,7 @@ public:
 	// working for as long as polkit remembers it.
 	//
 	void					AllowDnsAuthPrompt()	{ m_bDnsAuthAttempted = false; }
+	virtual void			AllowAuthPrompt()		{ AllowDnsAuthPrompt(); }
 
 	// ---- Linux specifics ----
 
@@ -79,9 +135,23 @@ public:
 	// for cpu, memory or I/O. Valid is false when the kernel does not provide
 	// it, which callers should treat as "nothing to show" rather than zero.
 	//
-	virtual ProcFs::SPressure	GetCpuPressure() const		{ QReadLocker Locker(&m_StatsMutex); return m_CpuPressure; }
-	virtual ProcFs::SPressure	GetMemoryPressure() const	{ QReadLocker Locker(&m_StatsMutex); return m_MemoryPressure; }
-	virtual ProcFs::SPressure	GetIoPressure() const		{ QReadLocker Locker(&m_StatsMutex); return m_IoPressure; }
+	//
+	// ProcFs parses into its own struct; the API publishes the platform
+	// independent one so the graph bar never names a Linux type. The fields
+	// are the same, so this is a copy rather than a translation.
+	//
+	static SPressure ToApiPressure(const ProcFs::SPressure& P)
+	{
+		SPressure R;
+		R.SomeAvg10 = P.SomeAvg10;  R.SomeAvg60 = P.SomeAvg60;  R.SomeAvg300 = P.SomeAvg300;
+		R.FullAvg10 = P.FullAvg10;  R.FullAvg60 = P.FullAvg60;  R.FullAvg300 = P.FullAvg300;
+		R.SomeTotal = P.SomeTotal;  R.FullTotal = P.FullTotal;  R.Valid = P.Valid;
+		return R;
+	}
+
+	virtual SPressure	GetCpuPressure() const		{ QReadLocker Locker(&m_StatsMutex); return ToApiPressure(m_CpuPressure); }
+	virtual SPressure	GetMemoryPressure() const	{ QReadLocker Locker(&m_StatsMutex); return ToApiPressure(m_MemoryPressure); }
+	virtual SPressure	GetIoPressure() const		{ QReadLocker Locker(&m_StatsMutex); return ToApiPressure(m_IoPressure); }
 
 	// Distribution name and kernel release, for the system info panel.
 	virtual QString			GetDistroName() const	{ QReadLocker Locker(&m_Mutex); return m_SystemName; }

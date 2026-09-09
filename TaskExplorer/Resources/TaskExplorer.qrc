@@ -11,25 +11,11 @@
         <file>Shield.png</file>
     </qresource>
     <qresource prefix="/">
+        <file>HelpingHand.png</file>
         <file>TaskExplorer.png</file>
-        <!-- The same icon Windows embeds via TaskExplorer.rc. It carries hand
-             sized 16/32/48/64/128/256 renditions, which is what a task bar and
-             a title bar want; a lone 256x256 PNG scaled down to 16x16 loses the
-             trace line in the middle. -->
         <file>TaskExplorer.ico</file>
         <file>ProcessHacker.png</file>
         <file>close.png</file>
-    </qresource>
-    <qresource prefix="/WinLogos">
-        <file alias="WinOld">WinLogos/1-4 Old Windows.png</file>
-        <file alias="Win2k">WinLogos/5 Windows 2000.png</file>
-        <file alias="WinXP">WinLogos/5.1 Windows XP.png</file>
-        <file alias="Win6">WinLogos/6 Windows Vista.png</file>
-        <file alias="Win7">WinLogos/7 Windows 7.png</file>
-        <file alias="Win8">WinLogos/8 Windows 8.png</file>
-        <file alias="Win10">WinLogos/10 Windows 10.png</file>
-        <file alias="Win11">WinLogos/11 Windows 11.png</file>
-        <file alias="WinNew">WinLogos/New Windows.png</file>
     </qresource>
     <qresource prefix="/Actions">
         <file alias="Settings">Actions/config.png</file>
@@ -96,6 +82,7 @@
         <file alias="Finder">Actions/finder.png</file>
         <file alias="Support">Actions/Support.png</file>
         <file alias="Forum">Actions/Forum.png</file>
+        <file alias="Remove">Actions/Remove.png</file>
     </qresource>
     <qresource prefix="/NtObjects">
         <file alias="Device">NtObjects/device16.png</file>

@@ -23,6 +23,13 @@ public slots:
 	void					Refresh();
 
 private slots:
+	//
+	// The panels now show a different machine, so what is held belongs to the
+	// old one - both the model and the cached list, or the next Refresh would
+	// simply sync the old entries back in.
+	//
+	void					OnViewSystemChanged();
+
 	void					OnResetColumns();
 	void					OnColumnsChanged();
 

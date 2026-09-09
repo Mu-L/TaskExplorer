@@ -19,73 +19,10 @@ quint32 CWinHeap::GetFlags() const
 	return m_Flags & ~HEAP_CLASS_MASK; 
 }
 
-QString CWinHeap::GetFlagsString() const
-{
-	QStringList Info;
-
-	quint32 Flags = GetFlags();
-
-    if (Flags & HEAP_NO_SERIALIZE)
-        Info.append(tr("No serialize"));
-    if (Flags & HEAP_GROWABLE)
-        Info.append(tr("Growable"));
-    if (Flags & HEAP_GENERATE_EXCEPTIONS)
-        Info.append(tr("Generate exceptions"));
-    if (Flags & HEAP_ZERO_MEMORY)
-        Info.append(tr("Zero memory"));
-    if (Flags & HEAP_REALLOC_IN_PLACE_ONLY)
-        Info.append(tr("Realloc in-place"));
-    if (Flags & HEAP_TAIL_CHECKING_ENABLED)
-        Info.append(tr("Tail checking"));
-    if (Flags & HEAP_FREE_CHECKING_ENABLED)
-        Info.append(tr("Free checking"));
-    if (Flags & HEAP_DISABLE_COALESCE_ON_FREE)
-        Info.append(tr("Coalesce on free"));
-    if (Flags & HEAP_CREATE_ALIGN_16)
-        Info.append(tr("Align 16"));
-    if (Flags & HEAP_CREATE_ENABLE_TRACING)
-        Info.append(tr("Traceable"));
-    if (Flags & HEAP_CREATE_ENABLE_EXECUTE)
-        Info.append(tr("Executable"));
-    if (Flags & HEAP_CREATE_SEGMENT_HEAP)
-        Info.append(tr("Segment heap"));
-    if (Flags & HEAP_CREATE_HARDENED)
-        Info.append(tr("Segment hardened"));
-
-	return Info.join(", ");
-}
-
 quint32 CWinHeap::GetClass() const
 { 
 	QReadLocker Locker(&m_Mutex); 
 	return m_Flags & HEAP_CLASS_MASK; 
-}
-
-QString CWinHeap::GetClassString() const
-{
-    switch (GetClass())
-    {
-    case HEAP_CLASS_0:
-        return tr("Process Heap");
-    case HEAP_CLASS_1:
-        return tr("Private Heap");
-    case HEAP_CLASS_2:
-        return tr("Kernel Heap");
-    case HEAP_CLASS_3:
-        return tr("GDI Heap");
-    case HEAP_CLASS_4:
-        return tr("User Heap");
-    case HEAP_CLASS_5:
-        return tr("Console Heap");
-    case HEAP_CLASS_6:
-        return tr("Desktop Heap");
-    case HEAP_CLASS_7:
-        return tr("CSRSS Shared Heap");
-    case HEAP_CLASS_8:
-        return tr("CSRSS Port Heap");
-    }
-
-    return tr("Unknown Heap");
 }
 
 quint32 CWinHeap::GetType() const
@@ -94,39 +31,49 @@ quint32 CWinHeap::GetType() const
 	return m_HeapFrontEndType;
 }
 
-QString CWinHeap::GetTypeString() const
+
+
+//
+// Which heap this is, as a value. The signature distinguishes the two
+// implementations; the front-end type is already a small number.
+//
+int CWinHeap::GetHeapKind() const
 {
-    QReadLocker Locker(&m_Mutex);
-
-    switch (m_Signature)
-    {
-    case RTL_HEAP_SIGNATURE:
-    {
-        switch (m_HeapFrontEndType)
-        {
-        case 1:
-            return tr("NT Heap (Lookaside)");
-        case 2:
-            return tr("NT Heap (LFH)");
-        default:
-            return tr("NT Heap");
-        }
-    }
-    break;
-    case RTL_HEAP_SEGMENT_SIGNATURE:
-    {
-        switch (m_HeapFrontEndType)
-        {
-        case 1:
-            return tr("Segment Heap (Lookaside)");
-        case 2:
-            return tr("Segment Heap (LFH)");
-        default:
-            return tr("Segment Heap");
-        }
-    }
-    break;
-    }
-
-	return tr("Unknown Heap");
+	QReadLocker Locker(&m_Mutex);
+	switch (m_Signature)
+	{
+	case RTL_HEAP_SIGNATURE:			return eHeapNt;
+	case RTL_HEAP_SEGMENT_SIGNATURE:	return eHeapSegment;
+	}
+	return eHeapUnknown;
 }
+
+int CWinHeap::GetFrontEndType() const
+{
+	QReadLocker Locker(&m_Mutex);
+	return (int)m_HeapFrontEndType;
+}
+
+static_assert(CHeapInfo::eHeapNoSerialize          == HEAP_NO_SERIALIZE,             "heap flag drifted");
+static_assert(CHeapInfo::eHeapGrowable             == HEAP_GROWABLE,                 "heap flag drifted");
+static_assert(CHeapInfo::eHeapGenerateExceptions   == HEAP_GENERATE_EXCEPTIONS,      "heap flag drifted");
+static_assert(CHeapInfo::eHeapZeroMemory           == HEAP_ZERO_MEMORY,              "heap flag drifted");
+static_assert(CHeapInfo::eHeapReallocInPlaceOnly   == HEAP_REALLOC_IN_PLACE_ONLY,    "heap flag drifted");
+static_assert(CHeapInfo::eHeapTailChecking         == HEAP_TAIL_CHECKING_ENABLED,    "heap flag drifted");
+static_assert(CHeapInfo::eHeapFreeChecking         == HEAP_FREE_CHECKING_ENABLED,    "heap flag drifted");
+static_assert(CHeapInfo::eHeapDisableCoalesceOnFree== HEAP_DISABLE_COALESCE_ON_FREE, "heap flag drifted");
+static_assert(CHeapInfo::eHeapCreateSegmentHeap    == HEAP_CREATE_SEGMENT_HEAP,      "heap flag drifted");
+static_assert(CHeapInfo::eHeapCreateHardened       == HEAP_CREATE_HARDENED,          "heap flag drifted");
+static_assert(CHeapInfo::eHeapCreateAlign16        == HEAP_CREATE_ALIGN_16,          "heap flag drifted");
+static_assert(CHeapInfo::eHeapCreateEnableTracing  == HEAP_CREATE_ENABLE_TRACING,    "heap flag drifted");
+static_assert(CHeapInfo::eHeapCreateEnableExecute  == HEAP_CREATE_ENABLE_EXECUTE,    "heap flag drifted");
+
+static_assert(CHeapInfo::eHeapClassProcess   == HEAP_CLASS_0, "heap class drifted");
+static_assert(CHeapInfo::eHeapClassPrivate   == HEAP_CLASS_1, "heap class drifted");
+static_assert(CHeapInfo::eHeapClassKernel    == HEAP_CLASS_2, "heap class drifted");
+static_assert(CHeapInfo::eHeapClassGdi       == HEAP_CLASS_3, "heap class drifted");
+static_assert(CHeapInfo::eHeapClassUser      == HEAP_CLASS_4, "heap class drifted");
+static_assert(CHeapInfo::eHeapClassConsole   == HEAP_CLASS_5, "heap class drifted");
+static_assert(CHeapInfo::eHeapClassDesktop   == HEAP_CLASS_6, "heap class drifted");
+static_assert(CHeapInfo::eHeapClassCsrShared == HEAP_CLASS_7, "heap class drifted");
+static_assert(CHeapInfo::eHeapClassCsrPort   == HEAP_CLASS_8, "heap class drifted");

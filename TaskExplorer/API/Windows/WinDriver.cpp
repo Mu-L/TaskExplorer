@@ -33,6 +33,7 @@ bool CWinDriver::InitStaticData(struct _RTL_PROCESS_MODULE_INFORMATION* Module)
 	m_CreateTimeStamp = GetTime() * 1000;
 
 	CWinModule* pModule = new CWinModule();
+	pModule->SetSystem(GetSystem());
 	m_pModuleInfo = CModulePtr(pModule);
 	connect(pModule, SIGNAL(AsyncDataDone(bool, quint32, quint32)), this, SLOT(OnAsyncDataDone(bool, quint32, quint32)));
 	pModule->InitStaticData(m_BinaryPath);

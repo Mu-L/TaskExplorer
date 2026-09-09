@@ -13,11 +13,46 @@
 
 #include "stdafx.h"
 #include "WinService.h"
+#include "ProcessHacker/appsup.h"   // PhShellOpenKey2
 #include "WinModule.h"
 #include "WindowsAPI.h"
 #include "../../SVC/TaskService.h"
 
 #include "ProcessHacker.h"
+#include "WinSecurityEditor.h"
+
+//
+// CServiceInfo carries these values over the wire by the platform's own
+// numbering, so a mismatch has to be a build error rather than a wrong word on
+// someone's screen.
+//
+static_assert(CServiceInfo::eSvcKernelDriver        == SERVICE_KERNEL_DRIVER,        "service type drifted");
+static_assert(CServiceInfo::eSvcFileSystemDriver    == SERVICE_FILE_SYSTEM_DRIVER,   "service type drifted");
+static_assert(CServiceInfo::eSvcOwnProcess          == SERVICE_WIN32_OWN_PROCESS,    "service type drifted");
+static_assert(CServiceInfo::eSvcShareProcess        == SERVICE_WIN32_SHARE_PROCESS,  "service type drifted");
+static_assert(CServiceInfo::eSvcUserOwnProcess      == SERVICE_USER_OWN_PROCESS,     "service type drifted");
+static_assert(CServiceInfo::eSvcUserShareProcess    == SERVICE_USER_SHARE_PROCESS,   "service type drifted");
+static_assert(CServiceInfo::eSvcInteractive         == SERVICE_INTERACTIVE_PROCESS,  "service type drifted");
+static_assert(CServiceInfo::eSvcUserServiceInstance == SERVICE_USERSERVICE_INSTANCE, "service type drifted");
+
+static_assert(CServiceInfo::eSvcStopped         == SERVICE_STOPPED,          "service state drifted");
+static_assert(CServiceInfo::eSvcStartPending    == SERVICE_START_PENDING,    "service state drifted");
+static_assert(CServiceInfo::eSvcStopPending     == SERVICE_STOP_PENDING,     "service state drifted");
+static_assert(CServiceInfo::eSvcRunning         == SERVICE_RUNNING,          "service state drifted");
+static_assert(CServiceInfo::eSvcContinuePending == SERVICE_CONTINUE_PENDING, "service state drifted");
+static_assert(CServiceInfo::eSvcPausePending    == SERVICE_PAUSE_PENDING,    "service state drifted");
+static_assert(CServiceInfo::eSvcPaused          == SERVICE_PAUSED,           "service state drifted");
+
+static_assert(CServiceInfo::eSvcBootStart   == SERVICE_BOOT_START,   "start type drifted");
+static_assert(CServiceInfo::eSvcSystemStart == SERVICE_SYSTEM_START, "start type drifted");
+static_assert(CServiceInfo::eSvcAutoStart   == SERVICE_AUTO_START,   "start type drifted");
+static_assert(CServiceInfo::eSvcDemandStart == SERVICE_DEMAND_START, "start type drifted");
+static_assert(CServiceInfo::eSvcDisabled    == SERVICE_DISABLED,     "start type drifted");
+
+static_assert(CServiceInfo::eSvcErrorIgnore   == SERVICE_ERROR_IGNORE,   "error control drifted");
+static_assert(CServiceInfo::eSvcErrorNormal   == SERVICE_ERROR_NORMAL,   "error control drifted");
+static_assert(CServiceInfo::eSvcErrorSevere   == SERVICE_ERROR_SEVERE,   "error control drifted");
+static_assert(CServiceInfo::eSvcErrorCritical == SERVICE_ERROR_CRITICAL, "error control drifted");
 
 struct SWinService
 {
@@ -84,6 +119,7 @@ bool CWinService::InitStaticData(struct _ENUM_SERVICE_STATUS_PROCESSW* service)
 	m->NeedsConfigUpdate = TRUE;
 
 	CWinModule* pModule = new CWinModule();
+	pModule->SetSystem(GetSystem());
 	m_pModuleInfo = CModulePtr(pModule);
 	connect(pModule, SIGNAL(AsyncDataDone(bool, quint32, quint32)), this, SLOT(OnAsyncDataDone(bool, quint32, quint32)));
 
@@ -261,30 +297,6 @@ bool CWinService::IsDriver() const
 	return (m_Type == SERVICE_KERNEL_DRIVER || m_Type == SERVICE_FILE_SYSTEM_DRIVER);
 }
 
-QString CWinService::GetTypeString() const
-{
-	QReadLocker Locker(&m_Mutex);
-
-	switch (m_Type)
-	{
-		case SERVICE_KERNEL_DRIVER:				return tr("Driver");
-		case SERVICE_FILE_SYSTEM_DRIVER:		return tr("FS driver");
-		case SERVICE_WIN32_OWN_PROCESS:			return tr("Own process");
-		case SERVICE_WIN32_SHARE_PROCESS:		return tr("Share process");
-		case (SERVICE_WIN32_OWN_PROCESS | SERVICE_INTERACTIVE_PROCESS):
-												return tr("Own interactive process");
-		case (SERVICE_WIN32_SHARE_PROCESS | SERVICE_INTERACTIVE_PROCESS):
-												return tr("Share interactive process");
-		case SERVICE_USER_OWN_PROCESS:			return tr("User own process");
-		case (SERVICE_USER_OWN_PROCESS | SERVICE_USERSERVICE_INSTANCE):
-												return tr("User own process (instance)");
-		case SERVICE_USER_SHARE_PROCESS:		return tr("User share process");
-		case (SERVICE_USER_SHARE_PROCESS | SERVICE_USERSERVICE_INSTANCE):
-												return tr("User share process (instance)");
-		default: return tr("Unknown %1").arg(m_Type);
-	}
-}
-
 bool CWinService::IsStopped() const
 {
 	QReadLocker Locker(&m_Mutex); // is it stoped (periode)?
@@ -301,52 +313,6 @@ bool CWinService::IsPaused() const
 {
 	QReadLocker Locker(&m_Mutex); // is it paused or about to be paused
 	return m_State == SERVICE_PAUSE_PENDING || m_State == SERVICE_PAUSED || m_State == SERVICE_CONTINUE_PENDING;
-}
-
-QString CWinService::GetStateString() const
-{
-	QReadLocker Locker(&m_Mutex);
-
-	switch (m_State)
-	{
-		case SERVICE_STOPPED:				return tr("Stopped");
-		case SERVICE_START_PENDING:			return tr("Start pending");
-		case SERVICE_STOP_PENDING:			return tr("Stop pending");
-		case SERVICE_RUNNING:				return tr("Running");
-		case SERVICE_CONTINUE_PENDING:		return tr("Continue pending");
-		case SERVICE_PAUSE_PENDING:			return tr("Pause pending");
-		case SERVICE_PAUSED:				return tr("Paused");
-		default: return tr("Unknown %1").arg(m_State);
-	}
-}
-
-QString CWinService::GetStartTypeString() const
-{
-	QReadLocker Locker(&m_Mutex);
-
-	switch (m_StartType)
-	{
-		case SERVICE_DISABLED:				return tr("Disabled");
-		case SERVICE_BOOT_START:			return tr("Boot start");
-		case SERVICE_SYSTEM_START:			return tr("System start");
-		case SERVICE_AUTO_START:			return tr("Auto start");
-		case SERVICE_DEMAND_START:			return tr("Demand start");
-		default: return tr("Unknown %1").arg(m_StartType);
-	}
-}
-
-QString CWinService::GetErrorControlString() const
-{
-	QReadLocker Locker(&m_Mutex);
-
-	switch (m_ErrorControl)
-	{
-		case SERVICE_ERROR_IGNORE:			return tr("Ignore");
-		case SERVICE_ERROR_NORMAL:			return tr("Normal");
-		case SERVICE_ERROR_SEVERE:			return tr("Severe");
-		case SERVICE_ERROR_CRITICAL:		return tr("Critical");
-		default: return tr("Unknown %1").arg(m_ErrorControl);
-	}
 }
 
 STATUS CWinService::Start()
@@ -375,7 +341,7 @@ STATUS CWinService::Start()
 				return OK;
 		}
 
-		return ERR(tr("Failed to start service"), status);
+		return ERR(TE_StartService, status);
     }
 	return OK;
 }
@@ -408,7 +374,7 @@ STATUS CWinService::Pause()
 				return OK;
 		}
 
-		return ERR(tr("Failed to pause service"), status);
+		return ERR(TE_PauseService, status);
     }
 	return OK;
 }
@@ -441,7 +407,7 @@ STATUS CWinService::Continue()
 				return OK;
 		}
 
-		return ERR(tr("Failed to continue service"), status);
+		return ERR(TE_ContinueService, status);
     }
 	return OK;
 }
@@ -474,9 +440,14 @@ STATUS CWinService::Stop()
 				return OK;
 		}
 
-		return ERR(tr("Failed to stop service"), status);
+		return ERR(TE_StopService, status);
     }
 	return OK;
+}
+
+QString CWinService::GetRegistryKey() const
+{
+	return "HKLM\\System\\CurrentControlSet\\Services\\" + GetName();
 }
 
 STATUS CWinService::Delete(bool bForce)
@@ -484,7 +455,7 @@ STATUS CWinService::Delete(bool bForce)
 	QWriteLocker Locker(&m_Mutex);
 
 	if (!bForce)
-		return ERR(tr("Deleting a service can prevent the system from starting or functioning properly."), ERROR_CONFIRM);
+		return ERR(TE_ConfirmDeleteService, ERROR_CONFIRM);
 
 #ifdef SAFE_MODE
 	return OK;
@@ -512,17 +483,21 @@ STATUS CWinService::Delete(bool bForce)
 				return OK;
 		}
 
-		return ERR(tr("Failed to delete service"), status);
+		return ERR(TE_DeleteService, status);
     }
 	return OK;
 }
 
+//
+// Takes the name as plain wide characters rather than a std::wstring, so the
+// context can be a byte copy the security object owns.
+//
 NTSTATUS NTAPI CWinService__OpenService(_Out_ PHANDLE Handle, _In_ ACCESS_MASK DesiredAccess, _In_opt_ PVOID Context)
 {
-	std::wstring* pName = ((std::wstring*)Context);
+	PCWSTR pName = (PCWSTR)Context;
 
 	SC_HANDLE serviceHandle;
-	if (NT_SUCCESS(PhOpenService(&serviceHandle, DesiredAccess, (wchar_t*)pName->c_str())))
+	if (NT_SUCCESS(PhOpenService(&serviceHandle, DesiredAccess, (wchar_t*)pName)))
 	{
 		*Handle = serviceHandle;
 		return STATUS_SUCCESS;
@@ -541,11 +516,17 @@ NTSTATUS NTAPI CWinService__cbPermissionsClosed(_In_ HANDLE Handle, _In_ BOOLEAN
 	return STATUS_SUCCESS;
 }
 
-void CWinService::OpenPermissions()
+CSecurityEditablePtr CWinService::GetSecurityObject() const
 {
+	std::wstring Name = GetName().toStdWString();
+	QByteArray Context((const char*)Name.c_str(), (int)((Name.size() + 1) * sizeof(wchar_t)));
 
-	std::wstring* pName = new std::wstring;
-	*pName = GetName().toStdWString();
+	return CSecurityEditablePtr(new CWinSecurityObject(
+		m_DisplayName.isEmpty() ? GetName() : m_DisplayName, "Service",
+		(CWinSecurityObject::POpenObject)CWinService__OpenService, Context));
+}
 
-	PhEditSecurity(NULL, (wchar_t*)m_DisplayName.toStdWString().c_str(), L"Service", CWinService__OpenService, CWinService__cbPermissionsClosed, pName);
+bool CWinService::RunsInSystemProcess() const
+{
+	return (GetFlags() & SERVICE_RUNS_IN_SYSTEM_PROCESS) != 0;
 }

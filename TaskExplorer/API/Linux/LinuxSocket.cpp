@@ -28,10 +28,23 @@ bool CLinuxSocket::InitStaticData(quint64 ProcessId, const ProcFs::SNetConnectio
 	m_Inode = Conn.Inode;
 	m_Uid = Conn.Uid;
 
+	m_LocalName = Conn.LocalName;
+	m_RemoteName = Conn.RemoteName;
+	m_RemoteProcessId = Conn.PeerPid;
+
 	// The hash keys the socket list; it must be derived from exactly the same
 	// tuple that FindSocketEntry() looks the socket up by.
 	m_HashID = MkHash(ProcessId, Conn.ProtocolType, Conn.LocalAddress, Conn.LocalPort,
 	                  Conn.RemoteAddress, Conn.RemotePort);
+
+	//
+	// A unix socket has neither address nor port, so the tuple above is the same
+	// for every one a process holds and they would all land in one bucket. The
+	// inode is what the kernel identifies such a socket by, and it is unique for
+	// as long as the socket exists, so it goes into the key.
+	//
+	if ((Conn.ProtocolType & NET_TYPE_NETWORK_UNIX) != 0)
+		m_HashID ^= Conn.Inode;
 
 	return true;
 }
@@ -48,8 +61,25 @@ bool CLinuxSocket::UpdateDynamicData(const ProcFs::SNetConnection& Conn)
 {
 	QWriteLocker Locker(&m_Mutex);
 
-	const bool bChanged = (m_State != Conn.State);
+	bool bChanged = (m_State != Conn.State);
 	m_State = Conn.State;
+
+	//
+	// The peer's name can arrive later than the socket: the two ends are
+	// separate entries in the same dump and the one that names the other may be
+	// read second.
+	//
+	if (m_RemoteName != Conn.RemoteName)
+	{
+		m_RemoteName = Conn.RemoteName;
+		bChanged = true;
+	}
+
+	if (m_RemoteProcessId != Conn.PeerPid)
+	{
+		m_RemoteProcessId = Conn.PeerPid;
+		bChanged = true;
+	}
 
 	Locker.unlock();
 
@@ -78,5 +108,5 @@ STATUS CLinuxSocket::Close()
 {
 	// linux-todo: SOCK_DESTROY via netlink closes a TCP socket, but only for
 	// root and only for TCP.
-	return ERR(tr("Closing a socket is not yet implemented on Linux."));
+	return ERR(TE_ClosingSocketYet);
 }

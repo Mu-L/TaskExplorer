@@ -1,35 +1,88 @@
 #include "stdafx.h"
 #include "RunAsDialog.h"
 #include "../../MiscHelpers/Common/Settings.h"
-#ifdef WIN32
-#include "../API/Windows/ProcessHacker/RunAs.h"
-#endif
+#include "../API/SystemAPI.h"
+#include "TaskExplorer.h"
 
-CRunAsDialog::CRunAsDialog(quint64 PID, QWidget *parent)
+CRunAsDialog::CRunAsDialog(CSystemAPI* pSystem, quint64 PID, QWidget *parent)
 	: QMainWindow(parent)
 {
+	m_pSystem = pSystem ? pSystem : theSystem.data();
+
 	QWidget* centralWidget = new QWidget();
 	ui.setupUi(centralWidget);
 	this->setCentralWidget(centralWidget);
 
 	m_PID = PID;
 
-#ifdef WIN32
-	ui.loginType->addItem("Batch", LOGON32_LOGON_BATCH);
-	ui.loginType->addItem("Interactive", LOGON32_LOGON_INTERACTIVE);
-	ui.loginType->addItem("Network", LOGON32_LOGON_NETWORK);
-	ui.loginType->addItem("New credentials", LOGON32_LOGON_NEW_CREDENTIALS);
-	ui.loginType->addItem("Service", LOGON32_LOGON_SERVICE);
-	ui.loginType->setCurrentIndex(1); // Interactive
-	
-	AddProgramsToComboBox(ui.binaryPath);
-	AddAccountsToComboBox(ui.userName);
-	AddSessionsToComboBox(ui.session);
-    AddDesktopsToComboBox(ui.desktop);
+	//
+	// Everything the dialog offers comes from the target, so a remote session
+	// would list that machine's accounts, sessions and desktops rather than this
+	// one's.
+	//
+	//
+	// Named in the title when it is not this computer - see CRunDialog.
+	//
+	if (!m_pSystem->IsLocal())
+		setWindowTitle(tr("Run as, on %1").arg(m_pSystem->GetHostName()));
 
-    SetDefaultSessionEntry(ui.session);
-	SetDefaultDesktopEntry(ui.desktop);
-#endif
+	CSystemAPI::SRunAsChoices Choices = m_pSystem->GetRunAsChoices();
+
+	typedef QPair<QString, quint32> SLabeledId;
+
+	//
+	// A combo with nothing in it says "none of these", which is the opposite of
+	// what is meant: a platform that has no logon types has no such notion at
+	// all, and a platform whose sessions cannot be honoured should not offer to
+	// pick one. Both rows go rather than sit there empty - see
+	// CLinuxAPI::GetRunAsChoices, which is where the empty ones came from.
+	//
+	foreach(const SLabeledId& Type, Choices.LogonTypes)
+		ui.loginType->addItem(Type.first, Type.second);
+
+	ui.binaryPath->addItems(m_pSystem->GetRunHistory());
+	ui.userName->addItems(Choices.Accounts);
+
+	foreach(const SLabeledId& Session, Choices.Sessions)
+		ui.session->addItem(Session.first, Session.second);
+	ui.desktop->addItems(Choices.Desktops);
+
+	//
+	// A row whose choices are empty is hidden, label and all.
+	//
+	// The labels are named rather than found through the layout because the
+	// grid pairs them by position, and a hidden widget still holds its cell -
+	// leaving "Type:" beside nothing would be exactly the confusion this is
+	// removing. label_7 is Type, label_5 is Session ID, label_6 is Desktop.
+	//
+	const bool bTypes = !Choices.LogonTypes.isEmpty();
+	ui.label_7->setVisible(bTypes);
+	ui.loginType->setVisible(bTypes);
+
+	//
+	// The linked token goes with them. It is one particular property of a
+	// Windows logon token - the unelevated half of a split administrator - so
+	// on a platform that has no logon types to pick from there is nothing for
+	// the box to mean, and an unchecked box that cannot do anything still
+	// invites somebody to check it.
+	//
+	ui.useToken->setVisible(bTypes);
+
+	const bool bSessions = !Choices.Sessions.isEmpty();
+	ui.label_5->setVisible(bSessions);
+	ui.session->setVisible(bSessions);
+
+	const bool bDesktops = !Choices.Desktops.isEmpty();
+	ui.label_6->setVisible(bDesktops);
+	ui.desktop->setVisible(bDesktops);
+
+	int iSession = ui.session->findData(Choices.CurrentSessionId);
+	if (iSession != -1)
+		ui.session->setCurrentIndex(iSession);
+
+	int iDesktop = ui.desktop->findText(Choices.CurrentDesktop);
+	if (iDesktop != -1)
+		ui.desktop->setCurrentIndex(iDesktop);
 
 	if (m_PID != 0)
 	{
@@ -72,200 +125,30 @@ bool CRunAsDialog::event(QEvent* event)
 
 void CRunAsDialog::accept()
 {
-#ifdef WIN32
-	NTSTATUS status;
-	BOOLEAN useLinkedToken = FALSE;
-	BOOLEAN createSuspended = FALSE;
-	ULONG logonType = ULONG_MAX;
-	ULONG sessionId = ULONG_MAX;
-	PPH_STRING program = NULL;
-	PPH_STRING username = NULL;
-	PPH_STRING password = NULL;
-	PPH_STRING desktopName = NULL;
-	HANDLE ProcessId = (HANDLE)m_PID;
-	ULONG currentSessionId = ULONG_MAX;
+	CSystemAPI::SRunAsOptions Options;
+	Options.Program = ui.binaryPath->currentText();
+	Options.UserName = ui.userName->currentText();
+	Options.Desktop = ui.desktop->currentText();
+	Options.LogonType = ui.loginType->currentData().toUInt();
+	Options.SessionId = ui.session->currentData().toUInt();
+	Options.ParentPid = m_PID;
+	Options.UseLinkedToken = ui.useToken->isChecked();
+	Options.Suspended = ui.suspended->isChecked();
 
-	program = CastQString(ui.binaryPath->currentText());
-	username = CastQString(ui.userName->currentText());
-	useLinkedToken = ui.useToken->isChecked();
-	createSuspended = ui.suspended->isChecked();
-
-	if (PhIsNullOrEmptyString(program))
-		goto CleanupExit;
-
-	logonType = ui.loginType->currentData().toUInt();
-	sessionId = ui.session->currentData().toUInt();
-	desktopName = CastQString(ui.desktop->currentText());
-
-	if (sessionId == ULONG_MAX)
-		goto CleanupExit;
-
-	// Fix up the user name if it doesn't have a domain.
-	if (PhFindCharInString(username, 0, '\\') == -1)
+	if (!m_pSystem->IsServiceAccount(Options.UserName))
 	{
-		PSID sid;
-		PPH_STRING newUserName;
-
-		if (NT_SUCCESS(PhLookupName(&username->sr, &sid, NULL, NULL)))
-		{
-			if (newUserName = PhGetSidFullName(sid, TRUE, NULL))
-				PhSwapReference(&username, newUserName);
-
-			PhFree(sid);
-		}
-	}
-
-	if (!IsServiceAccount(username))
-	{
-		password = CastQString(ui.password->text());
+		Options.Password = ui.password->text();
 		ui.password->clear();
 	}
 
-	//if (IsCurrentUserAccount(username))
-	//{
-	//    status = PhCreateProcessWin32(
-	//        NULL,
-	//        program->Buffer,
-	//        NULL,
-	//        NULL,
-	//        0,
-	//        NULL,
-	//        NULL,
-	//        NULL
-	//        );
-	//}
-
-	PhGetProcessSessionId(NtCurrentProcess(), &currentSessionId);
-
-	if (logonType == LOGON32_LOGON_INTERACTIVE && !ProcessId && sessionId == currentSessionId && !useLinkedToken)
+	STATUS Status = m_pSystem->RunProgramAs(Options);
+	if (Status.IsError())
 	{
-		// We are eligible to load the user profile.
-		// This must be done here, not in the service, because
-		// we need to be in the target session.
-
-		PH_CREATE_PROCESS_AS_USER_INFO createInfo;
-		PPH_STRING domainPart = NULL;
-		PPH_STRING userPart = NULL;
-		HANDLE newProcessHandle;
-
-		PhpSplitUserName(username->Buffer, &domainPart, &userPart);
-
-		memset(&createInfo, 0, sizeof(PH_CREATE_PROCESS_AS_USER_INFO));
-		createInfo.CommandLine = PhGetString(program);
-		createInfo.UserName = PhGetString(userPart);
-		createInfo.DomainName = PhGetString(domainPart);
-		createInfo.Password = PhGetStringOrEmpty(password);
-
-		// Whenever we can, try not to set the desktop name; it breaks a lot of things.
-		if (!PhIsNullOrEmptyString(desktopName) && !PhEqualString2(desktopName, L"WinSta0\\Default", TRUE))
-			createInfo.DesktopName = PhGetString(desktopName);
-
-		//PhSetDesktopWinStaAccess();
-
-		status = PhCreateProcessAsUser(
-			&createInfo,
-			PH_CREATE_PROCESS_WITH_PROFILE | (createSuspended ? PH_CREATE_PROCESS_SUSPENDED : 0),
-			NULL,
-			NULL,
-			&newProcessHandle,
-			NULL);
-
-		if (NT_SUCCESS(status))
-		{
-			PROCESS_BASIC_INFORMATION basicInfo;
-			PSID userSid, logonSid;
-
-			if (PhRunAsGetLogonSid(newProcessHandle, &userSid, &logonSid))
-			{
-				status = PhRunAsUpdateDesktop(userSid);
-
-				if (!NT_SUCCESS(status))
-					goto CleanupExit;
-
-				status = PhRunAsUpdateWindowStation(userSid, logonSid);
-
-				if (!NT_SUCCESS(status))
-					goto CleanupExit;
-			}
-
-			if (!createSuspended)
-			{
-				if (NT_SUCCESS(PhGetProcessBasicInformation(newProcessHandle, &basicInfo)))
-				{
-					AllowSetForegroundWindow(HandleToUlong(basicInfo.UniqueProcessId));
-				}
-
-				PhConsoleSetForeground(newProcessHandle, TRUE);
-
-				NtResumeProcess(newProcessHandle);
-			}
-
-			NtClose(newProcessHandle);
-		}
-
-		if (domainPart) PhDereferenceObject(domainPart);
-		if (userPart) PhDereferenceObject(userPart);
-	}
-	else
-	{
-		if (ProcessId)
-		{
-			status = PhRunAsExecutionAlias(program);
-
-			if (!NT_SUCCESS(status))
-			{
-				status = PhRunAsExecuteParentCommand(
-					PhMainWndHandle,
-					PhGetString(program),
-					ProcessId,
-					createSuspended
-				);
-			}
-		}
-		else
-		{
-			status = PhExecuteRunAsCommand3(
-				PhMainWndHandle,
-				PhGetString(program),
-				PhGetString(username),
-				PhGetStringOrEmpty(password),
-				logonType,
-				ProcessId,
-				sessionId,
-				PhGetString(desktopName),
-				useLinkedToken,
-				createSuspended
-			);
-		}
+		QMessageBox::warning(NULL, "TaskExplorer", tr("Unable to start the program, Error: %1").arg(CTaskExplorer::FormatError(Status)));
+		return;
 	}
 
-	if (!NT_SUCCESS(status))
-	{
-		if (status != STATUS_CANCELLED)
-		{
-			PPH_STRING statusMessage = PhGetStatusMessage(status, 0);
-			QMessageBox::warning(NULL, "TaskExplorer", tr("Unable to start the program, Error: %1").arg(CastPhString(statusMessage)));
-		}
-	}
-	else if (status != STATUS_TIMEOUT)
-	{
-		PhpAddRunMRUListEntry(program->sr);
-		this->close();
-	}
-
-CleanupExit:
-	if (program)
-		PhDereferenceObject(program);
-	if (username)
-		PhDereferenceObject(username);
-	if (password)
-	{
-		RtlSecureZeroMemory(password->Buffer, password->Length);
-		PhDereferenceObject(password);
-	}
-	if (desktopName)
-		PhDereferenceObject(desktopName);
-#endif
+	this->close();
 }
 
 void CRunAsDialog::reject()
@@ -284,19 +167,14 @@ void CRunAsDialog::OnBrowse()
 
 void CRunAsDialog::OnUserName(const QString& userName)
 {
-#ifdef WIN32
-	PPH_STRING username = CastQString(userName);
-	if (IsServiceAccount(username))
-    {
-		ui.password->setEnabled(false);
-        ui.loginType->setCurrentIndex(4); // Service
-    }
-    else
-    {
-        ui.password->setEnabled(true);
-        ui.loginType->setCurrentIndex(1); // Interactive
-    }
-	if (username)
-		PhDereferenceObject(username);
-#endif
+	//
+	// A service account has no password to give, so the box is greyed and the
+	// logon type follows suit.
+	//
+	const bool bService = m_pSystem->IsServiceAccount(userName);
+	ui.password->setEnabled(!bService);
+
+	int iType = ui.loginType->findData(bService ? 5 /*LOGON32_LOGON_SERVICE*/ : 2 /*LOGON32_LOGON_INTERACTIVE*/);
+	if (iType != -1)
+		ui.loginType->setCurrentIndex(iType);
 }

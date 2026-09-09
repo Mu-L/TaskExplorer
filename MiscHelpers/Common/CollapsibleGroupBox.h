@@ -11,9 +11,9 @@ class QResizeEvent;
 class CollapseExpandButton;
 class QSpacerItem;
 
-#include "../mischelpers_global.h"
+#include "../guihelpers_global.h"
 
-class MISCHELPERS_EXPORT CCollapsibleGroupBox : public QGroupBox
+class GUIHELPERS_EXPORT CCollapsibleGroupBox : public QGroupBox
 {
 public:
   explicit CCollapsibleGroupBox(QWidget *parent = nullptr);

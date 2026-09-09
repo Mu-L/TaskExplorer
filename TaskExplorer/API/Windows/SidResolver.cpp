@@ -55,9 +55,9 @@ QString CSidResolver::GetSidFullName(const QByteArray& Sid, QObject *receiver, c
 	if (receiver)
 	{
 		QObject::connect(pJob, SIGNAL(SidResolved(const QByteArray&, const QString&)), receiver, member, Qt::QueuedConnection);
-		return tr("Resolving...");
+		return MakePlaceholder(TE_NAME_RESOLVING);
 	}
-	return tr("Not resolved...");
+	return MakePlaceholder(TE_NAME_NOT_RESOLVED);
 }
 
 void CSidResolver::OnSidResolved(const QByteArray& Sid, const QString& FullName)
@@ -135,7 +135,7 @@ void CSidResolver::run()
 		}
 
 
-		QString FullName = sidString ? CastPhString(sidString) : tr("[Unknown SID]");
+		QString FullName = sidString ? CastPhString(sidString) : MakePlaceholder(TE_NAME_UNKNOWN_SID);
 
 		Locker.relock();
 		emit pJob->SidResolved(pJob->m_SID, FullName);

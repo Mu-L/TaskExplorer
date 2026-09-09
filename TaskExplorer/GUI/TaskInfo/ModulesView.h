@@ -56,10 +56,15 @@ protected:
 private:
 	QVBoxLayout*			m_pMainLayout;
 
-	QWidget*				m_pFilterWidget;
+	//
+	// Null in the global view, which has no filter bar at all - the guards that
+	// test them rely on it, and without an initialiser they held whatever was on
+	// the heap.
+	//
+	QWidget*				m_pFilterWidget = NULL;
 	QHBoxLayout*			m_pFilterLayout;
-	QPushButton*			m_pLoadModule;
-	QCheckBox*				m_pShowModPages;
+	QPushButton*			m_pLoadModule = NULL;
+	QCheckBox*				m_pShowModPages = NULL;
 
 	QTreeViewEx*			m_pModuleList;
 	CModuleModel*			m_pModuleModel;

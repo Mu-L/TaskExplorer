@@ -1,6 +1,7 @@
 #pragma once
+#include "../../taskcore_global.h"
 
-class CWinMemIO : public QIODevice
+class TASKCORE_EXPORT CWinMemIO : public QIODevice
 {
 	Q_OBJECT
 

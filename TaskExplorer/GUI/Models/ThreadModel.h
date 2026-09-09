@@ -25,23 +25,17 @@ public:
 		eThread = 0,
 		eCPU,
 		eCPU_History,
-#ifdef WIN32
 		eStartAddress,
 		eService,
 		eName,
 		eType,
-#endif
 		eCreated,
-#ifdef WIN32
 		eStartModule,
-#endif
 		eContextSwitches,
 		eContextSwitchesDelta,
 		ePriority,
 		eBasePriority,
-#ifdef WIN32
 		eBasePriorityActual,
-#endif
 		ePagePriority,
 		eIOPriority,
 		eCycles,
@@ -49,7 +43,6 @@ public:
 		eState,
 		eKernelTime,
 		eUserTime,
-#ifdef WIN32
 		eIdealProcessor,
 		eImpersonation,
 		eCritical,
@@ -87,7 +80,6 @@ public:
 		ePowerThrottling,
 		//eContainerID,
 		eRPC_Usage,
-#endif
 		eCount
 	};
 

@@ -1,0 +1,25 @@
+<RCC>
+    <!--
+        The operating-system logos the *collector* reads.
+
+        Here rather than in TaskExplorer.qrc because CWindowsAPI::InitWindowsInfo
+        is what opens them, and that lives in TaskCore - which TaskServer also
+        links. With them in the viewer's resources a server found no logo, sent
+        no icon, and the System panel showed a blank square beside a remote
+        machine's name.
+
+        The Linux distribution logos are loose files beside the executable
+        instead; see Resources/DistroLogos/README.txt for why.
+    -->
+    <qresource prefix="/WinLogos">
+        <file alias="WinOld">WinLogos/1-4 Old Windows.png</file>
+        <file alias="Win2k">WinLogos/5 Windows 2000.png</file>
+        <file alias="WinXP">WinLogos/5.1 Windows XP.png</file>
+        <file alias="Win6">WinLogos/6 Windows Vista.png</file>
+        <file alias="Win7">WinLogos/7 Windows 7.png</file>
+        <file alias="Win8">WinLogos/8 Windows 8.png</file>
+        <file alias="Win10">WinLogos/10 Windows 10.png</file>
+        <file alias="Win11">WinLogos/11 Windows 11.png</file>
+        <file alias="WinNew">WinLogos/New Windows.png</file>
+    </qresource>
+</RCC>

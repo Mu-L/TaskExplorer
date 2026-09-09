@@ -1,0 +1,238 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{D9D6E242-F8AF-46E4-B9FD-80ECBC20BA3E}</UniqueIdentifier>
+      <Extensions>qrc;*</Extensions>
+      <ParseFiles>false</ParseFiles>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{D9D6E242-F8AF-46E4-B9FD-80ECBC20BA3E}</UniqueIdentifier>
+      <Extensions>qrc;*</Extensions>
+      <ParseFiles>false</ParseFiles>
+    </Filter>
+    <Filter Include="Common">
+      <UniqueIdentifier>{964acff8-ecee-4dfc-939d-e2406a533100}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Archive">
+      <UniqueIdentifier>{a0d54e04-e4f3-46ce-80a1-11ec64722475}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common\MT">
+      <UniqueIdentifier>{b3bf4001-e4f1-49ab-9bfc-c7708ca30fb9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common\IPC">
+      <UniqueIdentifier>{a1c0de01-1ec0-4b21-9c31-0f1e2d3c4b5a}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Common.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\DebugHelpers.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Crypto.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Settings.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Xml.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\qzlib.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\qRC4.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Archive\Archive.cpp">
+      <Filter>Archive</Filter>
+    </ClCompile>
+    <ClCompile Include="Archive\ArchiveExtractor.cpp">
+      <Filter>Archive</Filter>
+    </ClCompile>
+    <ClCompile Include="Archive\ArchiveFS.cpp">
+      <Filter>Archive</Filter>
+    </ClCompile>
+    <ClCompile Include="Archive\ArchiveHelper.cpp">
+      <Filter>Archive</Filter>
+    </ClCompile>
+    <ClCompile Include="Archive\ArchiveInterface.cpp">
+      <Filter>Archive</Filter>
+    </ClCompile>
+    <ClCompile Include="Archive\ArchiveOpener.cpp">
+      <Filter>Archive</Filter>
+    </ClCompile>
+    <ClCompile Include="Archive\ArchiveThread.cpp">
+      <Filter>Archive</Filter>
+    </ClCompile>
+    <ClCompile Include="Archive\ArchiveUpdater.cpp">
+      <Filter>Archive</Filter>
+    </ClCompile>
+    <ClCompile Include="Archive\CachedArchive.cpp">
+      <Filter>Archive</Filter>
+    </ClCompile>
+    <ClCompile Include="Archive\SplitFile.cpp">
+      <Filter>Archive</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\MT\ThreadLock.cpp">
+      <Filter>Common\MT</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\OtherFunctions.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\NetworkAccessManager.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\ObjectTracker.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Buffer.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Strings.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Variant.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\XVariant.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="stdafx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="corehelpers_global.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Common.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\DebugHelpers.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\FlexError.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Xml.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\qzlib.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\qRC4.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Archive\Archive.h">
+      <Filter>Archive</Filter>
+    </ClInclude>
+    <ClInclude Include="Archive\ArchiveExtractor.h">
+      <Filter>Archive</Filter>
+    </ClInclude>
+    <ClInclude Include="Archive\ArchiveFS.h">
+      <Filter>Archive</Filter>
+    </ClInclude>
+    <ClInclude Include="Archive\ArchiveHelper.h">
+      <Filter>Archive</Filter>
+    </ClInclude>
+    <ClInclude Include="Archive\ArchiveInterface.h">
+      <Filter>Archive</Filter>
+    </ClInclude>
+    <ClInclude Include="Archive\ArchiveIO.h">
+      <Filter>Archive</Filter>
+    </ClInclude>
+    <ClInclude Include="Archive\ArchiveOpener.h">
+      <Filter>Archive</Filter>
+    </ClInclude>
+    <ClInclude Include="Archive\ArchiveUpdater.h">
+      <Filter>Archive</Filter>
+    </ClInclude>
+    <ClInclude Include="Archive\CachedArchive.h">
+      <Filter>Archive</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\MT\ThreadLock.h">
+      <Filter>Common\MT</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\OtherFunctions.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\ObjectTracker.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Buffer.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Exception.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Strings.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Types.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Variant.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\VariantDefs.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\XVariant.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Common\Crypto.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <QtMoc Include="Common\Settings.h">
+      <Filter>Common</Filter>
+    </QtMoc>
+    <QtMoc Include="Archive\ArchiveThread.h">
+      <Filter>Archive</Filter>
+    </QtMoc>
+    <QtMoc Include="Archive\SplitFile.h">
+      <Filter>Archive</Filter>
+    </QtMoc>
+    <QtMoc Include="Common\NetworkAccessManager.h">
+      <Filter>Common</Filter>
+    </QtMoc>
+    <ClCompile Include="Common\IPC\Discovery.cpp">
+      <Filter>Common\IPC</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\IPC\IPCServer.cpp">
+      <Filter>Common\IPC</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\IPC\IPCSocket.cpp">
+      <Filter>Common\IPC</Filter>
+    </ClCompile>
+    <QtMoc Include="Common\IPC\Discovery.h">
+      <Filter>Common\IPC</Filter>
+    </QtMoc>
+    <QtMoc Include="Common\IPC\IPCServer.h">
+      <Filter>Common\IPC</Filter>
+    </QtMoc>
+    <QtMoc Include="Common\IPC\IPCSocket.h">
+      <Filter>Common\IPC</Filter>
+    </QtMoc>
+    <ClInclude Include="Common\IPC\VariantCache.h">
+      <Filter>Common\IPC</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

@@ -1,4 +1,4 @@
-; English is default language and can be translated to any
+﻿; English is default language and can be translated to any
 ; of the languages listed in the languages section.
 ; The translations can be added to the CustomMessages section.
 ; The content of this script will be included by TaskExplorer.iss,
@@ -25,7 +25,7 @@ Name: "swedish"; MessagesFile: "isl\Swedish.isl"
 Name: "turkish"; MessagesFile: "compiler:Languages\Turkish.isl"
 Name: "ukrainian"; MessagesFile: "compiler:Languages\Ukrainian.isl"
 Name: "vietnamese"; MessagesFile: "isl\Vietnamese.isl"
-Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
+;Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
 ;Name: "armenian"; MessagesFile: "compiler:Languages\Armenian.isl"
 ;Name: "bulgarian"; MessagesFile: "compiler:Languages\Bulgarian.isl"
 ;Name: "catalan"; MessagesFile: "compiler:Languages\Catalan.isl"
@@ -206,10 +206,10 @@ vietnamese.CustomPagePortableMode=Giải nén tất cả các tệp vào một t
 vietnamese.RequiresWin7OrLater={#MyAppName} yêu cầu Windows 7 trở lên.
 
 ; Japanese
-english.CustomPageLabel1=インストールタイプの選択
-english.CustomPageLabel2=インストール方法
-english.CustomPageLabel3=インストールモードの選択
-english.CustomPageInstallMode=このコンピュータに {#MyAppName} をインストール
-english.CustomPageUpgradeMode=既存の {#MyAppName} インストールを更新
-english.CustomPagePortableMode=すべてのファイルをポータブル用にディレクトリに抽出
-english.RequiresWin7OrLater={#MyAppName} には Windows 7 以降が必要です。
+;english.CustomPageLabel1=インストールタイプの選択
+;english.CustomPageLabel2=インストール方法
+;english.CustomPageLabel3=インストールモードの選択
+;english.CustomPageInstallMode=このコンピュータに {#MyAppName} をインストール
+;english.CustomPageUpgradeMode=既存の {#MyAppName} インストールを更新
+;english.CustomPagePortableMode=すべてのファイルをポータブル用にディレクトリに抽出
+;english.RequiresWin7OrLater={#MyAppName} には Windows 7 以降が必要です。

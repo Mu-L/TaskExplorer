@@ -4,9 +4,8 @@
 #define GDI_HANDLE_UNIQUE(Handle) ((ULONG)(Handle >> GDI_HANDLE_INDEX_BITS) & GDI_HANDLE_INDEX_MASK)
 
 
-CWinGDI::CWinGDI(QObject *parent) : CAbstractInfoEx(parent)
+CWinGDI::CWinGDI(QObject *parent) : CGdiInfo(parent)
 {
-	m_HandleId = 0;
 	m_Object = -1;
 }
 
@@ -126,48 +125,33 @@ bool CWinGDI::InitData(quint32 index, struct _GDI_HANDLE_ENTRY* handle, const QS
 
 	m_HandleId = GDI_MAKE_HANDLE(index, handle->Unique);
 
+	m_GdiType = DecodeGdiType(m_HandleId);
+
 	m_Object = (quint64)handle->Object;
 	m_Informations = CastPhString(PhpGetGdiHandleInformation(m_HandleId));
 
 	return true;
 }
 
-QString CWinGDI::GetTypeString() const
+quint32 CWinGDI::DecodeGdiType(quint32 HandleId)
 {
-	QReadLocker Locker(&m_Mutex);
-
-	ulong Unique = GDI_HANDLE_UNIQUE(m_HandleId);
-    switch (GDI_CLIENT_TYPE_FROM_UNIQUE(Unique))
-    {
-    case GDI_CLIENT_ALTDC_TYPE:
-        return tr("Alt. DC");
-    case GDI_CLIENT_BITMAP_TYPE:
-        return tr("Bitmap");
-    case GDI_CLIENT_BRUSH_TYPE:
-        return tr("Brush");
-    case GDI_CLIENT_CLIENTOBJ_TYPE:
-        return tr("Client Object");
-    case GDI_CLIENT_DIBSECTION_TYPE:
-        return tr("DIB Section");
-    case GDI_CLIENT_DC_TYPE:
-        return tr("DC");
-    case GDI_CLIENT_EXTPEN_TYPE:
-        return tr("ExtPen");
-    case GDI_CLIENT_FONT_TYPE:
-        return tr("Font");
-    case GDI_CLIENT_METADC16_TYPE:
-        return tr("Metafile DC");
-    case GDI_CLIENT_METAFILE_TYPE:
-        return tr("Enhanced Metafile");
-    case GDI_CLIENT_METAFILE16_TYPE:
-        return tr("Metafile");
-    case GDI_CLIENT_PALETTE_TYPE:
-        return tr("Palette");
-    case GDI_CLIENT_PEN_TYPE:
-        return tr("Pen");
-    case GDI_CLIENT_REGION_TYPE:
-        return tr("Region");
-    default:
-        return tr("Unknown");
-    }
+	ulong Unique = GDI_HANDLE_UNIQUE(HandleId);
+	switch (GDI_CLIENT_TYPE_FROM_UNIQUE(Unique))
+	{
+	case GDI_CLIENT_ALTDC_TYPE:			return eGdiAltDc;
+	case GDI_CLIENT_BITMAP_TYPE:		return eGdiBitmap;
+	case GDI_CLIENT_BRUSH_TYPE:			return eGdiBrush;
+	case GDI_CLIENT_CLIENTOBJ_TYPE:		return eGdiClientObj;
+	case GDI_CLIENT_DIBSECTION_TYPE:	return eGdiDibSection;
+	case GDI_CLIENT_DC_TYPE:			return eGdiDc;
+	case GDI_CLIENT_EXTPEN_TYPE:		return eGdiExtPen;
+	case GDI_CLIENT_FONT_TYPE:			return eGdiFont;
+	case GDI_CLIENT_METADC16_TYPE:		return eGdiMetaDc16;
+	case GDI_CLIENT_METAFILE_TYPE:		return eGdiMetafile;
+	case GDI_CLIENT_METAFILE16_TYPE:	return eGdiMetafile16;
+	case GDI_CLIENT_PALETTE_TYPE:		return eGdiPalette;
+	case GDI_CLIENT_PEN_TYPE:			return eGdiPen;
+	case GDI_CLIENT_REGION_TYPE:		return eGdiRegion;
+	}
+	return eGdiUnknown;
 }
