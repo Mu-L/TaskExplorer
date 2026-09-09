@@ -45,6 +45,7 @@
 #include <dirent.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/procfs.h>
 #include <sys/ptrace.h>
 #include <sys/uio.h>
 #include <sys/user.h>
@@ -703,9 +704,15 @@ static CVariant DumpAttach(const CVariant& Parameters)
 			// stop the thread, so the stop is asked for explicitly and no queued
 			// SIGSTOP is left behind to surprise the target after detaching.
 			//
+			// elf_gregset_t/elf_fpregset_t rather than the user_*_struct names:
+			// those are spelled per architecture - x86_64 has user_fpregs_struct
+			// where arm64 has user_fpsimd_struct - while the elf_ names are what
+			// each port defines for exactly these two register sets. They are also
+			// what the caller unpacks the bytes back into; see CLinuxDumper.
+			//
 			bool bAttached = false;
-			struct user_regs_struct Regs;
-			struct user_fpregs_struct FpRegs;
+			elf_gregset_t Regs;
+			elf_fpregset_t FpRegs;
 			bool bHaveRegs = false, bHaveFpRegs = false;
 
 			memset(&Regs, 0, sizeof(Regs));
